@@ -3,6 +3,7 @@ import { assetFor, type Point, type Quote, type Range } from "./market";
 type YahooResult = { meta: Record<string, any>; timestamp?: number[]; indicators?: { quote?: { close?: (number|null)[]; volume?: (number|null)[] }[] } };
 const cache = new Map<string,{expires:number;data:YahooResult}>();
 const inFlight = new Map<string,Promise<YahooResult>>();
+let upstreamRetryAt = 0;
 const rangeConfig:Record<Range,{range:string;interval:string}> = {
   "1d":{range:"1d",interval:"5m"},"1w":{range:"5d",interval:"60m"},
   "1m":{range:"1mo",interval:"1d"},"3m":{range:"3mo",interval:"1d"}
@@ -38,18 +39,25 @@ async function fetchChart(symbol:string,range:Range):Promise<YahooResult> {
   const key=`${symbol}:${range}`; const cached=cache.get(key);
   if(cached&&cached.expires>Date.now()) return cached.data;
   const running=inFlight.get(key);if(running)return running;
+  if(Date.now()<upstreamRetryAt)throw new Error("行情源请求繁忙，正在等待恢复后自动重试");
   const promise=(async()=>{
     const config=rangeConfig[range];
     const url=new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`);
     url.searchParams.set("interval",config.interval);url.searchParams.set("range",config.range);url.searchParams.set("includePrePost","false");
     if(assetFor(symbol).market==="crypto"&&range==="1w")url.searchParams.set("range","7d");
     const res=await fetch(url,{headers:{"User-Agent":"MarketRadar/1.0","Accept":"application/json"},signal:AbortSignal.timeout(12_000)});
+    if(res.status===429){
+      const retryAfter=res.headers.get("Retry-After");
+      const seconds=retryAfter!==null?Number(retryAfter):NaN;
+      const retryAt=Number.isFinite(seconds)?Date.now()+seconds*1000:retryAfter?Date.parse(retryAfter):NaN;
+      upstreamRetryAt=Math.max(upstreamRetryAt,Date.now()+60_000,Number.isFinite(retryAt)?retryAt:0);
+    }
     if(!res.ok)throw new Error(res.status===429?"行情源请求繁忙，请稍后刷新":res.status===404?"未找到该代码的行情":"行情源暂时不可用");
     const body=await res.json() as {chart?:{result?:YahooResult[];error?:unknown}};
     const result=body.chart?.result?.[0];
     if(!result?.meta||body.chart?.error)throw new Error("该代码暂无可用行情，请检查市场后缀");
     if(cache.size>=180)cache.delete(cache.keys().next().value!);
-    cache.set(key,{data:result,expires:Date.now()+(range==="1d"?45_000:240_000)});
+    cache.set(key,{data:result,expires:Date.now()+(range==="1d"?10_000:240_000)});
     return result;
   })();
   inFlight.set(key,promise);
