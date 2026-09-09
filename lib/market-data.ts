@@ -1,10 +1,12 @@
 import { assetFor, type Point, type Quote, type Range } from "./market";
+import { getOKXHistory, getOKXQuote, getOKXTickers } from "./okx";
 
-type YahooResult = { meta: Record<string, any>; timestamp?: number[]; indicators?: { quote?: { close?: (number|null)[]; volume?: (number|null)[] }[] } };
+type YahooResult = { meta: Record<string, any>; timestamp?: number[]; indicators?: { quote?: { close?: (number|null)[]; open?: (number|null)[]; high?: (number|null)[]; low?: (number|null)[]; volume?: (number|null)[] }[] } };
 const cache = new Map<string,{expires:number;data:YahooResult}>();
 const inFlight = new Map<string,Promise<YahooResult>>();
 let upstreamRetryAt = 0;
 const rangeConfig:Record<Range,{range:string;interval:string}> = {
+  "15m":{range:"5d",interval:"15m"},
   "1d":{range:"1d",interval:"5m"},"1w":{range:"5d",interval:"60m"},
   "1m":{range:"1mo",interval:"1d"},"3m":{range:"3mo",interval:"1d"}
 };
@@ -13,7 +15,7 @@ export function parsePoints(data:YahooResult):Point[] {
   const series=data.indicators?.quote?.[0];
   return (data.timestamp??[]).flatMap((timestamp,i)=>{
     const close=numeric(series?.close?.[i]);const volume=numeric(series?.volume?.[i]);
-    return close!==null&&Number.isFinite(timestamp)?[{time:timestamp*1000,close,volume:volume??undefined}]:[];
+    return close!==null&&Number.isFinite(timestamp)?[{time:timestamp*1000,close,volume:volume??undefined,open:numeric(series?.open?.[i])??undefined,high:numeric(series?.high?.[i])??undefined,low:numeric(series?.low?.[i])??undefined,confirmed:timestamp*1000+900000<=Date.now()}]:[];
   }).sort((a,b)=>a.time-b.time);
 }
 export function parseQuote(symbol:string,data:YahooResult,now=Date.now()):Quote {
@@ -57,14 +59,33 @@ async function fetchChart(symbol:string,range:Range):Promise<YahooResult> {
     const result=body.chart?.result?.[0];
     if(!result?.meta||body.chart?.error)throw new Error("该代码暂无可用行情，请检查市场后缀");
     if(cache.size>=180)cache.delete(cache.keys().next().value!);
-    cache.set(key,{data:result,expires:Date.now()+(range==="1d"?10_000:240_000)});
+    cache.set(key,{data:result,expires:Date.now()+((range==="1d"||range==="15m")?10_000:240_000)});
     return result;
   })();
   inFlight.set(key,promise);
   try{return await promise;}finally{inFlight.delete(key);}
 }
-export async function getQuote(symbol:string):Promise<Quote> {return parseQuote(symbol,await fetchChart(symbol,"1d"));}
+export async function getQuote(symbol:string, includePoints=true):Promise<Quote> {return symbol.endsWith("-USDT")?getOKXQuote(symbol,includePoints):parseQuote(symbol,await fetchChart(symbol,"1d"));}
+export async function getQuotes(symbols:string[],includePoints=true) {
+  let tickers:Record<string,Record<string,string>>={},tickerError:unknown;
+  if(symbols.some(s=>s.endsWith("-USDT")))try{tickers=await getOKXTickers();}catch(error){tickerError=error;}
+  const results: {symbol:string;quote?:Quote;error?:string}[]=[];
+  for(let i=0;i<symbols.length;i+=10){
+    results.push(...await Promise.all(symbols.slice(i,i+10).map(async symbol=>{
+      try{
+        if(symbol.endsWith("-USDT")){
+          if(tickerError)throw tickerError;
+          if(!tickers[symbol])throw new Error("欧易暂无该交易对行情");
+          return {symbol,quote:await getOKXQuote(symbol,includePoints,tickers[symbol])};
+        }
+        return {symbol,quote:await getQuote(symbol,includePoints)};
+      }catch(error){return {symbol,error:publicError(error)};}
+    })));
+  }
+  return results;
+}
 export async function getHistory(symbol:string,range:Range) {
+  if(symbol.endsWith("-USDT"))return getOKXHistory(symbol,range);
   const data=await fetchChart(symbol,range);const points=parsePoints(data);
   if(points.length<2)throw new Error("该时间范围暂无足够的走势数据");
   return {symbol,range,points,currency:data.meta.currency??"USD",timezone:data.meta.exchangeTimezoneName??"UTC",source:"Yahoo Finance",fetchedAt:Date.now()};
