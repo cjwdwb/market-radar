@@ -1,8 +1,9 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
+import { accessGate, privateResponse, type AccessSecrets } from "./access-gate";
 
-interface Env {
+interface Env extends AccessSecrets {
   ASSETS: Fetcher;
   DB: D1Database;
   IMAGES: {
@@ -27,6 +28,8 @@ interface ExecutionContext {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const accessResponse = await accessGate(request, env);
+    if (accessResponse) return accessResponse;
     const url = new URL(request.url);
 
     if (url.pathname === "/_vinext/image") {
@@ -40,7 +43,11 @@ const worker = {
       }, allowedWidths);
     }
 
-    return handler.fetch(request, env, ctx);
+    if (["GET", "HEAD"].includes(request.method) && !url.pathname.startsWith("/api/") && request.headers.get("rsc") !== "1") {
+      const asset = await env.ASSETS.fetch(request);
+      if (asset.status !== 404) return privateResponse(asset);
+    }
+    return privateResponse(await handler.fetch(request, env, ctx));
   },
 };
 

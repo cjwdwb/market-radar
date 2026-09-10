@@ -276,6 +276,7 @@ export default function MarketRadar(){
       <div className="setting-row"><div className="setting-copy"><strong><Layers size={17}/>标签页后台监控</strong><p>切换到其他标签页后，每 60 秒尝试检查。浏览器可能延迟或停止执行。</p></div><Switch checked={backgroundTabs} onCheckedChange={setBackgroundTabs} aria-label="切换标签页后继续尝试监控"/></div>
       <div className="setting-row"><div className="setting-copy"><strong><Bell size={17}/>本次访问的系统通知</strong><p>浏览器支持且授权后，触价时显示系统通知。</p></div><button className="btn" onClick={()=>notifying?setNotifying(false):void enableNotifications()}>{notifying?"关闭":"开启"}</button></div>
       <CloudMonitor watchlist={watchlist} alerts={alerts}/>
+      <form action="/api/access/logout" method="post"><button className="btn w-full" type="submit">退出访问 · 下次重新输入访问码</button></form>
       <p className="settings-foot"><ShieldCheck size={14}/>本机设置保存在浏览器；同步后的云端设置独立保存，可随时暂停。</p>
     </DialogContent></Dialog>
 

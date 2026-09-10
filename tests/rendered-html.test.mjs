@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { accessCodeHash, createAccessSession } from "../worker/access-gate.ts";
 
 const productTitle = /<title>市场雷达 · Market Radar<\/title>/i;
 
@@ -7,12 +8,14 @@ test("renders the market monitoring workspace with its product title", async () 
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
+  const access = { ACCESS_CODE_HASH: accessCodeHash("test-only-access-code"), ACCESS_SESSION_SECRET: "test-only-session-secret-with-32-characters" };
 
   const response = await worker.fetch(
     new Request("http://localhost/", {
-      headers: { accept: "text/html" },
+      headers: { accept: "text/html", cookie: `__Host-radar_access=${createAccessSession(access)}` },
     }),
     {
+      ...access,
       ASSETS: {
         fetch: async () => new Response("Not found", { status: 404 }),
       },
