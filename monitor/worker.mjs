@@ -1,4 +1,4 @@
-import { getQuotes } from '../lib/market-data.ts';
+import { getQuotes, getHistory } from '../lib/market-data.ts';
 import { VALID_SYMBOL, alertMatches } from '../lib/market.ts';
 
 function json(body, status=200) { return Response.json(body,{status,headers:{'Cache-Control':'no-store'}}); }
@@ -45,6 +45,12 @@ export default {
     const b=await crypto.subtle.digest('SHA-256',encode.encode(`Bearer ${env.MONITOR_TOKEN}`));
     if(!env.MONITOR_TOKEN||!crypto.subtle.timingSafeEqual(a,b))return json({error:'Unauthorized'},401);
     try {
+      const url=new URL(request.url);
+      if(request.method==='GET'&&url.pathname==='/history'){
+        const symbol=url.searchParams.get('symbol')||'',range=url.searchParams.get('range')||'15m';
+        if(!VALID_SYMBOL.test(symbol)||!['15m','1d','1w','1m','3m'].includes(range))return json({error:'无效行情参数'},400);
+        return json(await getHistory(symbol,range));
+      }
       if(request.method==='GET')return json(await status(env));
       if(request.method==='POST'&&new URL(request.url).pathname==='/run'){await run(env);return json(await status(env));}
       if(request.method!=='PUT')return json({error:'Method not allowed'},405);

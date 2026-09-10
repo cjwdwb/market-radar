@@ -31,7 +31,10 @@ async function request(path: string, params: Record<string, string>) {
 export async function getOKXHistory(symbol: string, range: Range) {
   const bar = ({ "15m": "15m", "1d": "15m", "1w": "1H", "1m": "4H", "3m": "1Dutc" })[range];
   const limit = ({ "15m": "96", "1d": "96", "1w": "168", "1m": "180", "3m": "90" })[range];
-  const points = parseCandles(await request("/api/v5/market/candles", { instId: symbol, bar, limit }));
+  let rows: unknown[];
+  try { rows = await request("/api/v5/market/candles", { instId: symbol, bar, limit }); }
+  catch { rows = await request("/api/v5/market/history-candles", { instId: symbol, bar, limit }); }
+  const points = parseCandles(rows);
   if (points.length < 2) throw new Error("欧易暂无足够走势数据");
   return { symbol, range, points, currency: "USDT", timezone: "UTC", source: "OKX 欧易", fetchedAt: Date.now() };
 }
