@@ -1,9 +1,9 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 import { Minus, Plus, RotateCcw } from "lucide-react";
 import { compact, price, type Point } from "@/lib/market";
 
-export function CandleChart({ points, currency, timezone }: { points: Point[]; currency: string; timezone: string }) {
+export const CandleChart=memo(function CandleChart({ points, currency, timezone }: { points: Point[]; currency: string; timezone: string }) {
   const [focus, setFocus] = useState<number | null>(null);
   const [averages, setAverages] = useState(true), [volumeVisible, setVolumeVisible] = useState(true);
   const [windowSize, setWindowSize] = useState<number | null>(null);
@@ -13,10 +13,12 @@ export function CandleChart({ points, currency, timezone }: { points: Point[]; c
     const observer = new ResizeObserver(entries => setWidth(Math.max(280, entries[0].contentRect.width)));
     observer.observe(container.current); return () => observer.disconnect();
   }, []);
-  const all = points.filter(p => p.open != null && p.high != null && p.low != null);
+  const all = useMemo(()=>points.filter(p => p.open != null && p.high != null && p.low != null),[points]);
   const count = Math.min(windowSize ?? (width < 600 ? 40 : 96), all.length);
-  const candles = all.slice(-count), offset = all.length - candles.length;
-  const average = (i: number, period: number) => i + 1 < period ? null : all.slice(i + 1 - period, i + 1).reduce((sum, p) => sum + p.close, 0) / period;
+  const candles = useMemo(()=>all.slice(-count),[all,count]), offset = all.length - candles.length;
+  const sums=useMemo(()=>{const values=[0];for(const p of all)values.push(values.at(-1)!+p.close);return values;},[all]);
+  const average = (i: number, period: number) => i + 1 < period ? null : (sums[i+1]-sums[i+1-period])/period;
+  const timeFormatter=useMemo(()=>new Intl.DateTimeFormat("zh-CN",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false,timeZone:timezone}),[timezone]);
   if (!candles.length) return <div className="chart-empty">暂无有效 K 线数据</div>;
   const left = 12, right = width < 600 ? 78 : 100, plot = width - left - right;
   const maValues = averages ? candles.flatMap((_, i) => [average(i + offset, 7), average(i + offset, 25)]).filter((v): v is number => v !== null) : [];
@@ -26,7 +28,7 @@ export function CandleChart({ points, currency, timezone }: { points: Point[]; c
   const step = plot / candles.length, x = (i: number) => left + (i + .5) * step;
   const volMax = Math.max(1, ...candles.map(p => p.volume ?? 0));
   const index = Math.min(focus ?? candles.length - 1, candles.length - 1), selected = candles[index], last = candles.at(-1)!;
-  const time = (v: number) => new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: timezone }).format(v);
+  const time = (v: number) => timeFormatter.format(v);
   const line = (period: number) => {
     let started = false;
     return candles.map((_, i) => { const v = average(i + offset, period); if (v === null) return ""; const command = started ? "L" : "M"; started = true; return `${command}${x(i)},${y(v)}`; }).join(" ");
@@ -54,4 +56,4 @@ export function CandleChart({ points, currency, timezone }: { points: Point[]; c
     <div className="candle-key"><span><i className="candle-key-up"/>阳线 · 实心</span><span><i className="candle-key-down"/>阴线 · 空心</span></div>
     <div className="chart-interaction-hint">{width < 600 ? "轻触查看单根价格" : "移动光标或使用 ← → 查看单根价格"}<span>{currency} · {timezone}</span></div>
   </div>;
-}
+});

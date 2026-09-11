@@ -67,13 +67,16 @@ async function fetchChart(symbol:string,range:Range):Promise<YahooResult> {
 }
 export async function getQuote(symbol:string, includePoints=true):Promise<Quote> {return symbol.endsWith("-USDT")?getOKXQuote(symbol,includePoints):parseQuote(symbol,await fetchChart(symbol,"1d"));}
 export async function getQuotes(symbols:string[],includePoints=true) {
-  let tickers:Record<string,Record<string,string>>={},tickerError:unknown;
-  if(symbols.some(s=>s.endsWith("-USDT")))try{tickers=await getOKXTickers();}catch(error){tickerError=error;}
+  // Begin both providers together. A slow crypto provider must not delay stocks.
+  const tickerRequest=symbols.some(s=>s.endsWith("-USDT"))
+    ?getOKXTickers().then(tickers=>({tickers,error:undefined as unknown})).catch(error=>({tickers:{} as Record<string,Record<string,string>>,error}))
+    :Promise.resolve({tickers:{} as Record<string,Record<string,string>>,error:undefined as unknown});
   const results: {symbol:string;quote?:Quote;error?:string}[]=[];
   for(let i=0;i<symbols.length;i+=10){
     results.push(...await Promise.all(symbols.slice(i,i+10).map(async symbol=>{
       try{
         if(symbol.endsWith("-USDT")){
+          const {tickers,error:tickerError}=await tickerRequest;
           if(tickerError)throw tickerError;
           if(!tickers[symbol])throw new Error("欧易暂无该交易对行情");
           return {symbol,quote:await getOKXQuote(symbol,includePoints,tickers[symbol])};

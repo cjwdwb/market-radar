@@ -8,7 +8,7 @@ export async function GET(request:Request) {
     if(symbol.endsWith("-USDT")&&process.env.MONITOR_URL&&process.env.MONITOR_TOKEN){
       try{
         const upstream=new URL('/history',process.env.MONITOR_URL);upstream.searchParams.set('symbol',symbol);upstream.searchParams.set('range',range);
-        const response=await fetch(upstream,{headers:{Authorization:`Bearer ${process.env.MONITOR_TOKEN}`},signal:AbortSignal.timeout(28000)});
+        const response=await fetch(upstream,{headers:{Authorization:`Bearer ${process.env.MONITOR_TOKEN}`},signal:AbortSignal.timeout(6000)});
         if(response.ok)return new Response(response.body,{headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});
       }catch{ /* Fall back to direct official market data if the monitor is unavailable. */ }
     }

@@ -55,14 +55,22 @@ export function assetFor(symbol: string): Asset {
   };
 }
 export function displaySymbol(symbol:string) { return symbol.replace(/-USDT?$|\.SS$|\.SZ$|\.HK$/g,"").replace("^GSPC","S&P 500").replace("^IXIC","NASDAQ"); }
+const priceFormats=new Map<string,Intl.NumberFormat>();
+const compactFormat=new Intl.NumberFormat("zh-CN",{notation:"compact",maximumFractionDigits:2});
 export function price(value:number|null|undefined,currency="USD",symbol=true) {
   if(value==null || !Number.isFinite(value)) return "—";
   const digits = value!==0&&Math.abs(value)<1?4:2;
-  if(currency==="USDT")return `${new Intl.NumberFormat("en-US",{minimumFractionDigits:digits,maximumFractionDigits:digits}).format(value)}${symbol?" USDT":""}`;
-  return new Intl.NumberFormat("en-US",{style:symbol?"currency":"decimal",currency,currencyDisplay:"narrowSymbol",minimumFractionDigits:digits,maximumFractionDigits:digits}).format(value);
+  const currencyStyle=symbol&&currency!=="USDT",key=`${currencyStyle?currency:"decimal"}:${digits}`;
+  let formatter=priceFormats.get(key);
+  if(!formatter){
+    formatter=new Intl.NumberFormat("en-US",{style:currencyStyle?"currency":"decimal",...(currencyStyle?{currency,currencyDisplay:"narrowSymbol" as const}:{}),minimumFractionDigits:digits,maximumFractionDigits:digits});
+    if(priceFormats.size>=32)priceFormats.delete(priceFormats.keys().next().value!);
+    priceFormats.set(key,formatter);
+  }
+  return `${formatter.format(value)}${currency==="USDT"&&symbol?" USDT":""}`;
 }
 export function percent(value:number|null|undefined) {return value==null||!Number.isFinite(value)?"—":`${value>0?"+":""}${value.toFixed(2)}%`;}
-export function compact(value:number|null|undefined) {return value==null?"—":new Intl.NumberFormat("zh-CN",{notation:"compact",maximumFractionDigits:2}).format(value);}
+export function compact(value:number|null|undefined) {return value==null?"—":compactFormat.format(value);}
 export function alertMatches(alert:PriceAlert,quote:Quote,now=Date.now()):boolean {
   if (!alert.enabled || alert.triggeredAt || quote.error || quote.symbol!==alert.symbol || !Number.isFinite(quote.price) || !Number.isFinite(alert.target) || alert.target<=0) return false;
   if (!Number.isFinite(quote.timestamp) || !Number.isFinite(quote.fetchedAt) || quote.timestamp>now+60_000 || now-quote.fetchedAt>120_000) return false;
