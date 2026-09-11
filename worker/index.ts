@@ -28,9 +28,13 @@ interface ExecutionContext {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    const url = new URL(request.url);
+    // Only the two public brand assets are needed before access verification.
+    if (["GET", "HEAD"].includes(request.method) && ["/brand.svg", "/favicon.svg"].includes(url.pathname)) {
+      return env.ASSETS.fetch(request);
+    }
     const accessResponse = await accessGate(request, env);
     if (accessResponse) return accessResponse;
-    const url = new URL(request.url);
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];

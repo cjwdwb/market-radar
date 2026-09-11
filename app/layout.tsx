@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import "./mono.css";
 
 export const metadata: Metadata = {
   title: "市场雷达 · Market Radar",
