@@ -18,6 +18,7 @@ import { ASSETS, DEFAULT_WATCHLIST, MARKET_LABELS, OVERVIEW, VALID_SYMBOL, alert
 import { CloudMonitor } from "@/components/cloud-monitor";
 import { CandleChart } from "@/components/candle-chart";
 import { canMonitor } from "@/lib/monitoring";
+import { retryDelay, reusePoints } from "@/lib/refresh-policy";
 
 type HistoryData={key:string;points:Point[];timezone:string;source:string;currency:string};
 const STORAGE_KEY="market-radar-preferences-v1";
@@ -81,6 +82,7 @@ export default function MarketRadar(){
   const failedStorage=useRef(false);
   const refreshSequence=useRef(0);
   const quoteRequests=useRef(new Map<string,AbortController>());
+  const quoteRetries=useRef(new Map<string,{failures:number;after:number}>());
   const mayRun=canMonitor(auto,visible,backgroundTabs,online);
 
   useEffect(()=>{
@@ -121,6 +123,8 @@ export default function MarketRadar(){
     if(!background)setLoading(true);
     await Promise.all(groups.map(async group=>{
       const key=group.join(",");if(quoteRequests.current.has(key))return;
+      if(background&&(quoteRetries.current.get(key)?.after??0)>Date.now())return;
+      const fail=()=>{const failures=(quoteRetries.current.get(key)?.failures??0)+1;quoteRetries.current.set(key,{failures,after:Date.now()+retryDelay(failures,group[0].endsWith("-USDT")?5000:15000)});};
       const controller=new AbortController();quoteRequests.current.set(key,controller);
       const timeout=setTimeout(()=>controller.abort(),18_000);
       try{
@@ -129,11 +133,13 @@ export default function MarketRadar(){
         const body=await response.json();if(!Array.isArray(body.results))throw new Error("无效行情响应");
         if(sequence!==refreshSequence.current)return;
         const results:QuoteResult[]=body.results.filter((r:QuoteResult)=>group.includes(r.symbol));
-        setQuotes(prev=>{const next={...prev};for(const r of results){if(r.quote)next[r.symbol]=r.quote;else if(next[r.symbol])next[r.symbol]={...next[r.symbol],error:r.error};}return next;});
+        if(results.some(r=>r.quote))quoteRetries.current.delete(key);else fail();
+        setQuotes(prev=>{const next={...prev};for(const r of results){if(r.quote)next[r.symbol]={...r.quote,points:reusePoints(prev[r.symbol]?.points,r.quote.points)};else if(next[r.symbol])next[r.symbol]={...next[r.symbol],error:r.error};}return next;});
         setErrors(prev=>{const next={...prev};for(const r of results){if(r.error)next[r.symbol]=r.error;else delete next[r.symbol];}return next;});
         setLastFetched(Date.now());setNow(Date.now());
       }catch{
         if(sequence!==refreshSequence.current)return;
+        fail();
         setErrors(prev=>({...prev,...Object.fromEntries(group.map(s=>[s,"行情连接中断，请刷新重试"]))}));
         setQuotes(prev=>{const next={...prev};for(const s of group)if(next[s])next[s]={...next[s],error:"行情连接中断"};return next;});
       }finally{clearTimeout(timeout);if(quoteRequests.current.get(key)===controller)quoteRequests.current.delete(key);}
@@ -163,7 +169,7 @@ export default function MarketRadar(){
       for(let i=0;i<symbols.length&&!stopped;i+=3){
         await Promise.all(symbols.slice(i,i+3).map(async symbol=>{
           const controller=new AbortController();controllers.add(controller);const timeout=setTimeout(()=>controller.abort(),35_000);
-          try{const response=await fetch("/api/history?symbol="+encodeURIComponent(symbol)+"&range=1d",{signal:controller.signal,cache:"no-store"});if(!response.ok)return;const body=await response.json();if(!stopped&&Array.isArray(body.points))setTrends(prev=>({...prev,[symbol]:body.points}));}catch{}finally{controllers.delete(controller);clearTimeout(timeout);}
+          try{const response=await fetch("/api/history?symbol="+encodeURIComponent(symbol)+"&range=1d",{signal:controller.signal,cache:"no-store"});if(!response.ok)return;const body=await response.json();if(!stopped&&Array.isArray(body.points))setTrends(prev=>{const points=reusePoints(prev[symbol],body.points);return points===prev[symbol]?prev:{...prev,[symbol]:points};});}catch{}finally{controllers.delete(controller);clearTimeout(timeout);}
         }));
       }running=false;
     }
@@ -182,7 +188,7 @@ export default function MarketRadar(){
     historyPending.current=true;setHistoryLoading(!cached);setHistoryError("");
     fetch(`/api/history?symbol=${encodeURIComponent(selected)}&range=${range}`,{signal:controller.signal,cache:"no-store"})
       .then(async response=>{const body=await response.json();if(!response.ok)throw new Error(body.error??"走势暂时不可用");return body;})
-      .then(body=>{if(!cancelled){const data:HistoryData={key,points:body.points,timezone:body.timezone,source:body.source,currency:body.currency};historyCache.current.delete(key);historyCache.current.set(key,{data,at:Date.now()});if(historyCache.current.size>24)historyCache.current.delete(historyCache.current.keys().next().value!);setHistory(data);}})
+      .then(body=>{if(!cancelled){const data:HistoryData={key,points:reusePoints(historyCache.current.get(key)?.data.points,body.points),timezone:body.timezone,source:body.source,currency:body.currency};historyCache.current.delete(key);historyCache.current.set(key,{data,at:Date.now()});if(historyCache.current.size>24)historyCache.current.delete(historyCache.current.keys().next().value!);setHistory(data);}})
       .catch(error=>{if(!cancelled)setHistoryError(controller.signal.aborted?"走势请求超时，请重试":error.message);})
       .finally(()=>{clearTimeout(timeout);if(!cancelled){historyPending.current=false;setHistoryLoading(false);}});
     return()=>{cancelled=true;historyPending.current=false;clearTimeout(timeout);controller.abort();};
