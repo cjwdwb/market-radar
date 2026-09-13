@@ -8,10 +8,10 @@ html[data-intro=play] .brand-opening{display:grid!important;animation:opening-cu
 .opening-signature img{object-fit:contain;opacity:.88}
 .opening-signature span{font-size:11px;letter-spacing:4px;color:#c2c2c2}
 .opening-signature i{height:1px;width:100px;background:#777;transform-origin:left;animation:hairline-in 800ms 100ms var(--ease-out) both}
-.heading-title{display:block}
+.heading-title{display:block;overflow:hidden}.heading-title-inner{display:block}
 html[data-intro=play] .brand{animation:soft-arrival 480ms 760ms var(--ease-out) both}
 html[data-intro=play] .eyebrow{animation:soft-arrival 480ms 800ms var(--ease-out) both}
-html[data-intro=play] .heading-title{animation:title-reveal 580ms 850ms var(--ease-out) both}
+html[data-intro=play] .heading-title-inner{animation:title-reveal 580ms 850ms var(--ease-out) both}
 html[data-intro=play] .heading-note{animation:soft-arrival 480ms 940ms var(--ease-out) both}
 html[data-intro=play] .toolbar{animation:soft-arrival 480ms 1000ms var(--ease-out) both}
 html[data-intro=play] .overview-card{animation:soft-arrival 480ms calc(1040ms + var(--arrival-order,0)*45ms) var(--ease-out) backwards}
@@ -54,7 +54,7 @@ details[open]>.data-note,details[open]>.detail-grid,details[open]>.detail-name{a
 @keyframes signature-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes hairline-in{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @keyframes soft-arrival{from{opacity:0;transform:translateY(var(--motion-distance))}to{opacity:1;transform:translateY(0)}}
-@keyframes title-reveal{from{clip-path:inset(0 0 100%);transform:translateY(12px)}to{clip-path:inset(0);transform:translateY(0)}}
+@keyframes title-reveal{from{opacity:.25;transform:translateY(85%)}to{opacity:1;transform:translateY(0)}}
 @keyframes dialog-arrival{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
 @keyframes dialog-departure{to{opacity:0;transform:translateY(3px) scale(.995)}}
 @media(max-width:900px),(pointer:coarse){
@@ -63,10 +63,27 @@ details[open]>.data-note,details[open]>.detail-grid,details[open]>.detail-name{a
   .topbar,.mobile-dock{backdrop-filter:blur(6px)}
   html[data-intro=play] .overview-card{animation:none}
   html[data-intro=play] .brand-opening{animation-duration:520ms;animation-delay:600ms}
-  html[data-intro=play] .heading-title{animation-duration:360ms;animation-delay:650ms}
+  html[data-intro=play] .heading-title-inner{animation-duration:360ms;animation-delay:650ms}
   html[data-intro=play] .eyebrow,html[data-intro=play] .brand,html[data-intro=play] .heading-note,html[data-intro=play] .toolbar{animation-duration:240ms;animation-delay:750ms}
   [data-magnetic]{translate:none!important}
 }
+/* Distinct feedback, each limited to the control or value that changed. */
+.topbar,.mobile-dock{backdrop-filter:none}
+.live-price{position:relative;display:inline-block;isolation:isolate}
+.price-halo{position:absolute;inset:-2px -5px;opacity:0;border-radius:4px;pointer-events:none;z-index:-1}
+.range-trigger,.filter-trigger,.indicator-tools button{position:relative}
+.range-trigger:after,.indicator-tools button:after{content:"";position:absolute;bottom:0;left:20%;right:20%;height:1px;background:#ccc;transform:scaleX(0);transition:transform var(--duration-normal) var(--ease-out);pointer-events:none}
+.range-trigger[aria-selected=true]:after,.indicator-tools button[aria-pressed=true]:after{transform:scaleX(1)}
+[data-slot=switch]{transition-property:background-color,border-color;transition-duration:var(--duration-fast)}
+[data-slot=switch-thumb]{transition-duration:var(--duration-normal);transition-timing-function:var(--ease-out)}
+.refresh-button:not(:disabled) svg{animation:refresh-settle 280ms var(--ease-out)}
+.toaster [data-type=success] [data-icon] svg{animation:success-arrival 320ms var(--ease-out)}
+.toaster [data-type=success] [data-icon] svg path{stroke-dasharray:24;animation:success-stroke 400ms var(--ease-out) both}
+@keyframes refresh-settle{from{transform:rotate(-45deg)}to{transform:rotate(0)}}
+@keyframes success-arrival{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:scale(1)}}
+@keyframes success-stroke{from{stroke-dashoffset:24}to{stroke-dashoffset:0}}
+@media(hover:hover) and (pointer:fine){.empty-alert:hover .bell-ring svg{transform-origin:50% 20%;animation:bell-nudge 420ms var(--ease-out)}}
+@keyframes bell-nudge{0%,100%{transform:rotate(0)}25%{transform:rotate(9deg)}55%{transform:rotate(-5deg)}}
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition-duration:0s!important;scroll-behavior:auto!important}

@@ -24,3 +24,11 @@ Coarse pointers and narrower screens disable magnetic motion and card stagger, r
 - [Reduced motion, web.dev](https://web.dev/articles/prefers-reduced-motion): CSS media queries and live preference handling.
 
 No new dependencies. The effect is deliberately independent of quote/history requests and chart viewport state. Validation records are kept in the ignored `outputs` directory.
+
+## Frame budget refinement
+- Geometry for the candle drawing is memoized separately from the crosshair/readout. Pointer bursts are coalesced to one hover update per animation frame; chart bounds are reused until scrolling or resizing invalidates them.
+- Fractional chart panning translates a stable candle group. Candles and moving averages rebuild when the visible bars or price scale actually change, rather than rewriting every SVG coordinate for each fractional movement. Pinch gestures reuse their initial bounds.
+- Navigation caches document coordinates, invalidated by ResizeObserver or viewport resize. Reads precede writes; header state is written only when crossing its threshold. Intro cancellation listeners detach when the intro finishes.
+- Title reveal uses a static overflow mask plus a moving inner line. Fixed header/dock surfaces no longer use backdrop blur.
+- Additional feedback has distinct purposes: a 520 ms low-opacity directional halo for a real price change (no number interpolation, no flash on initial data or symbol changes); tool-selection underline; eased switch thumb; refresh icon settling; success icon stroke; a single small bell movement on desktop hover. Reduced-motion preferences suppress all decorative motion, including in-flight price halos. Touch input does not activate hover-only motion.
+- Reproducible browser benchmark uses 96 fixed candles, two passes, a 1440×1000 viewport and 4× CPU slowdown. Measures frame intervals, script/layout/style work and geometry/state writes for idle, hover, pan, scroll and the full opening. Synthetic pointer bursts stress the handlers; results are not a guarantee of a physical device's refresh rate or data latency.

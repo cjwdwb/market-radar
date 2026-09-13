@@ -3,7 +3,7 @@ import {useEffect,useRef,useState,type PointerEvent as ReactPointerEvent} from '
 import {boundWindow,clamp,rememberWindow,resolveWindow,zoomWindow,type ChartView,type ChartWindow} from '@/lib/chart-viewport';
 
 type Position={x:number;y:number};
-type Gesture={window:ChartWindow;center:number;distance:number;anchor:number;plotWidth:number};
+type Gesture={window:ChartWindow;center:number;distance:number;anchor:number;plotWidth:number;bounds:DOMRect|undefined};
 
 export function useChartViewport(points:{time:number}[],width:number){
   const [view,setView]=useState<ChartView>({count:null,endTime:null});
@@ -20,11 +20,12 @@ export function useChartViewport(points:{time:number}[],width:number){
     pending.current=rememberWindow(points,bounded);
     if(frame.current===null)frame.current=requestAnimationFrame(()=>{frame.current=null;const next=pending.current;if(next)setView(prev=>prev.count===next.count&&prev.endTime===next.endTime?prev:next);});
   }
-  function ratio(clientX:number){const rect=svg.current?.getBoundingClientRect();return rect?clamp(((clientX-rect.left)/rect.width*width-left)/plot,0,1):.5;}
+  function ratio(clientX:number,rect=svg.current?.getBoundingClientRect()){return rect?clamp(((clientX-rect.left)/rect.width*width-left)/plot,0,1):.5;}
   function begin(){
     const list=[...contacts.current.values()];if(!list.length){gesture.current=null;return;}
     const center=list.length>1?(list[0].x+list[1].x)/2:list[0].x;
-    gesture.current={window:{...current.current},center,distance:list.length>1?Math.hypot(list[0].x-list[1].x,list[0].y-list[1].y):0,anchor:ratio(center),plotWidth:(svg.current?.getBoundingClientRect().width??width)*plot/width};
+    const bounds=svg.current?.getBoundingClientRect();
+    gesture.current={window:{...current.current},center,distance:list.length>1?Math.hypot(list[0].x-list[1].x,list[0].y-list[1].y):0,anchor:ratio(center,bounds),plotWidth:(bounds?.width??width)*plot/width,bounds};
   }
   function pointerDown(e:ReactPointerEvent<SVGSVGElement>){
     if(e.pointerType==='mouse'&&e.button!==0)return;
@@ -40,7 +41,7 @@ export function useChartViewport(points:{time:number}[],width:number){
     if(list.length>1&&base.distance>0){
       const center=(list[0].x+list[1].x)/2,distance=Math.max(1,Math.hypot(list[0].x-list[1].x,list[0].y-list[1].y));
       const count=boundWindow(points.length,0,base.window.count*base.distance/distance).count;
-      commit({start:base.window.start+base.anchor*base.window.count-ratio(center)*count,count});
+      commit({start:base.window.start+base.anchor*base.window.count-ratio(center,base.bounds)*count,count});
     }else{
       commit({start:base.window.start-(list[0].x-base.center)/base.plotWidth*base.window.count,count:base.window.count});
     }
