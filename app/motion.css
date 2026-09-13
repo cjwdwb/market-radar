@@ -25,9 +25,9 @@ html[data-intro=play] .monitoring-strip:after{transform-origin:left;animation:ha
 .brand-icon img{transition:opacity var(--duration-normal),transform var(--duration-slow) var(--ease-out)}
 .desktop-nav a{position:relative;transition:color var(--duration-fast)}
 .desktop-nav a:after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:#e5e5e5;transform:scaleX(0);transform-origin:left;transition:transform var(--duration-normal) var(--ease-out)}
-.desktop-nav a.nav-current:after{transform:scaleX(1)}
-.desktop-nav a.nav-current{color:#ededed}
-.mobile-dock a:first-child{color:#999}.mobile-dock a.nav-current{color:#f3f3f3}
+.desktop-nav a[aria-current=location]:after{transform:scaleX(1)}
+.desktop-nav a[aria-current=location]{color:#ededed}
+.mobile-dock a:first-child{color:#999}.mobile-dock a[aria-current=location]{color:#f3f3f3}
 .btn,.icon-btn,.chart-tools button,.symbol-rail button,.runtime-link,.small-link,.range-trigger,.filter-trigger,.watch-table tbody tr,.mobile-dock a,.mobile-dock button{transition:background-color var(--duration-fast),color var(--duration-fast),border-color var(--duration-normal),transform var(--duration-normal) var(--ease-out),translate var(--duration-normal) var(--ease-out)}
 .overview-card{transition:transform var(--duration-slow) var(--ease-out),border-color var(--duration-normal)}
 .runtime-link svg:last-child,.detail-action svg,.btn-primary svg{transition:transform var(--duration-normal) var(--ease-out)}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { activeSection } from "@/lib/navigation-section";
 
 /** One controller for presentation only; quote and chart updates never enter this loop. */
 export function MotionExperience() {
@@ -43,17 +44,16 @@ export function MotionExperience() {
     const updateScroll = () => {
       frame = 0;
       if (header) header.dataset.scrolled = String(scrollY > 24);
-      // At the bottom prioritize the destination selected by anchor navigation.
       const hash = location.hash.slice(1);
-      let id = "overview";
-      for (const section of sections) if (section.getClientRects().length && section.getBoundingClientRect().top <= innerHeight * .38) id = section.id;
-      if (scrollY + innerHeight >= document.documentElement.scrollHeight - 8 && sections.some(el => el.id === hash)) id = hash;
-      if (scrollY < 32) id = "overview";
+      const positions = sections.filter(section => section.getClientRects().length).map(section => {
+        const rect = section.getBoundingClientRect();
+        return { id: section.id, top: rect.top, bottom: rect.bottom };
+      });
+      const id = activeSection(positions, hash, scrollY, innerHeight, scrollY + innerHeight >= document.documentElement.scrollHeight - 8);
       if (id === activeId) return;
       activeId = id;
       for (const link of links) {
         const current = link.hash === `#${id}`;
-        link.classList.toggle("nav-current", current);
         if (current) link.setAttribute("aria-current", "location");
         else link.removeAttribute("aria-current");
       }
@@ -106,7 +106,7 @@ export function MotionExperience() {
     };
   }, []);
 
-  return <div className="brand-opening" aria-hidden="true">
+  return <div className="brand-opening" aria-hidden="true" hidden>
     <div className="opening-signature"><img src="/brand.svg" alt="" width={100} height={86}/><span>MARKET RADAR</span><i/></div>
   </div>;
 }
