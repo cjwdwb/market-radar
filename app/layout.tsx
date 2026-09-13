@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./mono.css";
+import "./motion.css";
+import { MotionExperience } from "@/components/motion-experience";
 
 export const metadata: Metadata = {
   title: "市场雷达 · Market Radar",
@@ -17,8 +19,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN" className="dark">
-      <body className="antialiased">{children}</body>
+    <html lang="zh-CN" className="dark" suppressHydrationWarning>
+      <head><script dangerouslySetInnerHTML={{__html:`try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches&&!sessionStorage.getItem('radar-brand-seen')&&!location.hash){document.documentElement.dataset.intro='play';sessionStorage.setItem('radar-brand-seen','1');setTimeout(function(){delete document.documentElement.dataset.intro},2200)}}catch(e){}`}}/></head>
+      <body className="antialiased"><MotionExperience/>{children}</body>
     </html>
   );
 }

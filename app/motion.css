@@ -1,0 +1,76 @@
+/* Motion system: quick response, soft arrival, no animated market values. */
+:root{--duration-fast:140ms;--duration-normal:240ms;--duration-slow:480ms;--ease-out:cubic-bezier(.16,1,.3,1);--ease-in-out:cubic-bezier(.65,0,.35,1);--motion-distance:8px}
+html{scroll-behavior:smooth;scroll-padding-top:90px}
+section[id]{scroll-margin-top:0}
+.brand-opening{display:none;position:fixed;inset:0;z-index:80;pointer-events:none;background:#080808;place-items:center;overflow:hidden}
+html[data-intro=play] .brand-opening{display:grid;animation:opening-curtain 720ms 720ms var(--ease-in-out) both}
+.opening-signature{display:flex;flex-direction:column;align-items:center;gap:24px;animation:signature-in 620ms var(--ease-out) both}
+.opening-signature img{object-fit:contain;opacity:.88}
+.opening-signature span{font-size:11px;letter-spacing:4px;color:#c2c2c2}
+.opening-signature i{height:1px;width:100px;background:#777;transform-origin:left;animation:hairline-in 800ms 100ms var(--ease-out) both}
+.heading-title{display:block}
+html[data-intro=play] .brand{animation:soft-arrival 480ms 760ms var(--ease-out) both}
+html[data-intro=play] .eyebrow{animation:soft-arrival 480ms 800ms var(--ease-out) both}
+html[data-intro=play] .heading-title{animation:title-reveal 580ms 850ms var(--ease-out) both}
+html[data-intro=play] .heading-note{animation:soft-arrival 480ms 940ms var(--ease-out) both}
+html[data-intro=play] .toolbar{animation:soft-arrival 480ms 1000ms var(--ease-out) both}
+html[data-intro=play] .overview-card{animation:soft-arrival 480ms calc(1040ms + var(--arrival-order,0)*45ms) var(--ease-out) backwards}
+.overview-card:nth-child(2){--arrival-order:1}.overview-card:nth-child(3){--arrival-order:2}.overview-card:nth-child(4){--arrival-order:3}
+.monitoring-strip{position:relative}
+.monitoring-strip:after{content:"";position:absolute;top:-1px;left:0;width:100%;height:1px;background:linear-gradient(90deg,#888,#292929 65%);pointer-events:none;opacity:.55}
+html[data-intro=play] .monitoring-strip:after{transform-origin:left;animation:hairline-in 640ms 960ms var(--ease-out) both}
+.topbar{transition:background-color var(--duration-normal),border-color var(--duration-normal);backdrop-filter:blur(10px)}
+.topbar[data-scrolled=true]{background:#0c0c0cf5;border-bottom-color:#383838}
+.brand{color:inherit;text-decoration:none}
+.brand-icon img{transition:opacity var(--duration-normal),transform var(--duration-slow) var(--ease-out)}
+.desktop-nav a{position:relative;transition:color var(--duration-fast)}
+.desktop-nav a:after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:#e5e5e5;transform:scaleX(0);transform-origin:left;transition:transform var(--duration-normal) var(--ease-out)}
+.desktop-nav a.nav-current:after{transform:scaleX(1)}
+.desktop-nav a.nav-current{color:#ededed}
+.mobile-dock a:first-child{color:#999}.mobile-dock a.nav-current{color:#f3f3f3}
+.btn,.icon-btn,.chart-tools button,.symbol-rail button,.runtime-link,.small-link,.range-trigger,.filter-trigger,.watch-table tbody tr,.mobile-dock a,.mobile-dock button{transition:background-color var(--duration-fast),color var(--duration-fast),border-color var(--duration-normal),transform var(--duration-normal) var(--ease-out),translate var(--duration-normal) var(--ease-out)}
+.overview-card{transition:transform var(--duration-slow) var(--ease-out),border-color var(--duration-normal)}
+.runtime-link svg:last-child,.detail-action svg,.btn-primary svg{transition:transform var(--duration-normal) var(--ease-out)}
+.watch-search,.field input{transition:border-color var(--duration-normal),box-shadow var(--duration-normal)}
+.watch-search:focus-within,.field input:focus{border-color:#b2b2b2;box-shadow:0 0 0 3px #ffffff08}
+:where(a,button,summary,input):focus-visible{outline:2px solid #b9b9b9;outline-offset:4px}
+.btn:active:not(:disabled),.icon-btn:active:not(:disabled),.chart-tools button:active:not(:disabled){transform:scale(.98);transition-duration:80ms}
+details>summary svg{transition:transform var(--duration-normal) var(--ease-out)}
+details[open]>summary svg{transform:rotate(90deg)}
+details[open]>.data-note,details[open]>.detail-grid,details[open]>.detail-name{animation:soft-arrival var(--duration-normal) var(--ease-out)}
+[data-slot=dialog-overlay]{animation-duration:var(--duration-normal);animation-timing-function:var(--ease-out)}
+[data-slot=dialog-content][data-state=open]{animation:dialog-arrival var(--duration-normal) var(--ease-out) both}
+[data-slot=dialog-content][data-state=closed]{animation:dialog-departure var(--duration-fast) ease-in both}
+[data-slot=tabs-trigger]{transition:color var(--duration-fast),background-color var(--duration-fast),border-color var(--duration-normal)}
+@media(hover:hover) and (pointer:fine){
+  .brand:hover .brand-icon img{transform:translateY(-1px);opacity:.8}
+  .desktop-nav a:hover:after{transform:scaleX(1)}
+  .overview-card:hover{transform:translateY(-2px)}
+  .runtime-link:hover svg:last-child,.detail-action:hover svg{transform:translateX(2px)}
+  .btn-primary:hover svg.lucide-plus{transform:rotate(90deg)}
+  .small-link:hover{text-decoration:underline;text-underline-offset:4px}
+}
+@keyframes opening-curtain{to{transform:translateY(-100%);visibility:hidden}}
+@keyframes signature-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes hairline-in{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes soft-arrival{from{opacity:0;transform:translateY(var(--motion-distance))}to{opacity:1;transform:translateY(0)}}
+@keyframes title-reveal{from{clip-path:inset(0 0 100%);transform:translateY(12px)}to{clip-path:inset(0);transform:translateY(0)}}
+@keyframes dialog-arrival{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes dialog-departure{to{opacity:0;transform:translateY(3px) scale(.995)}}
+@media(max-width:900px),(pointer:coarse){
+  :root{--motion-distance:3px;--duration-slow:320ms}
+  html{scroll-padding-top:80px}
+  .topbar,.mobile-dock{backdrop-filter:blur(6px)}
+  html[data-intro=play] .overview-card{animation:none}
+  html[data-intro=play] .brand-opening{animation-duration:520ms;animation-delay:600ms}
+  html[data-intro=play] .heading-title{animation-duration:360ms;animation-delay:650ms}
+  html[data-intro=play] .eyebrow,html[data-intro=play] .brand,html[data-intro=play] .heading-note,html[data-intro=play] .toolbar{animation-duration:240ms;animation-delay:750ms}
+  [data-magnetic]{translate:none!important}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition-duration:0s!important;scroll-behavior:auto!important}
+  html[data-intro=play] .brand-opening{display:none}
+  .overview-card:hover,.brand:hover .brand-icon img,.btn:active,.icon-btn:active,.btn-primary:hover svg,.runtime-link:hover svg:last-child,.detail-action:hover svg{transform:none}
+  [data-magnetic]{translate:none!important}
+}
