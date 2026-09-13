@@ -3,7 +3,7 @@
 html{scroll-behavior:smooth;scroll-padding-top:90px}
 section[id]{scroll-margin-top:0}
 .brand-opening{display:none;position:fixed;inset:0;z-index:80;pointer-events:none;background:#080808;place-items:center;overflow:hidden}
-html[data-intro=play] .brand-opening{display:grid;animation:opening-curtain 720ms 720ms var(--ease-in-out) both}
+html[data-intro=play] .brand-opening{display:grid!important;animation:opening-curtain 720ms 720ms var(--ease-in-out) both}
 .opening-signature{display:flex;flex-direction:column;align-items:center;gap:24px;animation:signature-in 620ms var(--ease-out) both}
 .opening-signature img{object-fit:contain;opacity:.88}
 .opening-signature span{font-size:11px;letter-spacing:4px;color:#c2c2c2}
@@ -70,7 +70,7 @@ details[open]>.data-note,details[open]>.detail-grid,details[open]>.detail-name{a
 @media(prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition-duration:0s!important;scroll-behavior:auto!important}
-  html[data-intro=play] .brand-opening{display:none}
+  html[data-intro=play] .brand-opening{display:none!important}
   .overview-card:hover,.brand:hover .brand-icon img,.btn:active,.icon-btn:active,.btn-primary:hover svg,.runtime-link:hover svg:last-child,.detail-action:hover svg{transform:none}
   [data-magnetic]{translate:none!important}
 }
