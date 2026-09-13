@@ -268,7 +268,7 @@ export default function MarketRadar(){
     <Toaster theme="dark" position="top-right" closeButton richColors/>
     <div id="overview" aria-hidden="true"/>
     <header className="topbar">
-      <a className="brand" href="#overview" aria-label="市场雷达 · 返回总览"><div className="brand-icon"><img src="/brand.svg" alt="" width={56} height={48}/></div><div><strong>市场雷达</strong><span>MARKET RADAR</span></div></a>
+      <a className="brand" href="#overview" aria-label="市场雷达 · 返回总览"><div className="brand-icon"><img src="/brand-light-v2.png" alt="" width={56} height={48}/></div><div><strong>市场雷达</strong><span>MARKET RADAR</span></div></a>
       <nav className="desktop-nav" aria-label="主导航"><a href="#overview">市场总览</a><a href="#price-chart">专业图表</a><a href="#watchlist">我的自选</a><a href="#price-alerts">价格提醒</a></nav><div className="top-right"><span className="date-display muted">{now?new Intl.DateTimeFormat("zh-CN",{year:"numeric",month:"long",day:"numeric",weekday:"short"}).format(now):"加密货币 · 全球股票"}</span><span className="separator"/><span className="session-pill"><i className={`status-dot ${!active||failedCount?"paused":""}`}/>{!online?"网络已断开":!auto?"监控已暂停":failedCount?"部分行情中断":!visible?(backgroundTabs?"标签页后台 · 尽力运行":"监控已暂停"):"加密 5 秒 · 股票 15 秒"}</span><button className="btn settings-trigger" aria-label="运行设置" onClick={()=>setSettingsOpen(true)}><SlidersHorizontal size={17}/><span>运行设置</span></button></div>
     </header>
     <main className="page">

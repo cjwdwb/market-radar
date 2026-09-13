@@ -134,6 +134,6 @@ export function MotionExperience() {
   }, []);
 
   return <div className="brand-opening" aria-hidden="true" style={{ display: "none" }}>
-    <div className="opening-signature"><img src="/brand.svg" alt="" width={100} height={86}/><span>MARKET RADAR</span><i/></div>
+    <div className="opening-signature"><img src="/brand-light-v2.png" alt="" width={100} height={86}/><span>MARKET RADAR</span><i/></div>
   </div>;
 }

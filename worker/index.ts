@@ -29,8 +29,8 @@ interface ExecutionContext {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
-    // Only the two public brand assets are needed before access verification.
-    if (["GET", "HEAD"].includes(request.method) && ["/brand.svg", "/favicon.svg"].includes(url.pathname)) {
+    // Only brand assets are public, including versioned phone and home-screen icons.
+    if (["GET", "HEAD"].includes(request.method) && ["/brand.svg", "/favicon.svg", "/brand-light-v2.png", "/favicon-v2.png", "/apple-touch-icon-v2.png"].includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
     const accessResponse = await accessGate(request, env);

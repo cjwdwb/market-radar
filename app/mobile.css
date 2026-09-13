@@ -1,0 +1,61 @@
+/* Touch layouts follow the monochrome and motion layers. */
+@media (max-width: 600px) {
+  .topbar {
+    height: calc(72px + env(safe-area-inset-top));
+    padding: env(safe-area-inset-top) max(18px, env(safe-area-inset-right)) 0 max(18px, env(safe-area-inset-left));
+  }
+  .brand-icon { width: 52px; height: 44px; }
+  .settings-trigger { min-width: 44px; min-height: 44px; color: #dedede; }
+  .page { padding: 26px max(18px, env(safe-area-inset-right)) calc(112px + env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left)); }
+  .page-heading { flex-direction: column; align-items: stretch; gap: 18px; }
+  .toolbar { width: 100%; padding-top: 0; display: flex; gap: 8px; }
+  .toolbar .refresh-label { display: flex; margin-right: auto; gap: 8px; font-size: 12px; min-height: 44px; }
+  .toolbar .refresh-button { display: inline-flex; min-width: 44px; min-height: 44px; padding: 0; }
+  .refresh-button span { display: none; }
+  .toolbar .btn-primary { height: 44px; min-height: 44px; padding: 10px 12px; border-radius: 8px; gap: 6px; }
+  .overview { grid-auto-columns: max(164px, 48%); scroll-snap-type: x proximity; scroll-padding-inline: 0; }
+  .overview-card { scroll-snap-align: start; }
+  .chart-top { position: relative; display: block; }
+  .chart-top-actions { position: absolute; right: 8px; top: 12px; gap: 0; }
+  .chart-top-actions .icon-btn { width: 44px; min-width: 44px; height: 44px; padding: 12px; color: #c9c9c9; }
+  .chart-top-actions svg { width: 18px; height: 18px; }
+  .selected-title { padding-right: 80px; flex-wrap: wrap; min-height: 28px; }
+  .selected-subtitle { padding-right: 76px; }
+  .chart-price { flex-wrap: wrap; row-gap: 8px; }
+  .chart-market-summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  .chart-market-summary > span { min-width: 0; margin-left: 0; align-items: flex-start; overflow-wrap: anywhere; }
+  .range-trigger { min-height: 44px; min-width: 44px; }
+  .chart-tools { display: grid; grid-template-columns: minmax(0, 1fr); padding: 8px; gap: 8px; }
+  .indicator-tools { display: flex; gap: 8px; }
+  .indicator-tools button { flex: 1; }
+  .zoom-tools { display: grid; grid-template-columns: minmax(0, 1fr) repeat(4, 44px); gap: 6px; align-items: center; }
+  .chart-tools button, .chart-tools .zoom-tools button { min-height: 44px; min-width: 44px; }
+  .candle-readout { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px 8px; padding: 10px 8px; }
+  .candle-readout strong { grid-column: 1 / -1; }
+  .candle-readout > span { min-width: 0; overflow-wrap: anywhere; }
+  .ma-readout { flex-wrap: wrap; gap: 6px 12px; line-height: 1.8; }
+  .watch-search { min-height: 44px; }
+  .watch-search input, .modal-content input { font-size: 16px !important; }
+  .watch-search button, .watch-heading-tools > button { min-height: 44px; min-width: 44px; }
+  .asset-cell { min-height: 44px; }
+  .mobile-dock { left: max(12px, env(safe-area-inset-left)); right: max(12px, env(safe-area-inset-right)); bottom: 8px; padding: 7px 8px calc(7px + env(safe-area-inset-bottom)); background: #101010; }
+  .mobile-dock a, .mobile-dock button { min-height: 48px; color: #bdbdbd; }
+  .mobile-dock a[aria-current="location"] { color: #f2f2f2; }
+  .mobile-dock svg { width: 20px; height: 20px; }
+  .modal-content { max-width: calc(100vw - 24px) !important; max-height: calc(100dvh - 24px); overflow-y: auto; overscroll-behavior: contain; padding: 24px 20px !important; }
+  .modal-content input, .modal-content [data-slot="select-trigger"], .modal-content .btn { min-height: 44px; }
+  .modal-content [data-slot="dialog-close"] { min-width: 44px; min-height: 44px; top: 4px; right: 4px; display: grid; place-items: center; }
+  section[id] { scroll-margin-top: calc(90px + env(safe-area-inset-top)); }
+}
+
+@media (max-width: 360px) {
+  .toolbar { gap: 6px; }
+  .toolbar .btn-primary { padding-inline: 9px; }
+  .candle-readout { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chart-price strong { font-size: 29px; }
+  .field-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .modal-content { max-height: calc(100dvh - 24px); overflow-y: auto; }
+}
