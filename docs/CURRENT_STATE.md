@@ -1,4 +1,6 @@
 # 当前状态
+GitHub 已整理为稳定 `main`、`sites-v08` 至 `sites-v17` 发布标签、`CHANGELOG.md` 与 `docs/VERSIONS.md` 版本索引。标签只恢复源码；v11–v13 的映射依据已有部署日志与连续提交顺序，证据等级已在版本索引注明。证据不足的 v1–v7 未补造标签。本次整理未改产品或生产环境。
+
 最新任务：MR-PUBLISH-V17，用户明确授权后于 2026-09-15 发布成功。线上源码 `106c144055b0ce2aab9f6be2f8f8a21e05c4b2e2`，Sites v17，部署 `appgdep_6aa924e19de08191bc408cbc895fcc4b`，环境 revision 3。
 
 正式网址：https://market-radar-rex.swt-aether.chatgpt.site 。平台返回的新域名已验证；旧 rreillyh210.chatgpt.site 地址实测 404。保留 public + 应用访问码保护，未更改运行密钥。原访问码可在新域名重新输入；旧域名 Cookie 不共享。

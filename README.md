@@ -56,6 +56,8 @@ Windows 环境中的项目脚本依赖 Bash；也可以直接执行 `node node_m
 
 Classic + Radar 的规则、覆盖限制和验证结果见 [`docs/RADAR.md`](docs/RADAR.md)。
 
+版本历史与回退点见 [`docs/VERSIONS.md`](docs/VERSIONS.md)，面向使用者的变更摘要见 [`CHANGELOG.md`](CHANGELOG.md)。Git 标签采用 `sites-vNN`，对应曾发布到 Sites 的版本号；开发过程仍以 `main` 为准。
+
 ## 数据与安全边界
 
 行情接口可能延迟、限流或暂时中断。页面会保留并标记上次报价；过期、休市或失败报价不会触发提醒。系统只监控行情，不执行交易，也不需要交易账户凭据。
