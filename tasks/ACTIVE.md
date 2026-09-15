@@ -1,6 +1,6 @@
 # 当前任务
 
-状态：IDLE；MR-RADAR-RELIABILITY 已完成，本轮未推送或部署。
+状态：IDLE；MR-PUBLISH-V17 已完成，用户明确授权发布。
 
-归档：tasks/archive/MR-RADAR-RELIABILITY.md。
-事实、测量与限制：docs/RELIABILITY.md；产品规则：docs/RADAR.md。
+发布归档：tasks/archive/MR-PUBLISH-V17.md。
+当前线上状态：docs/CURRENT_STATE.md；优化测量：docs/RELIABILITY.md。

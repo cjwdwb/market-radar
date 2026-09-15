@@ -1,5 +1,11 @@
 # 当前状态
-最新任务：MR-RADAR-RELIABILITY，完成行情传输恢复、限流与请求合并、Radar 无变化状态复用及官方 Cloudflare 类型接入；本地分支 `codex/mr-radar-v2`，未推送或部署网站。
+最新任务：MR-PUBLISH-V17，用户明确授权后于 2026-09-15 发布成功。线上源码 `106c144055b0ce2aab9f6be2f8f8a21e05c4b2e2`，Sites v17，部署 `appgdep_6aa924e19de08191bc408cbc895fcc4b`，环境 revision 3。
+
+正式网址：https://market-radar-rex.swt-aether.chatgpt.site 。平台返回的新域名已验证；旧 rreillyh210.chatgpt.site 地址实测 404。保留 public + 应用访问码保护，未更改运行密钥。原访问码可在新域名重新输入；旧域名 Cookie 不共享。
+
+发布后验证：新地址跳转 /access 并返回 200；Logo 200；匿名 quotes/history/monitor 均 401 ACCESS_REQUIRED。最近 10 分钟 Worker 错误日志为空。浏览器访问码页已打开，但接口请求曾发生网络失败；进一步浏览器复测被自动审批因审批服务连接中断拒绝，改用只读 HTTP 完成入口/门禁检查。当前没有生产访问码，未验证登录后线上行情和完整交互。发布记录见 tasks/archive/MR-PUBLISH-V17.md。
+
+此前 MR-RADAR-RELIABILITY 完成行情传输恢复、限流与请求合并、Radar 无变化状态复用及官方 Cloudflare 类型接入。源码已推送 Sites origin/main；本轮未推送 GitHub。
 
 当前验证：构建、全项目类型检查、55 项 tests 与相关代码 lint 通过；五种视口和 17 项浏览器检查通过。真实四标的报价与 OKX 96 根历史成功返回。独立审计提出的超时边界已修复并测试，但独立审计因额度限制未完成最终复核。详细测量、命令与限制见 RELIABILITY.md；产品规则见 RADAR.md。
 
