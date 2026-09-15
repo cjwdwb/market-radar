@@ -27,7 +27,7 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0}
   if(delay)await pause(delay);
   const symbols=new URL(route.request().url()).searchParams.get('symbols').split(',');
   await route.fulfill({json:{results:symbols.map(symbol=>{
-   if(mode==='error'||mode==='partial'&&symbol==='NVDA')return {symbol,error:'测试：该标的请求失败'};
+   if(mode==='error'||mode==='partial'&&symbol==='NVDA'||mode==='benchmark-error'&&['QQQ','000300.SS','^HSI'].includes(symbol))return {symbol,error:'测试：该标的请求失败'};
    const okx=symbol.endsWith('-USDT'),points=series(symbol,mode);
    return {symbol,quote:{symbol,name:symbol,currency:okx?'USDT':symbol.endsWith('.HK')||symbol==='^HSI'?'HKD':symbol.endsWith('.SS')?'CNY':'USD',source:okx?'OKX 欧易':'Yahoo Finance',price:points.at(-1).close,change:3,changePercent:3,previousClose:100,high:103.02,low:99.98,volume:1000000,timestamp:mode==='stale'?stamp-3600000:stamp,fetchedAt:stamp,session:'open',delayMinutes:0,points:okx?[]:points}};
   }),fetchedAt:stamp}});
@@ -81,6 +81,7 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0}
   await page.locator('.radar-filters button').first().focus();assert.notEqual(await page.locator('.radar-filters button').first().evaluate(el=>getComputedStyle(el).outlineStyle),'none');report.checks.push('keyboard navigation and visible focus');
   await page.setViewportSize({width:390,height:844});await page.locator('.radar-filters button').filter({hasText:'My Radar'}).click();assert.ok(await page.locator('.radar-feed .radar-signal').count());
   await page.locator('.signal-context summary').first().click();assert.equal(await page.locator('.signal-context[open]').count(),1);assert.ok(await page.locator('.signal-evidence').first().isVisible());assert.ok(await page.getByRole('heading',{name:/高可信|中可信|低可信/}).first().isVisible());report.checks.push('mobile filters, evidence and confidence disclosure');
+  if(await page.locator('.signal-cluster .signal-context').count()){await page.locator('.signal-cluster .signal-context').first().evaluate(el=>{el.open=true});assert.ok(await page.locator('.signal-cluster .cluster-evidence').count());report.checks.push('cluster disclosure retains secondary thresholds and provenance');}
   await page.context().setOffline(true);await pause(100);assert.ok(await page.getByText('网络已断开',{exact:true}).count());await page.context().setOffline(false);
   report.errors.push(...app.errors);await app.context.close();
   for(const mode of ['quiet','stale','error','partial','empty']){
@@ -90,6 +91,7 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0}
    if(mode==='partial')assert.ok(count>0);
    await page.screenshot({path:`${output}/state-${mode}.png`});report.checks.push(`${mode} state: ${count} signals`);report.errors.push(...test.errors);await test.context.close();
   }
+  const benchmarkError=await fixture(browser,{mode:'benchmark-error'});page=benchmarkError.page;await page.goto(base+'/#overview',{waitUntil:'networkidle'});await pause(500);assert.equal(await page.locator('.connection-banner').count(),0);assert.equal(await page.locator('.classic-experience').isVisible(),true);report.checks.push('benchmark-only failure does not pollute Classic health');report.errors.push(...benchmarkError.errors);await benchmarkError.context.close();
   const slow=await fixture(browser,{delay:2500});page=slow.page;await page.goto(base+'/#radar',{waitUntil:'domcontentloaded'});await pause(700);assert.equal(await page.locator('#radar').isVisible(),true);assert.match(await page.locator('.radar-scan-status').innerText(),/获取|等待/);await page.locator('.radar-feed .radar-signal').first().waitFor();report.checks.push('slow data keeps navigable loading surface');await slow.context.close();
   const noStorage=await fixture(browser,{storage:true,intro:true});page=noStorage.page;await page.goto(base,{waitUntil:'networkidle'});assert.equal(await page.locator('.classic-experience').isVisible(),true);assert.equal(await page.evaluate(()=>document.documentElement.dataset.intro),undefined);report.checks.push('unavailable storage has visible Classic fallback');report.errors.push(...noStorage.errors);await noStorage.context.close();
   const intro=await fixture(browser,{intro:true});page=intro.page;await page.goto(base,{waitUntil:'networkidle'});await pause(1700);assert.equal(await page.evaluate(()=>sessionStorage.getItem('radar-brand-seen')),'1');assert.equal(await page.evaluate(()=>document.documentElement.dataset.intro),undefined);await page.locator('.desktop-nav a[href="#radar"]').click();assert.equal(await page.evaluate(()=>document.documentElement.dataset.intro),undefined);await page.reload({waitUntil:'domcontentloaded'});assert.equal(await page.evaluate(()=>document.documentElement.dataset.intro),undefined);report.checks.push('shared first-session intro exits and never replays on navigation/reload');report.errors.push(...intro.errors);await intro.context.close();

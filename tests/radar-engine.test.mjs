@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { scanRadar, radarCoverage, benchmarkFor, benchmarkSymbols } from '../lib/radar/engine.ts';
 import { emptyRadarStore } from '../lib/radar/types.ts';
 import { experienceForHash } from '../lib/radar/navigation.ts';
+import { buildRadarIntelligence } from '../lib/radar/intelligence.ts';
 
 const now=1_789_372_800_000;
 function fixture({symbol='BTC-USDT',move=0,volume=100,at=now,count=70}={}) {
@@ -142,8 +143,15 @@ test('sharp direction reversals resolve the old move and emit the opposite move 
 
 test('benchmark mapping is explicit and benchmark identities do not recursively benchmark',()=>{
  assert.equal(benchmarkFor('ETH-USDT'),'BTC-USDT');assert.equal(benchmarkFor('NVDA'),'QQQ');assert.equal(benchmarkFor('600519.SS'),'000300.SS');assert.equal(benchmarkFor('0700.HK'),'^HSI');
- for(const symbol of ['BTC-USDT','QQQ','SPY','^GSPC','^IXIC','000300.SS','000001.SS','^HSI'])assert.equal(benchmarkFor(symbol),undefined);
+ for(const symbol of ['BTC-USDT','QQQ','SPY','^GSPC','^IXIC','000300.SS','000001.SS','^HSI','XOM','V','^DJI','CUSTOM-USDT'])assert.equal(benchmarkFor(symbol),undefined);
  assert.deepEqual(benchmarkSymbols(['ETH-USDT','SOL-USDT','NVDA','AAPL']),['BTC-USDT','QQQ']);
+ const unsupported=fixture({symbol:'XOM'});assert.equal(radarCoverage(unsupported,now)[0].relativeEligible,false);assert.match(radarCoverage(unsupported,now)[0].relativeReason,/暂未配置可靠基准/);
+});
+test('relative confidence uses the least fresh side of the synchronized comparison',()=>{
+ const snapshot=relativeFixture({assetMove:-4,benchmarkMove:-.5});snapshot.quotes.QQQ.fetchedAt=now-119000;
+ const signal=scanRadar(emptyRadarStore(),snapshot,now).signals.find(s=>s.type==='relative_weakness');assert.ok(signal);
+ assert.ok(signal.evidence.freshnessRatio>.98);
+ const event=buildRadarIntelligence([signal],[],now).events[0];assert.notEqual(event.confidence.level,'high');assert.ok(event.confidence.reasons.some(reason=>reason.includes('新鲜度边界')));
 });
 test('synchronized real benchmark detects relative weakness and strength, while moving together stays quiet',()=>{
  const weak=scanRadar(emptyRadarStore(),relativeFixture({assetMove:-4,benchmarkMove:-.5}),now).signals.find(s=>s.type==='relative_weakness');

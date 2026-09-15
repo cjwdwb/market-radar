@@ -152,6 +152,7 @@ export default function MarketRadar(){
   const refresh=useCallback(async(background=false,provider?:"crypto"|"stocks")=>{
     if(!hydrated)return;
     const sequence=refreshSequence.current;
+    const visibleSymbols=new Set(symbolKey.split(","));
     const symbols=requestKey.split(","),crypto=symbols.filter(s=>s.endsWith("-USDT")),stocks=symbols.filter(s=>!s.endsWith("-USDT"));
     const groups:string[][]=[];
     if(provider!=="stocks")for(let i=0;i<crypto.length;i+=20)groups.push(crypto.slice(i,i+20));
@@ -171,23 +172,23 @@ export default function MarketRadar(){
         const results:QuoteResult[]=body.results.filter((r:QuoteResult)=>group.includes(r.symbol));
         if(results.some(r=>r.quote))quoteRetries.current.delete(key);else fail();
         setQuotes(prev=>{const next={...prev};for(const r of results){if(r.quote)next[r.symbol]={...r.quote,points:reusePoints(prev[r.symbol]?.points,r.quote.points)};else if(next[r.symbol])next[r.symbol]={...next[r.symbol],error:r.error};}return next;});
-        setErrors(prev=>{const next={...prev};for(const r of results){if(r.error)next[r.symbol]=r.error;else delete next[r.symbol];}return next;});
+        setErrors(prev=>{const next={...prev};for(const r of results){if(!visibleSymbols.has(r.symbol))continue;if(r.error)next[r.symbol]=r.error;else delete next[r.symbol];}return next;});
         setLastFetched(Date.now());setNow(Date.now());
       }catch{
         if(sequence!==refreshSequence.current)return;
         fail();
-        setErrors(prev=>({...prev,...Object.fromEntries(group.map(s=>[s,"行情连接中断，请刷新重试"]))}));
+        setErrors(prev=>({...prev,...Object.fromEntries(group.filter(s=>visibleSymbols.has(s)).map(s=>[s,"行情连接中断，请刷新重试"]))}));
         setQuotes(prev=>{const next={...prev};for(const s of group)if(next[s])next[s]={...next[s],error:"行情连接中断"};return next;});
       }finally{clearTimeout(timeout);if(quoteRequests.current.get(key)===controller)quoteRequests.current.delete(key);}
     }));
     if(!background&&sequence===refreshSequence.current)setLoading(false);
-  },[requestKey,hydrated]);
+  },[requestKey,symbolKey,hydrated]);
   useEffect(()=>{
-    const wanted=new Set(requestKey.split(","));
+    const wanted=new Set(symbolKey.split(","));
     setErrors(prev=>Object.fromEntries(Object.entries(prev).filter(([symbol])=>wanted.has(symbol))));
     if(hydrated&&online&&(visible||(auto&&backgroundTabs)))void refresh();
     return()=>{refreshSequence.current++;for(const controller of quoteRequests.current.values())controller.abort();quoteRequests.current.clear();};
-  },[refresh,hydrated,visible,online,auto,backgroundTabs]);
+  },[refresh,hydrated,visible,online,auto,backgroundTabs,symbolKey]);
   useEffect(()=>{
     if(!mayRun||!hydrated)return;
     const cryptoTimer=setInterval(()=>{void refresh(true,"crypto");},visible?5_000:60_000);

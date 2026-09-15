@@ -11,17 +11,20 @@ const rms = (values: number[]) => Math.sqrt(mean(values.map(value => value * val
 type Evaluation = { signal: RadarSignal; strength: number };
 type Prepared = { quote: Quote; history: RadarHistory; bars: Point[] };
 
-const BENCHMARKS = new Set(["BTC-USDT", "QQQ", "SPY", "^GSPC", "^IXIC", "000300.SS", "000001.SS", "^HSI"]);
+const BENCHMARK_BY_SYMBOL: Record<string, string> = {
+  "ETH-USDT": "BTC-USDT", "SOL-USDT": "BTC-USDT", "XRP-USDT": "BTC-USDT", "DOGE-USDT": "BTC-USDT", "LINK-USDT": "BTC-USDT", "ADA-USDT": "BTC-USDT", "AVAX-USDT": "BTC-USDT",
+  NVDA: "QQQ", AAPL: "QQQ", TSLA: "QQQ", MSFT: "QQQ", GOOGL: "QQQ", AMZN: "QQQ", META: "QQQ", COIN: "QQQ",
+  "600519.SS": "000300.SS", "300750.SZ": "000300.SS",
+  "0700.HK": "^HSI", "9988.HK": "^HSI", "1810.HK": "^HSI",
+};
 export function benchmarkFor(symbol: string): string | undefined {
-  if (BENCHMARKS.has(symbol)) return undefined;
-  const market = assetFor(symbol).market;
-  return market === "crypto" ? "BTC-USDT" : market === "us" ? "QQQ" : market === "cn" ? "000300.SS" : market === "hk" ? "^HSI" : undefined;
+  return BENCHMARK_BY_SYMBOL[symbol];
 }
 export function benchmarkSymbols(symbols: string[]) { return [...new Set(symbols.map(benchmarkFor).filter((symbol): symbol is string => !!symbol))]; }
 
 function relativeReadiness(snapshot: RadarSnapshot, symbol: string, asset: Prepared, now: number): true | string {
   const benchmarkSymbol = benchmarkFor(symbol);
-  if (!benchmarkSymbol) return "当前标的是基准，未配置相对信号";
+  if (!benchmarkSymbol) return "当前标的暂未配置可靠基准";
   const benchmark = prepare(snapshot, benchmarkSymbol, now);
   if (typeof benchmark === "string") return `${benchmarkSymbol}：${benchmark}`;
   if (benchmark.quote.session !== asset.quote.session) return "资产与基准交易时段不同";
@@ -84,19 +87,23 @@ function evaluate(snapshot: RadarSnapshot, now: number): Evaluation[] {
     const market = assetFor(symbol).market;
     const latest = bars.at(-1)!;
     const returns = bars.slice(1).map((point, i) => (point.close / bars[i].close - 1) * 100);
-    const freshnessRatio = Math.max(0, Math.min(1, Math.max(now - quote.fetchedAt, now - quote.timestamp) / (2 * MINUTE)));
-    const push = (type: RadarSignalType, window: string, strength: number, title: string, metric: string, description: string, direction: RadarSignal["direction"], metrics: RadarSignal["metrics"], evidence: Omit<RadarSignalEvidence, "strength" | "freshnessRatio">) => {
+    const push = (type: RadarSignalType, window: string, strength: number, title: string, metric: string, description: string, direction: RadarSignal["direction"], metrics: RadarSignal["metrics"], evidence: Omit<RadarSignalEvidence, "strength" | "freshnessRatio"> & { freshnessRatio?: number }) => {
       if (!Number.isFinite(strength)) return;
       const relativeKey = typeof metrics.benchmarkSymbol === "string" ? `:${metrics.benchmarkSymbol}` : "";
       const fingerprint = `${symbol}:${type}:${window}:${history.source}:${history.intervalMs}${type === "price_move" ? `:${direction}` : ""}${relativeKey}`;
       const evidenceAt = latest.time + history.intervalMs;
+      const assetFreshnessRatio = Math.max(0, Math.min(1, Math.max(
+        (now - quote.fetchedAt) / (2 * MINUTE),
+        (now - quote.timestamp) / (3 * MINUTE),
+        (now - evidenceAt) / (history.intervalMs + MINUTE),
+      )));
       evaluations.push({ strength, signal: {
         id: `${fingerprint}:${evidenceAt}`, fingerprint, symbol, market, type, title, metric, description, direction,
         severity: strength >= 3 ? "critical" : strength >= 1.5 ? "high" : "medium", status: "active",
         detectedAt: now, updatedAt: now, quoteAt: quote.timestamp, fetchedAt: quote.fetchedAt, evidenceAt, expiresAt: evidenceAt + LIFETIME,
         source: history.source, currency: quote.currency,
         metrics: { intervalMinutes: history.intervalMs / MINUTE, baselineBars: 20, close: latest.close, window, ...metrics },
-        evidence: { ...evidence, strength, freshnessRatio },
+        evidence: { ...evidence, strength, freshnessRatio: Math.max(assetFreshnessRatio, evidence.freshnessRatio ?? 0) },
       } });
     };
     // Same-length non-overlapping reference windows. Absolute noise floor prevents flat-price division artifacts.
@@ -160,9 +167,14 @@ function evaluate(snapshot: RadarSnapshot, now: number): Evaluation[] {
             const baseline = median(references);
             const threshold = Math.max(market === "crypto" ? .6 : .35, baseline * 3);
             const evidenceAt = latestPair.time + history.intervalMs;
+            const benchmarkFreshnessRatio = Math.max(0, Math.min(1, Math.max(
+              (now - benchmark.quote.fetchedAt) / (2 * MINUTE),
+              (now - benchmark.quote.timestamp) / (3 * MINUTE),
+              (now - evidenceAt) / (history.intervalMs + MINUTE),
+            )));
             for (const direction of ["up", "down"] as const) {
               const type = direction === "up" ? "relative_strength" : "relative_weakness";
-              push(type, "15m", (direction === "up" ? delta : -delta) / threshold, direction === "up" ? "相对强势" : "相对弱势", `相对 ${benchmarkSymbol} ${percent(delta)}`, `资产 15 分钟变化 ${percent(assetReturn)}；${benchmarkSymbol} ${percent(benchmarkReturn)}；相对差 ${percent(delta)}。`, direction, { assetReturnPercent: assetReturn, benchmarkReturnPercent: benchmarkReturn, relativeDeltaPercent: delta, relativeBaselinePercent: baseline, thresholdPercent: threshold, referenceWindows: references.length, benchmarkSymbol, benchmarkQuoteAt: benchmark.quote.timestamp, benchmarkFetchedAt: benchmark.quote.fetchedAt, benchmarkEvidenceAt: evidenceAt }, { reason: `资产与 ${benchmarkSymbol} 的同步 15 分钟相对变化超过自身近期相对差基线。`, items: [{ label: "资产变化", value: assetReturn, unit: "%" }, { label: `${benchmarkSymbol} 变化`, value: benchmarkReturn, unit: "%" }, { label: "相对差", value: delta, unit: "%", baseline, threshold }], sampleSize: references.length, minimumSamples: minimum, benchmark: { symbol: benchmarkSymbol, returnPercent: benchmarkReturn, quoteAt: benchmark.quote.timestamp, fetchedAt: benchmark.quote.fetchedAt, evidenceAt } });
+              push(type, "15m", (direction === "up" ? delta : -delta) / threshold, direction === "up" ? "相对强势" : "相对弱势", `相对 ${benchmarkSymbol} ${percent(delta)}`, `资产 15 分钟变化 ${percent(assetReturn)}；${benchmarkSymbol} ${percent(benchmarkReturn)}；相对差 ${percent(delta)}。`, direction, { assetReturnPercent: assetReturn, benchmarkReturnPercent: benchmarkReturn, relativeDeltaPercent: delta, relativeBaselinePercent: baseline, thresholdPercent: threshold, referenceWindows: references.length, benchmarkSymbol, benchmarkQuoteAt: benchmark.quote.timestamp, benchmarkFetchedAt: benchmark.quote.fetchedAt, benchmarkEvidenceAt: evidenceAt }, { reason: `资产与 ${benchmarkSymbol} 的同步 15 分钟相对变化超过自身近期相对差基线。`, items: [{ label: "资产变化", value: assetReturn, unit: "%" }, { label: `${benchmarkSymbol} 变化`, value: benchmarkReturn, unit: "%" }, { label: "相对差", value: delta, unit: "%", baseline, threshold }], sampleSize: references.length, minimumSamples: minimum, freshnessRatio: benchmarkFreshnessRatio, benchmark: { symbol: benchmarkSymbol, returnPercent: benchmarkReturn, quoteAt: benchmark.quote.timestamp, fetchedAt: benchmark.quote.fetchedAt, evidenceAt } });
             }
           }
         }
