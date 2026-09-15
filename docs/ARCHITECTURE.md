@@ -4,6 +4,8 @@
 浏览器 → worker/index.ts 门禁 → Vinext app router → app/api → lib/market-data.ts → OKX / Yahoo。
 独立云端链路：站主登录 → app/api/monitor → MONITOR_URL → monitor/worker.mjs → D1。
 
+2026-09-15：Classic / Radar 共用 app/market-radar.tsx 状态与请求。已有 quotes/trends → lib/radar/engine.ts（纯检测/去重/生命周期）→ components/radar/use-radar.ts（会话 store）→ radar-feed.tsx。默认体验复用现有 localStorage；无新增 API、数据库或定时器。规则与限制见 RADAR.md。
+
 | 关注点 | 首要文件 | 边界 |
 | --- | --- | --- |
 | 页面/本地保存/轮询 | app/market-radar.tsx | localStorage；UI 与调度同处一个约 49 KB 文件，优先按符号定位 |
@@ -19,4 +21,3 @@ Yahoo 缓存：1d/15m 为 10 秒，其余为 240 秒；进程内缓存与在途�
 Yahoo 429 遵守 Retry-After 且至少等待 60 秒。OKX 的实现独立，不套用 Yahoo 缓存结论。
 UI 文案描述云端每分钟执行；这里只确认 scheduled 处理器存在，没有验证线上 cron。
 UI 视觉约束按需读取 mobile-design.md、motion-design.md；历史研究见 project-references.md。
-

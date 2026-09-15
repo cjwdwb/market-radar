@@ -3,6 +3,7 @@ import "./globals.css";
 import "./mono.css";
 import "./motion.css";
 import "./mobile.css";
+import "./radar.css";
 import { MotionExperience } from "@/components/motion-experience";
 
 export const metadata: Metadata = {

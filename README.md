@@ -6,6 +6,8 @@
 
 ## 功能
 
+- Markets / Classic 与 Radar 双体验，默认体验可在运行设置中保存。
+- Radar 共享自选与行情，识别价格异动、区间突破/跌破、波动和可靠的量能异常；支持来源追溯与有限会话历史。
 - OKX 欧易 USDT 现货报价与 15 分钟 K 线。
 - Yahoo Finance 美股、A 股、港股和兼容的旧 USD 交易对行情。
 - K 线拖动、双指或 `Ctrl + 滚轮` 缩放、快捷回到最新行情。
@@ -51,6 +53,8 @@ Windows 环境中的项目脚本依赖 Bash；也可以直接执行 `node node_m
 - `docs/`：架构、接口约定、设计决策和验证说明。
 
 本轮视觉与交互改进的前后数据和截图见 [`docs/VISUAL_REFINEMENT.md`](docs/VISUAL_REFINEMENT.md)。
+
+Classic + Radar 的规则、覆盖限制和验证结果见 [`docs/RADAR.md`](docs/RADAR.md)。
 
 ## 数据与安全边界
 

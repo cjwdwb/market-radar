@@ -20,6 +20,10 @@ import { CandleChart } from "@/components/candle-chart";
 import { PricePulse } from "@/components/price-pulse";
 import { canMonitor } from "@/lib/monitoring";
 import { retryDelay, reusePoints } from "@/lib/refresh-policy";
+import { RadarFeed } from "@/components/radar/radar-feed";
+import { useRadar } from "@/components/radar/use-radar";
+import { experienceForHash } from "@/lib/radar/navigation";
+import type { MarketMode, RadarHistory } from "@/lib/radar/types";
 
 type HistoryData={key:string;points:Point[];timezone:string;source:string;currency:string};
 const STORAGE_KEY="market-radar-preferences-v1";
@@ -44,12 +48,15 @@ function ChartTip({active,payload,currency,timezone}:{active?:boolean;payload?:r
 }
 
 export default function MarketRadar(){
+  const [marketMode,setMarketMode]=useState<MarketMode>("classic");
+  const [defaultMarketMode,setDefaultMarketMode]=useState<MarketMode>("classic");
+  const [section,setSection]=useState("#overview");
   const [watchlist,setWatchlist]=useState<string[]>(DEFAULT_WATCHLIST);
   const [alerts,setAlerts]=useState<PriceAlert[]>([]);
   const alertsRef=useRef<PriceAlert[]>([]);
   const [hydrated,setHydrated]=useState(false);
   const [selected,setSelected]=useState("BTC-USDT");
-  const [trends,setTrends]=useState<Record<string,Point[]>>({});
+  const [trends,setTrends]=useState<Record<string,RadarHistory>>({});
   const [quotes,setQuotes]=useState<Record<string,Quote>>({});
   const [errors,setErrors]=useState<Record<string,string>>({});
   const [loading,setLoading]=useState(true);
@@ -87,6 +94,7 @@ export default function MarketRadar(){
   const mayRun=canMonitor(auto,visible,backgroundTabs,online);
 
   useEffect(()=>{
+    let preferred:MarketMode="classic";
     try{
       const raw=localStorage.getItem(STORAGE_KEY);
       if(raw){const data=JSON.parse(raw);
@@ -97,8 +105,10 @@ export default function MarketRadar(){
         }
         if(typeof data.auto==="boolean")setAuto(data.auto);
         if(typeof data.backgroundTabs==="boolean")setBackgroundTabs(data.backgroundTabs);
+        if(data.marketMode==="radar")preferred="radar";
       }
     }catch{toast.info("无法读取已保存的设置，本次使用默认自选。");}
+    setDefaultMarketMode(preferred);setMarketMode(experienceForHash(location.hash,preferred));setSection(location.hash||"#overview");
     setNow(Date.now());setHydrated(true);setVisible(document.visibilityState==="visible");setOnline(navigator.onLine);
     const visibility=()=>{setVisible(document.visibilityState==="visible");setNow(Date.now());};
     const connectivity=()=>setOnline(navigator.onLine);
@@ -109,11 +119,32 @@ export default function MarketRadar(){
   useEffect(()=>{alertsRef.current=alerts;},[alerts]);
   useEffect(()=>{
     if(!hydrated)return;
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify({watchlist,alerts,auto,backgroundTabs}));}
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify({watchlist,alerts,auto,backgroundTabs,marketMode:defaultMarketMode}));}
     catch{if(!failedStorage.current){failedStorage.current=true;toast.error("浏览器未允许保存设置，关闭后本次更改可能丢失。");}}
-  },[watchlist,alerts,auto,backgroundTabs,hydrated]);
+  },[watchlist,alerts,auto,backgroundTabs,defaultMarketMode,hydrated]);
+
+  useEffect(()=>{
+    if(!hydrated)return;
+    let frame=0;
+    const navigate=()=>{
+      const hash=location.hash;setMarketMode(experienceForHash(hash,defaultMarketMode));setSection(hash||"#overview");
+      cancelAnimationFrame(frame);
+      frame=requestAnimationFrame(()=>{frame=requestAnimationFrame(()=>{
+        const destination=document.getElementById(hash.slice(1)||"overview");
+        destination?.scrollIntoView();
+      });});
+    };
+    window.addEventListener("hashchange",navigate);
+    return()=>{window.removeEventListener("hashchange",navigate);cancelAnimationFrame(frame);};
+  },[hydrated,defaultMarketMode]);
+  const viewAsset=useCallback((symbol:string)=>{
+    setSelected(symbol);setMarketMode("classic");setSection("#price-chart");
+    location.hash="price-chart";
+  },[]);
 
   const symbolKey=useMemo(()=>[...new Set([...OVERVIEW,...watchlist,selected,...alerts.filter(a=>a.enabled).map(a=>a.symbol)])].sort().join(","),[watchlist,selected,alerts]);
+  const radarSnapshot=useMemo(()=>({quotes,histories:trends,symbols:symbolKey.split(",")}),[quotes,trends,symbolKey]);
+  const radar=useRadar(radarSnapshot,now,hydrated&&mayRun);
   const refresh=useCallback(async(background=false,provider?:"crypto"|"stocks")=>{
     if(!hydrated)return;
     const sequence=refreshSequence.current;
@@ -170,7 +201,7 @@ export default function MarketRadar(){
       for(let i=0;i<symbols.length&&!stopped;i+=3){
         await Promise.all(symbols.slice(i,i+3).map(async symbol=>{
           const controller=new AbortController();controllers.add(controller);const timeout=setTimeout(()=>controller.abort(),35_000);
-          try{const response=await fetch("/api/history?symbol="+encodeURIComponent(symbol)+"&range=1d",{signal:controller.signal,cache:"no-store"});if(!response.ok)return;const body=await response.json();if(!stopped&&Array.isArray(body.points))setTrends(prev=>{const points=reusePoints(prev[symbol],body.points);return points===prev[symbol]?prev:{...prev,[symbol]:points};});}catch{}finally{controllers.delete(controller);clearTimeout(timeout);}
+          try{const response=await fetch("/api/history?symbol="+encodeURIComponent(symbol)+"&range=1d",{signal:controller.signal,cache:"no-store"});if(!response.ok)return;const body=await response.json();if(!stopped&&Array.isArray(body.points))setTrends(prev=>{const points=reusePoints(prev[symbol]?.points,body.points);return {...prev,[symbol]:{points,source:body.source,currency:body.currency,fetchedAt:body.fetchedAt,intervalMs:900000}};});}catch{}finally{controllers.delete(controller);clearTimeout(timeout);}
         }));
       }running=false;
     }
@@ -269,10 +300,10 @@ export default function MarketRadar(){
     <div id="overview" aria-hidden="true"/>
     <header className="topbar">
       <a className="brand" href="#overview" aria-label="市场雷达 · 返回总览"><div className="brand-icon"><img src="/brand-light-v2.png" alt="" width={56} height={48}/></div><div><strong>市场雷达</strong><span>MARKET RADAR</span></div></a>
-      <nav className="desktop-nav" aria-label="主导航"><a href="#overview">市场总览</a><a href="#price-chart">专业图表</a><a href="#watchlist">我的自选</a><a href="#price-alerts">价格提醒</a></nav><div className="top-right"><button className="btn settings-trigger" aria-label="运行设置" onClick={()=>setSettingsOpen(true)}><SlidersHorizontal size={17}/><span>运行设置</span></button></div>
+      <nav className="desktop-nav" aria-label="主导航"><a data-product-nav href="#overview" aria-current={marketMode==="classic"&&!["#watchlist","#price-alerts"].includes(section)?"page":undefined}>Markets</a><a data-product-nav href="#radar" aria-current={marketMode==="radar"?"page":undefined}>Radar</a><a data-product-nav href="#watchlist" aria-current={marketMode==="classic"&&section==="#watchlist"?"page":undefined}>Watchlist</a><a data-product-nav href="#price-alerts" aria-current={marketMode==="classic"&&section==="#price-alerts"?"page":undefined}>Alerts</a></nav><div className="top-right"><button className="btn settings-trigger" aria-label="运行设置" onClick={()=>setSettingsOpen(true)}><SlidersHorizontal size={17}/><span>运行设置</span></button></div>
     </header>
     <main className="page">
-      <div className="page-heading"><div><h1><span className="heading-title"><span className="heading-title-inner">市场总览</span></span></h1></div><div className="toolbar"><button className="btn refresh-button" onClick={refreshAll} disabled={loading} aria-label="刷新行情"><RefreshCw size={15} className={loading?"spin":""}/><span>刷新行情</span></button><button className="btn btn-primary" data-magnetic onClick={()=>{setCandidate("");setAddOpen(true);}}><Plus size={16}/>添加自选</button></div></div>
+      <div className="page-heading"><div><h1><span className="heading-title"><span className="heading-title-inner">{marketMode==="radar"?"Radar":"市场总览"}</span></span></h1></div><div className="toolbar"><button className="btn refresh-button" onClick={refreshAll} disabled={loading} aria-label="刷新行情"><RefreshCw size={15} className={loading?"spin":""}/><span>刷新行情</span></button><button className="btn btn-primary" data-magnetic onClick={()=>{setCandidate("");setAddOpen(true);}}><Plus size={16}/>添加自选</button></div></div>
       {(!online||failedCount>0)&&<div className="connection-banner" role="status"><WifiOff size={17}/><span>{!online?"网络已断开，恢复连接后自动继续。":`${failedCount} 个标的暂时无法更新；上次报价已标记，暂停对应提醒。`}</span><button onClick={refreshAll} disabled={loading}>重试</button></div>}
       <section className="monitoring-strip" aria-label="监控状态">
         <div className="runtime-summary"><span className={`runtime-icon ${!active?"idle":""}`}><Activity size={18}/></span><div><strong>{!online?"网络已断开":!active?"监控已暂停":visible?"前台监控中":"标签页后台 · 尽力运行"}</strong><small>{lastFetched?`最近检查 ${formatTime(lastFetched)}`:"正在连接行情源"}<span className="runtime-cadence"> · {loading?"正在更新":visible?"加密 5 秒 / 股票 15 秒":"后台可能降频"}</span></small></div></div>
@@ -280,8 +311,10 @@ export default function MarketRadar(){
         <button className="runtime-link" onClick={()=>setSettingsOpen(true)}><Layers size={15}/>{backgroundTabs?"标签页后台已启用":"仅前台运行"}<ChevronRight size={14}/></button>
         <label className="refresh-label"><Switch checked={auto} onCheckedChange={setAuto} aria-label="自动刷新与提醒"/>自动监控</label>
       </section>
+      <div className="radar-view" hidden={marketMode!=="radar"}><RadarFeed signals={radar.signals} coverage={radar.coverage} watchlist={watchlist} scanning={mayRun} loading={loading} online={online} onAsset={viewAsset} onAdd={()=>{setCandidate("");setAddOpen(true);}} onRemove={removeAsset}/></div>
+      <div className="classic-experience" hidden={marketMode!=="classic"}>
       <div className="overview-wrap"><section className="overview" aria-label="市场概览">
-        {OVERVIEW.map(symbol=>{const a=assetFor(symbol),q=quotes[symbol];return <button key={symbol} className={`overview-card ${selected===symbol?"is-selected":""}`} aria-pressed={selected===symbol} onClick={()=>setSelected(symbol)} aria-label={`查看${a.name}走势`}><div className="overview-top"><AssetIcon asset={a} small/><span>{a.name}</span><span className="unit">{symbol.startsWith("^")?"指数":q?.currency??(symbol.endsWith("-USDT")?"USDT":"USD")}</span></div>{!q&&loading?<Skeleton className="skeleton-price"/>:<div className="overview-price numeric"><PricePulse value={q?.price} text={price(q?.price,q?.currency,false)} identity={symbol}/></div>}<div className="overview-bottom"><div><Change value={q?.changePercent}/><span className="overview-caption">{symbol.endsWith("-USDT")?"24 小时":"较前收"}</span></div><Sparkline points={trends[symbol]??q?.points} change={q?.changePercent}/></div>{errors[symbol]&&<div className="error-text">{q?"更新失败 · 上次报价":"暂未取得行情"}</div>}</button>;})}
+        {OVERVIEW.map(symbol=>{const a=assetFor(symbol),q=quotes[symbol];return <button key={symbol} className={`overview-card ${selected===symbol?"is-selected":""}`} aria-pressed={selected===symbol} onClick={()=>setSelected(symbol)} aria-label={`查看${a.name}走势`}><div className="overview-top"><AssetIcon asset={a} small/><span>{a.name}</span><span className="unit">{symbol.startsWith("^")?"指数":q?.currency??(symbol.endsWith("-USDT")?"USDT":"USD")}</span></div>{!q&&loading?<Skeleton className="skeleton-price"/>:<div className="overview-price numeric"><PricePulse value={q?.price} text={price(q?.price,q?.currency,false)} identity={symbol}/></div>}<div className="overview-bottom"><div><Change value={q?.changePercent}/><span className="overview-caption">{symbol.endsWith("-USDT")?"24 小时":"较前收"}</span></div><Sparkline points={trends[symbol]?.points??q?.points} change={q?.changePercent}/></div>{errors[symbol]&&<div className="error-text">{q?"更新失败 · 上次报价":"暂未取得行情"}</div>}</button>;})}
       </section><span className="overview-scroll-hint" aria-hidden="true">滑动查看更多 <ChevronRight size={12}/></span></div>
       <div className={`workspace ${chartExpanded?"chart-expanded":""}`}>
         <div className="left-column">
@@ -297,11 +330,12 @@ export default function MarketRadar(){
             </Tabs>
             <div className="chart-footer"><span className={chartProblem?"error-text":""}>{chartProblem?"走势更新失败 · 请重试":chartBusy?"正在更新 · 保留当前图表":`${quoteChart?quote?.source??"行情源":displayedHistory?.source??"行情源"} · ${range==="1d"?(activeAsset.market==="crypto"?"当日":"最近交易日"):"历史行情"} · ${chartTimezone}`}</span><span>{activeAsset.market==="crypto"&&selected.endsWith("-USDT")?"24 小时涨跌 · USDT":"日涨跌 · 较前收"}</span></div>
           </section>
+          <section className="panel recent-signals" aria-label="资产近期信号"><h3>{displaySymbol(selected)} · 近期信号</h3>{radar.signals.filter(signal=>signal.symbol===selected).slice(0,3).map(signal=><button key={signal.id} onClick={()=>{location.hash="radar";}}>{signal.title} · {signal.metric} · {formatTime(signal.detectedAt)} · {signal.status==="active"?"异常持续":signal.status==="resolved"?"已恢复":"已过期"}</button>)}{!radar.signals.some(signal=>signal.symbol===selected)&&<p>本次会话暂无该标的异常记录。</p>}</section>
           <section className="panel watch-panel" id="watchlist" aria-label="我的自选">
             <div className="panel-heading"><h2><Star size={17} className="muted"/>我的自选 <span className="count">{watchlist.length}</span></h2><div className="watch-heading-tools"><label className="watch-search"><Search size={14}/><input aria-label="搜索自选" placeholder="搜索币种 / 股票" value={watchSearch} onChange={e=>setWatchSearch(e.target.value)}/>{watchSearch&&<button aria-label="清空搜索" onClick={()=>setWatchSearch("")}><X size={13}/></button>}</label><button className="btn btn-quiet" onClick={()=>{setCandidate("");setAddOpen(true);}}><Plus size={15}/>添加</button></div></div>
             <Tabs value={marketFilter} onValueChange={setMarketFilter} className="watchlist-tabs"><div className="filter-row"><TabsList className="filter-list" aria-label="筛选自选市场">{[["all","全部"],["crypto","加密货币"],["us","美股"],["cn","A 股"],["hk","港股"]].map(([key,label])=><TabsTrigger key={key} value={key} className="filter-trigger">{label}</TabsTrigger>)}</TabsList><Select value={sort} onValueChange={setSort}><SelectTrigger className="sorting" aria-label="自选排序"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="default">默认排序</SelectItem><SelectItem value="gainers">涨幅优先</SelectItem><SelectItem value="losers">跌幅优先</SelectItem></SelectContent></Select></div>
               <TabsContent value={marketFilter}>
-                {!watchItems.length?<Empty className="empty-watch"><EmptyHeader><EmptyTitle>{watchSearch?"没有匹配的自选":"还没有这类自选"}</EmptyTitle><EmptyDescription>{watchSearch?"试试其他代码或名称，或切换市场分类。":"添加你关注的币种或股票，开始监控。"}</EmptyDescription></EmptyHeader><button className="btn" onClick={()=>setAddOpen(true)}><Plus size={15}/>添加自选</button></Empty>:<Table className="watch-table"><TableHeader><TableRow><TableHead>标的名称</TableHead><TableHead className="table-market">市场</TableHead><TableHead className="right">最新价格</TableHead><TableHead className="right">日涨跌</TableHead><TableHead className="table-trend right">日内走势</TableHead><TableHead className="table-actions right"><span className="sr-only">操作</span></TableHead></TableRow></TableHeader><TableBody>{watchItems.map(symbol=>{const a=assetFor(symbol),q=quotes[symbol],error=errors[symbol]??q?.error;return <TableRow key={symbol} className={selected===symbol?"selected":""} onClick={()=>setSelected(symbol)}><TableCell><button className="asset-cell text-left" onClick={()=>setSelected(symbol)} aria-label={`查看${a.name}行情`}><AssetIcon asset={a}/><span><strong>{displaySymbol(symbol)}</strong><small>{a.name===symbol?q?.name??a.name:a.name}</small></span></button></TableCell><TableCell className="table-market"><span className="market-tag">{MARKET_LABELS[a.market]}</span></TableCell><TableCell className="right"><span className="table-price numeric">{price(q?.price,q?.currency,false)}</span><span className={error?"table-meta error-text":"table-meta"}>{error?(q?"上次报价":"连接中断"):`${q?.currency??"—"} · ${formatTime(q?.timestamp,true)}`}</span></TableCell><TableCell className="right"><Change value={q?.changePercent}/><span className="table-meta">{q?.session==="closed"?"收盘":a.market==="crypto"?(symbol.endsWith("-USDT")?"24 小时":"较前收"):"常规时段"}</span></TableCell><TableCell className="table-trend right"><Sparkline points={trends[symbol]??q?.points} change={q?.changePercent}/></TableCell><TableCell className="table-actions"><div className="table-operations"><button className="icon-btn" aria-label={`为${a.name}创建提醒`} onClick={e=>{e.stopPropagation();openAlert(symbol);}}><BellPlus size={15}/></button><button className="icon-btn" aria-label={`移除${a.name}`} onClick={e=>{e.stopPropagation();removeAsset(symbol);}}><X size={15}/></button></div></TableCell></TableRow>;})}</TableBody></Table>}
+                {!watchItems.length?<Empty className="empty-watch"><EmptyHeader><EmptyTitle>{watchSearch?"没有匹配的自选":"还没有这类自选"}</EmptyTitle><EmptyDescription>{watchSearch?"试试其他代码或名称，或切换市场分类。":"添加你关注的币种或股票，开始监控。"}</EmptyDescription></EmptyHeader><button className="btn" onClick={()=>setAddOpen(true)}><Plus size={15}/>添加自选</button></Empty>:<Table className="watch-table"><TableHeader><TableRow><TableHead>标的名称</TableHead><TableHead className="table-market">市场</TableHead><TableHead className="right">最新价格</TableHead><TableHead className="right">日涨跌</TableHead><TableHead className="table-trend right">日内走势</TableHead><TableHead className="table-actions right"><span className="sr-only">操作</span></TableHead></TableRow></TableHeader><TableBody>{watchItems.map(symbol=>{const a=assetFor(symbol),q=quotes[symbol],error=errors[symbol]??q?.error;return <TableRow key={symbol} className={selected===symbol?"selected":""} onClick={()=>setSelected(symbol)}><TableCell><button className="asset-cell text-left" onClick={()=>setSelected(symbol)} aria-label={`查看${a.name}行情`}><AssetIcon asset={a}/><span><strong>{displaySymbol(symbol)}</strong><small>{a.name===symbol?q?.name??a.name:a.name}</small></span></button></TableCell><TableCell className="table-market"><span className="market-tag">{MARKET_LABELS[a.market]}</span></TableCell><TableCell className="right"><span className="table-price numeric">{price(q?.price,q?.currency,false)}</span><span className={error?"table-meta error-text":"table-meta"}>{error?(q?"上次报价":"连接中断"):`${q?.currency??"—"} · ${formatTime(q?.timestamp,true)}`}</span></TableCell><TableCell className="right"><Change value={q?.changePercent}/><span className="table-meta">{q?.session==="closed"?"收盘":a.market==="crypto"?(symbol.endsWith("-USDT")?"24 小时":"较前收"):"常规时段"}</span></TableCell><TableCell className="table-trend right"><Sparkline points={trends[symbol]?.points??q?.points} change={q?.changePercent}/></TableCell><TableCell className="table-actions"><div className="table-operations"><button className="icon-btn" aria-label={`为${a.name}创建提醒`} onClick={e=>{e.stopPropagation();openAlert(symbol);}}><BellPlus size={15}/></button><button className="icon-btn" aria-label={`移除${a.name}`} onClick={e=>{e.stopPropagation();removeAsset(symbol);}}><X size={15}/></button></div></TableCell></TableRow>;})}</TableBody></Table>}
               </TabsContent>
             </Tabs><div className="watchlist-footer"><Info size={13}/>欧易交易对显示 24 小时涨跌（USDT）；股票与旧美元交易对相对前收盘价。</div>
           </section>
@@ -312,10 +346,12 @@ export default function MarketRadar(){
           <section className="panel source-panel"><div className="market-breadth"><div className="breadth-head"><span>自选涨跌分布</span><span className="muted">{watchQuotes.length} 个有效报价</span></div><div className="breadth-track" aria-label={`${up} 个上涨，${down} 个下跌，${flat} 个持平`}><div className="breadth-up" style={{flex:up}}/><div className="breadth-flat" style={{flex:flat}}/><div className="breadth-down" style={{flex:down}}/></div><div className="breadth-labels"><span className="positive">{up} 上涨</span><span className="muted">{flat} 持平</span><span className="negative">{down} 下跌</span></div></div><details className="source-disclosure"><summary>数据来源与时效<ChevronRight size={13}/></summary><div className="data-note"><a href="https://www.okx.com/trade-spot/btc-usdt" target="_blank" rel="noreferrer">OKX 欧易</a> · USDT 现货与 K 线。<br/><a href="https://help.yahoo.com/kb/SLN2310.html" target="_blank" rel="noreferrer">Yahoo Finance <ExternalLink size={11} className="inline"/></a> · 免费行情可能延迟。更新频率不等于交易所实时数据，休市时显示最近常规时段报价。<br/><button className="small-link" style={{marginTop:8}} onClick={()=>setInfoOpen(true)}>查看使用说明</button></div></details></section>
         </aside>
       </div>
+      </div>
       <footer className="footnote"><span><Activity size={13}/>市场雷达 · 行情监控</span><span>自选与提醒可同步云端 · 仅监控行情，不执行交易</span></footer>
     </main>
-    <nav className="mobile-dock" aria-label="快捷操作"><a href="#price-chart"><Activity size={19}/><span>行情</span></a><a href="#watchlist"><Star size={19}/><span>自选</span></a><a href="#price-alerts"><Bell size={19}/><span>提醒</span></a><button onClick={()=>setSettingsOpen(true)}><SlidersHorizontal size={19}/><span>设置</span></button></nav>
+    <nav className="mobile-dock" aria-label="快捷操作"><a data-product-nav href="#overview" aria-current={marketMode==="classic"&&!["#watchlist","#price-alerts"].includes(section)?"page":undefined}><Activity size={19}/><span>Markets</span></a><a data-product-nav href="#radar" aria-current={marketMode==="radar"?"page":undefined}><Layers size={19}/><span>Radar</span></a><a data-product-nav href="#watchlist" aria-current={marketMode==="classic"&&section==="#watchlist"?"page":undefined}><Star size={19}/><span>自选</span></a><a data-product-nav href="#price-alerts" aria-current={marketMode==="classic"&&section==="#price-alerts"?"page":undefined}><Bell size={19}/><span>提醒</span></a><button onClick={()=>setSettingsOpen(true)}><SlidersHorizontal size={19}/><span>设置</span></button></nav>
     <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent className="modal-content settings-modal"><DialogHeader><span className="settings-emblem"><SlidersHorizontal size={23}/></span><DialogTitle>运行与通知</DialogTitle><DialogDescription>选择监控方式，清楚掌握雷达何时在运行。</DialogDescription></DialogHeader>
+      <div className="setting-row"><div className="setting-copy"><strong>Market Experience</strong><p>默认打开的体验；导航中可随时切换。更改后下次访问根路径生效。</p><fieldset className="experience-setting"><legend className="sr-only">默认市场体验</legend>{(["classic","radar"] as const).map(mode=><label key={mode}><input type="radio" name="market-experience" value={mode} checked={defaultMarketMode===mode} onChange={()=>setDefaultMarketMode(mode)}/>{mode==="classic"?"Classic":"Radar"}</label>)}</fieldset></div></div>
       <div className="setting-row"><div className="setting-copy"><strong><Activity size={17}/>自动监控</strong><p>前台加密货币约每 5 秒、股票约每 15 秒查询并检查提醒。</p></div><Switch checked={auto} onCheckedChange={setAuto} aria-label="开启自动监控"/></div>
       <div className="setting-row"><div className="setting-copy"><strong><Layers size={17}/>标签页后台监控</strong><p>切换到其他标签页后，每 60 秒尝试检查。浏览器可能延迟或停止执行。</p></div><Switch checked={backgroundTabs} onCheckedChange={setBackgroundTabs} aria-label="切换标签页后继续尝试监控"/></div>
       <div className="setting-row"><div className="setting-copy"><strong><Bell size={17}/>本次访问的系统通知</strong><p>浏览器支持且授权后，触价时显示系统通知。</p></div><button className="btn" onClick={()=>notifying?setNotifying(false):void enableNotifications()}>{notifying?"关闭":"开启"}</button></div>

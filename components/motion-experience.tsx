@@ -61,7 +61,7 @@ export function MotionExperience() {
     document.querySelectorAll(".watch-panel .panel-heading,.right-column .panel,.footnote").forEach(el => observer.observe(el));
 
     const header = document.querySelector<HTMLElement>(".topbar");
-    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".desktop-nav a,.mobile-dock a"));
+    const links = Array.from(document.querySelectorAll<HTMLAnchorElement>(".desktop-nav a:not([data-product-nav]),.mobile-dock a:not([data-product-nav])"));
     const sections = ["price-chart", "watchlist", "price-alerts"].map(id => document.getElementById(id)).filter((el): el is HTMLElement => !!el);
     let frame = 0;
     let activeId = "";
