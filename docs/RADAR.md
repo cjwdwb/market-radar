@@ -31,7 +31,9 @@ Engine 是显式输入 snapshot、now、enabled 的纯函数，无网络、浏�
 | 波动放大 | 最近 4 根收益率均方根，相对之前 16 根基线 | 可用连续历史的标的；非年化波动率 |
 | 成交量异常 | 完整 15m 成交量达到前 20 根均量 2.5 倍 | 仅 OKX USDT 基础币成交量；不使用 24h 成交额 |
 
-**DEFERRED**：加密 5 分钟数据、股票成交量（需可靠时段基线）、相对强弱（需同步基准）。不为缺失数据创建模拟信号。
+Radar 2.1 已加入使用同步真实 benchmark 的相对强弱，以及 evidence、confidence、clustering、ranking 与 60 分钟 summary；完整定义见 [INTELLIGENCE.md](INTELLIGENCE.md)。
+
+**DEFERRED**：加密 5 分钟数据、股票成交量（需可靠时段基线）、跨设备持久 Radar history。不为缺失数据创建模拟信号。
 
 ## 生命周期与来源
 

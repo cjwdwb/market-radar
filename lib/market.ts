@@ -44,6 +44,7 @@ export const ASSETS: Asset[] = [
   {symbol:"0700.HK",name:"腾讯控股",market:"hk",color:"#72a4e4",mark:"腾"},
   {symbol:"9988.HK",name:"阿里巴巴",market:"hk",color:"#e3aa67",mark:"阿"},
   {symbol:"1810.HK",name:"小米集团",market:"hk",color:"#e89667",mark:"米"},
+  {symbol:"^HSI",name:"恒生指数",market:"hk",color:"#9ca7b8",mark:"恒"},
 ];
 export const DEFAULT_WATCHLIST = ["BTC-USDT","ETH-USDT","SOL-USDT","NVDA","AAPL","TSLA","600519.SS","0700.HK"];
 export const OVERVIEW = ["BTC-USDT","ETH-USDT","^GSPC","^IXIC"];
@@ -54,7 +55,7 @@ export function assetFor(symbol: string): Asset {
     color:"#91a1bd",mark:symbol.replace(/[^A-Z0-9]/g,"").slice(0,2)
   };
 }
-export function displaySymbol(symbol:string) { return symbol.replace(/-USDT?$|\.SS$|\.SZ$|\.HK$/g,"").replace("^GSPC","S&P 500").replace("^IXIC","NASDAQ"); }
+export function displaySymbol(symbol:string) { return symbol.replace(/-USDT?$|\.SS$|\.SZ$|\.HK$/g,"").replace("^GSPC","S&P 500").replace("^IXIC","NASDAQ").replace("^HSI","恒生指数"); }
 const priceFormats=new Map<string,Intl.NumberFormat>();
 const compactFormat=new Intl.NumberFormat("zh-CN",{notation:"compact",maximumFractionDigits:2});
 export function price(value:number|null|undefined,currency="USD",symbol=true) {

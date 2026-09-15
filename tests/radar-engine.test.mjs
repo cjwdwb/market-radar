@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { scanRadar, radarCoverage } from '../lib/radar/engine.ts';
+import { scanRadar, radarCoverage, benchmarkFor, benchmarkSymbols } from '../lib/radar/engine.ts';
 import { emptyRadarStore } from '../lib/radar/types.ts';
 import { experienceForHash } from '../lib/radar/navigation.ts';
 
@@ -14,6 +14,10 @@ function fixture({symbol='BTC-USDT',move=0,volume=100,at=now,count=70}={}) {
  const source=crypto?'OKX 欧易':'Yahoo Finance',currency=crypto?'USDT':symbol.endsWith('.HK')?'HKD':/\.(SS|SZ)$/.test(symbol)?'CNY':'USD';
  const quote={symbol,name:symbol,price:points.at(-1).close,currency,source,timestamp:at,fetchedAt:at,session:'open',delayMinutes:0,points};
  return {quotes:{[symbol]:quote},histories:{[symbol]:{points,source,currency,fetchedAt:at,intervalMs:interval}},symbols:[symbol]};
+}
+function relativeFixture({symbol='NVDA',assetMove=-4,benchmarkMove=-.5,at=now}={}){
+ const benchmark=benchmarkFor(symbol),asset=fixture({symbol,move:assetMove,at}),base=fixture({symbol:benchmark,move:benchmarkMove,at});
+ return {symbols:[symbol],quotes:{...asset.quotes,...base.quotes},histories:{...asset.histories,...base.histories}};
 }
 test('quiet market produces no events; navigation has a stable Classic fallback and explicit hashes win',()=>{
  assert.equal(scanRadar(emptyRadarStore(),fixture(),now).signals.length,0);
@@ -134,4 +138,31 @@ test('sharp direction reversals resolve the old move and emit the opposite move 
   assert.ok(result.signals.some(s=>s.type==='price_move'&&s.direction===to&&s.status==='active'));
   assert.ok(!result.signals.some(s=>s.type==='price_move'&&s.direction===from&&s.status==='active'));
  }
+});
+
+test('benchmark mapping is explicit and benchmark identities do not recursively benchmark',()=>{
+ assert.equal(benchmarkFor('ETH-USDT'),'BTC-USDT');assert.equal(benchmarkFor('NVDA'),'QQQ');assert.equal(benchmarkFor('600519.SS'),'000300.SS');assert.equal(benchmarkFor('0700.HK'),'^HSI');
+ for(const symbol of ['BTC-USDT','QQQ','SPY','^GSPC','^IXIC','000300.SS','000001.SS','^HSI'])assert.equal(benchmarkFor(symbol),undefined);
+ assert.deepEqual(benchmarkSymbols(['ETH-USDT','SOL-USDT','NVDA','AAPL']),['BTC-USDT','QQQ']);
+});
+test('synchronized real benchmark detects relative weakness and strength, while moving together stays quiet',()=>{
+ const weak=scanRadar(emptyRadarStore(),relativeFixture({assetMove:-4,benchmarkMove:-.5}),now).signals.find(s=>s.type==='relative_weakness');
+ assert.ok(weak);assert.equal(weak.evidence.benchmark.symbol,'QQQ');assert.ok(weak.metrics.relativeDeltaPercent<-3);assert.equal(weak.evidence.items[2].label,'相对差');
+ const strong=scanRadar(emptyRadarStore(),relativeFixture({assetMove:4,benchmarkMove:.5}),now).signals.find(s=>s.type==='relative_strength');assert.ok(strong);
+ const together=scanRadar(emptyRadarStore(),relativeFixture({assetMove:2,benchmarkMove:2}),now).signals;assert.ok(!together.some(s=>s.type.startsWith('relative_')));
+ for(const signal of scanRadar(emptyRadarStore(),fixture({move:3,volume:500}),now).signals){assert.ok(signal.evidence.reason);assert.ok(signal.evidence.items.length);assert.ok(Number.isFinite(signal.fetchedAt));}
+});
+test('relative signals fail closed on missing, stale, mismatched, unsynchronized or insufficient benchmark data',()=>{
+ const variants=[
+  snapshot=>{delete snapshot.quotes.QQQ;},
+  snapshot=>{snapshot.quotes.QQQ.fetchedAt=now-121000;},
+  snapshot=>{snapshot.quotes.QQQ.session='closed';},
+  snapshot=>{snapshot.quotes.QQQ.timestamp-=360000;},
+  snapshot=>{snapshot.quotes.QQQ.source='Other';},
+  snapshot=>{snapshot.quotes.QQQ.currency='EUR';},
+  snapshot=>{snapshot.quotes.QQQ.points=snapshot.quotes.QQQ.points.slice(-12);},
+ ];
+ for(const change of variants){const snapshot=relativeFixture();change(snapshot);const result=scanRadar(emptyRadarStore(),snapshot,now);assert.ok(!result.signals.some(s=>s.type.startsWith('relative_')));assert.equal(radarCoverage(snapshot,now)[0].relativeEligible,false);}
+ const staleAsset=relativeFixture();staleAsset.quotes.NVDA.fetchedAt=now-121000;assert.equal(scanRadar(emptyRadarStore(),staleAsset,now).signals.length,0);
+ const crypto=relativeFixture({symbol:'ETH-USDT'});crypto.histories['BTC-USDT'].intervalMs=300000;assert.ok(!scanRadar(emptyRadarStore(),crypto,now).signals.some(s=>s.type.startsWith('relative_')));
 });

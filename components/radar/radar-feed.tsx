@@ -3,41 +3,54 @@
 import { memo, useState } from "react";
 import { ArrowUpRight, Plus, ScanLine, Star, X } from "lucide-react";
 import { assetFor, displaySymbol, MARKET_LABELS, type Market } from "@/lib/market";
-import type { RadarCoverage, RadarSignal } from "@/lib/radar/types";
+import type { RadarCoverage, RadarEvidenceItem, RadarIntelligence, RadarIntelligenceEvent } from "@/lib/radar/types";
 
 const severity = { medium: "中等", high: "高优先", critical: "极高" };
+const confidence = { low: "低可信", medium: "中可信", high: "高可信" };
 const status = { active: "异常持续", resolved: "已恢复", expired: "已过期" };
+const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 });
 function time(value: number) { return new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(value); }
+function evidenceValue(item: RadarEvidenceItem) { return typeof item.value === "number" ? `${number.format(item.value)}${item.unit ?? ""}` : item.value; }
 
-export const SignalCard = memo(function SignalCard({ signal, onAsset }: { signal: RadarSignal; onAsset: (symbol: string) => void }) {
-  return <article className={`radar-signal signal-${signal.status}`} aria-label={`${displaySymbol(signal.symbol)} ${signal.title}`}>
-    <div className="signal-heading"><button className="signal-asset" onClick={() => onAsset(signal.symbol)} aria-label={`查看 ${signal.symbol} 行情`}><span className="asset-icon small" aria-hidden="true">{assetFor(signal.symbol).mark}</span><span><strong>{displaySymbol(signal.symbol)}</strong><small>{signal.symbol} · {MARKET_LABELS[signal.market]}</small></span><ArrowUpRight size={16}/></button><span className={`signal-severity severity-${signal.severity}`}>{severity[signal.severity]}</span></div>
-    <div className="signal-summary"><h3>{signal.title}</h3><strong className={`numeric ${signal.direction === "up" ? "positive" : signal.direction === "down" ? "negative" : ""}`}>{signal.metric}</strong></div>
-    <div className="signal-meta"><span>{status[signal.status]}</span><time dateTime={new Date(signal.detectedAt).toISOString()}>发现于 {time(signal.detectedAt)}</time></div>
-    <details className="signal-context"><summary>依据与来源</summary><p>{signal.description}</p><dl><div><dt>数据来源</dt><dd>{signal.source} · {signal.currency}</dd></div><div><dt>报价时间</dt><dd>{time(signal.quoteAt)}</dd></div><div><dt>K 线结束</dt><dd>{time(signal.evidenceAt)}</dd></div><div><dt>状态更新</dt><dd>{time(signal.updatedAt)}</dd></div></dl></details>
+export const SignalCard = memo(function SignalCard({ event, onAsset }: { event: RadarIntelligenceEvent; onAsset: (symbol: string) => void }) {
+  const primary = event.signals[0];
+  return <article className={`radar-signal signal-${event.status} ${event.kind !== "signal" ? "signal-cluster" : ""}`} aria-label={`${displaySymbol(event.symbol)} ${event.title}`}>
+    <div className="signal-heading"><button className="signal-asset" onClick={() => onAsset(event.symbol)} aria-label={`查看 ${event.symbol} 行情`}><span className="asset-icon small" aria-hidden="true">{assetFor(event.symbol).mark}</span><span><strong>{displaySymbol(event.symbol)}</strong><small>{event.symbol} · {MARKET_LABELS[event.market]}</small></span><ArrowUpRight size={16}/></button><div className="signal-badges"><span className={`signal-severity severity-${event.severity}`}>{severity[event.severity]}</span><span className={`signal-confidence confidence-${event.confidence.level}`}>{confidence[event.confidence.level]}</span></div></div>
+    <div className="signal-summary"><h3>{event.title}</h3><strong className={`numeric ${event.direction === "up" ? "positive" : event.direction === "down" ? "negative" : ""}`}>{event.metric}</strong>{event.signals.length > 1 && <small>{event.signals.length} 项独立证据合并</small>}</div>
+    <div className="signal-meta"><span>{status[event.status]}</span><time dateTime={new Date(event.detectedAt).toISOString()}>发现于 {time(event.detectedAt)}</time></div>
+    <details className="signal-context"><summary>Why triggered · 依据与来源</summary>
+      <div className="signal-explanation"><p>{primary.evidence?.reason ?? primary.description}</p>
+        {primary.evidence && <dl className="signal-evidence">{primary.evidence.items.map((item, index) => <div key={`${item.label}:${index}`}><dt>{item.label}</dt><dd className="numeric">{evidenceValue(item)}{item.baseline !== undefined && <small>基线 {number.format(item.baseline)}{item.unit === "%" ? "%" : ""}</small>}{item.threshold !== undefined && <small>阈值 {number.format(item.threshold)}{item.unit ?? ""}</small>}</dd></div>)}</dl>}
+        {event.context.length > 0 && <section className="signal-related" aria-label="市场背景"><h4>Context</h4>{event.context.map((line, index) => <p key={index}>{line}</p>)}</section>}
+        <section className="signal-related" aria-label="可信度依据"><h4>{confidence[event.confidence.level]}</h4><ul>{event.confidence.reasons.map(reason => <li key={reason}>{reason}</li>)}</ul></section>
+        {event.signals.length > 1 && <section className="signal-related" aria-label="组合中的原始信号"><h4>组合证据</h4><ul>{event.signals.map(signal => <li key={signal.id}>{signal.title} · {signal.metric}</li>)}</ul></section>}
+        <dl><div><dt>数据来源</dt><dd>{primary.source} · {primary.currency}</dd></div>{primary.evidence?.benchmark && <div><dt>同步基准</dt><dd>{primary.evidence.benchmark.symbol} · {time(primary.evidence.benchmark.quoteAt)}</dd></div>}<div><dt>报价时间</dt><dd>{time(primary.quoteAt)}</dd></div><div><dt>获取时间</dt><dd>{time(primary.fetchedAt)}</dd></div><div><dt>K 线结束</dt><dd>{time(primary.evidenceAt)}</dd></div><div><dt>状态更新</dt><dd>{time(event.updatedAt)}</dd></div></dl>
+      </div>
+    </details>
   </article>;
 });
 
 type Props = {
-  signals: RadarSignal[]; coverage: RadarCoverage[]; watchlist: string[];
+  intelligence: RadarIntelligence; coverage: RadarCoverage[]; watchlist: string[];
   scanning: boolean; loading: boolean; online: boolean;
   onAsset: (symbol: string) => void; onAdd: () => void; onRemove: (symbol: string) => void;
 };
-export function RadarFeed({ signals, coverage, watchlist, scanning, loading, online, onAsset, onAdd, onRemove }: Props) {
-  const [filter, setFilter] = useState("all");
-  const [showHistory, setShowHistory] = useState(false);
+export function RadarFeed({ intelligence, coverage, watchlist, scanning, loading, online, onAsset, onAdd, onRemove }: Props) {
+  const [filter, setFilter] = useState("all"), [showHistory, setShowHistory] = useState(false);
   const ready = coverage.filter(item => item.eligible).length;
   const markets = [...new Set(coverage.map(item => assetFor(item.symbol).market))];
-  const filtered = signals.filter(signal => (showHistory || signal.status === "active") && (filter === "all" || filter === "watchlist" && watchlist.includes(signal.symbol) || filter === "priority" && signal.severity !== "medium" || filter === signal.market));
+  const filtered = intelligence.events.filter(event => (showHistory || event.status === "active") && (filter === "all" || filter === "watchlist" && watchlist.includes(event.symbol) || filter === "priority" && event.severity !== "medium" || filter === event.market));
   const filters = [["all", "全部"], ["watchlist", "My Radar"], ...markets.map(market => [market, MARKET_LABELS[market as Market]]), ["priority", "高优先"]];
   const headline = !online ? "网络已断开" : !scanning ? "扫描已暂停" : loading && !ready ? "正在获取市场数据" : !ready ? "等待有效行情与历史基线" : "市场扫描中";
+  const summary = intelligence.summary;
   return <section className="radar-experience" id="radar" aria-label="Radar 市场事件">
-    <div className="radar-intro"><div><span className="radar-eyebrow">LET THE MARKET COME TO YOU.</span><h2>少一点噪声。<br/>看见值得关注的变化。</h2><p>从关注的市场中，识别有数据依据的价格、量能与波动异常。</p></div><div className="radar-scan-status" role="status"><ScanLine size={21}/><strong>{headline}</strong><span>{ready} / {coverage.length} 个标的基线可用</span><small>仅扫描当前自选、市场概览与已加载的标的</small></div></div>
-    <div className="radar-layout"><div className="radar-feed-column"><div className="radar-feed-toolbar"><div><h2>市场事件 <span className="count">{filtered.length}</span></h2><p>完整 K 线确认 · 当前页面会话记录</p></div><label className="radar-history-toggle"><input type="checkbox" checked={showHistory} onChange={event => setShowHistory(event.target.checked)}/>包含历史</label></div>
+    <div className="radar-intro"><div><span className="radar-eyebrow">LET THE MARKET COME TO YOU.</span><h2>少一点噪声。<br/>理解值得关注的变化。</h2><p>同步基准、结构化证据和组合事件，让异常更容易判断。</p></div><div className="radar-scan-status" role="status"><ScanLine size={21}/><strong>{headline}</strong><span>{ready} / {coverage.length} 个标的基线可用</span><small>仅扫描当前自选、市场概览与已加载的标的</small></div></div>
+    {summary.activeEvents > 0 && <section className="radar-summary" aria-labelledby="radar-summary-title"><div><span>LAST 60 MINUTES</span><h2 id="radar-summary-title">{summary.watchlistAssets ? `${summary.watchlistAssets} 个自选标的需要关注` : `${summary.activeEvents} 个市场事件`}</h2><p>{summary.priorityEvents} 个高优先事件 · 已按自选、组合证据与可信度排序</p></div><ol>{summary.highlights.map(event => <li key={event.id}><button onClick={() => onAsset(event.symbol)}><strong>{displaySymbol(event.symbol)}</strong><span>{event.title}</span><small>{event.metric}</small></button></li>)}</ol></section>}
+    <div className="radar-layout"><div className="radar-feed-column"><div className="radar-feed-toolbar"><div><h2>市场情报 <span className="count">{filtered.length}</span></h2><p>原始信号保留 · 相关事件已组合 · 当前页面会话记录</p></div><label className="radar-history-toggle"><input type="checkbox" checked={showHistory} onChange={event => setShowHistory(event.target.checked)}/>包含历史</label></div>
       <div className="radar-filter-wrap"><div className="radar-filters" aria-label="筛选 Radar">{filters.map(([key, label]) => <button key={key} className="btn" aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}</button>)}</div><span className="radar-filter-hint">横向滑动查看更多筛选</span></div>
-      {filtered.length ? <div className="radar-feed">{filtered.map(signal => <SignalCard key={signal.id} signal={signal} onAsset={onAsset}/>)}</div> : <div className="radar-empty"><ScanLine size={28}/><h3>{!online ? "等待网络恢复" : !scanning ? "恢复自动监控后继续扫描" : !ready ? "正在等待可靠基线" : "当前筛选下，暂无异常事件"}</h3><p>{!ready ? "缺失、休市、延迟或不连续的数据不会生成信号。其他标的数据就绪后将独立参与扫描。" : "市场平静也是信息。新的有效异常出现后，会在这里显示。"}</p>{filter === "watchlist" && !watchlist.length && <button className="btn" onClick={onAdd}><Plus size={15}/>添加关注标的</button>}</div>}
+      {filtered.length ? <div className="radar-feed">{filtered.map(event => <SignalCard key={event.id} event={event} onAsset={onAsset}/>)}</div> : <div className="radar-empty"><ScanLine size={28}/><h3>{!online ? "等待网络恢复" : !scanning ? "恢复自动监控后继续扫描" : !ready ? "正在等待可靠基线" : "当前筛选下，暂无异常事件"}</h3><p>{!ready ? "缺失、休市、延迟或不连续的数据不会生成信号。Benchmark 失败只会关闭相对强弱，不影响其他检测。" : "市场平静也是信息。新的有效异常出现后，会在这里显示。"}</p>{filter === "watchlist" && !watchlist.length && <button className="btn" onClick={onAdd}><Plus size={15}/>添加关注标的</button>}</div>}
     </div><aside className="radar-sidebar"><section className="panel radar-watchlist"><div className="panel-heading"><h2><Star size={16}/>My Radar <span className="count">{watchlist.length}</span></h2><button className="icon-btn" aria-label="Radar 添加自选" onClick={onAdd}><Plus size={17}/></button></div><p>与 Markets 共用同一份自选。</p><div>{watchlist.map(symbol => <div className="radar-watch-row" key={symbol}><button onClick={() => onAsset(symbol)}><strong>{displaySymbol(symbol)}</strong><small>{assetFor(symbol).name}</small></button><button className="icon-btn" aria-label={`Radar 移除 ${symbol}`} onClick={() => onRemove(symbol)}><X size={15}/></button></div>)}</div></section>
-      <details className="panel radar-coverage"><summary>扫描覆盖与限制 <span>{ready}/{coverage.length}</span></summary><ul>{coverage.map(item => <li key={item.symbol}><strong>{item.symbol}</strong><span>{item.reason}</span></li>)}</ul><p>加密使用 15 分钟 K 线；股票使用常规交易时段的 5 分钟 K 线。短周期异常由近期基线确认，不等同于实时买卖建议。</p><p>股票量能、加密 5 分钟及相对强弱信号尚未启用。历史不足时等待，不生成模拟事件。</p></details>
+      <details className="panel radar-coverage"><summary>扫描覆盖与限制 <span>{ready}/{coverage.length}</span></summary><ul>{coverage.map(item => <li key={item.symbol}><strong>{item.symbol}</strong><span>{item.reason}</span>{item.relativeReason && <small>相对信号：{item.relativeReason}</small>}</li>)}</ul><p>相对强弱只比较同步、同源、同币种的 15 分钟窗口。缺失 benchmark 时不生成相对事件。</p><p>股票量能、加密 5 分钟与跨设备历史尚未启用。不使用 AI 猜测行情原因。</p></details>
     </aside></div>
   </section>;
 }

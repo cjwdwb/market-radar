@@ -23,5 +23,5 @@
 - 本次仅修改工作流文档，没有运行产品测试或验证部署。
 
 ## 文档入口
-版本与回退点见 VERSIONS.md；架构见 ARCHITECTURE.md；协议见 API_CONTRACTS.md；决策见 DECISIONS.md；交接见 CURRENT_STATE.md。
+版本与回退点见 VERSIONS.md；Radar intelligence 见 INTELLIGENCE.md；架构见 ARCHITECTURE.md；协议见 API_CONTRACTS.md；决策见 DECISIONS.md；交接见 CURRENT_STATE.md。
 README 的单一 Yahoo 来源、无云端监控描述与当前代码不一致；涉及这些行为时以上述实现为准。

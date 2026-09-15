@@ -29,7 +29,7 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0}
   await route.fulfill({json:{results:symbols.map(symbol=>{
    if(mode==='error'||mode==='partial'&&symbol==='NVDA')return {symbol,error:'测试：该标的请求失败'};
    const okx=symbol.endsWith('-USDT'),points=series(symbol,mode);
-   return {symbol,quote:{symbol,name:symbol,currency:okx?'USDT':symbol.endsWith('.HK')?'HKD':symbol.endsWith('.SS')?'CNY':'USD',source:okx?'OKX 欧易':'Yahoo Finance',price:points.at(-1).close,change:3,changePercent:3,previousClose:100,high:103.02,low:99.98,volume:1000000,timestamp:mode==='stale'?stamp-3600000:stamp,fetchedAt:stamp,session:'open',delayMinutes:0,points:okx?[]:points}};
+   return {symbol,quote:{symbol,name:symbol,currency:okx?'USDT':symbol.endsWith('.HK')||symbol==='^HSI'?'HKD':symbol.endsWith('.SS')?'CNY':'USD',source:okx?'OKX 欧易':'Yahoo Finance',price:points.at(-1).close,change:3,changePercent:3,previousClose:100,high:103.02,low:99.98,volume:1000000,timestamp:mode==='stale'?stamp-3600000:stamp,fetchedAt:stamp,session:'open',delayMinutes:0,points:okx?[]:points}};
   }),fetchedAt:stamp}});
  });
  await page.route('**/api/history?**',async route=>{
@@ -52,6 +52,10 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0}
   await page.reload({waitUntil:'networkidle'});assert.equal(await page.locator('#radar').isVisible(),true);report.checks.push('default Radar persists after reload');
   await page.goto(base+'/#overview',{waitUntil:'networkidle'});assert.equal(await page.locator('.classic-experience').isVisible(),true);report.checks.push('explicit Classic anchor overrides default');
   await page.locator('.desktop-nav a[href="#radar"]').click();await page.locator('.radar-feed .radar-signal').first().waitFor();
+  const quoteSymbols=new Set(app.requests.filter(url=>url.includes('/api/quotes?')).flatMap(url=>(new URL(url).searchParams.get('symbols')||'').split(',')));
+  for(const benchmark of ['BTC-USDT','QQQ','000300.SS','^HSI'])assert.ok(quoteSymbols.has(benchmark),`missing benchmark ${benchmark}`);
+  assert.equal(await page.getByRole('button',{name:'Radar 移除 QQQ',exact:true}).count(),0);report.checks.push('benchmarks share quote snapshots without entering My Radar');
+  assert.ok(await page.locator('.signal-cluster').count());assert.ok(await page.locator('.signal-confidence').count());assert.ok(await page.locator('.radar-summary').count());report.checks.push('cluster, confidence and deterministic summary render');
   const requestStart=app.requests.length;
   for(let i=0;i<4;i++){await page.locator('.desktop-nav a[href="#overview"]').click();await page.locator('.desktop-nav a[href="#radar"]').click();}
   report.navigationRequests=app.requests.slice(requestStart);assert.equal(report.navigationRequests.length,0);report.checks.push('eight experience navigation clicks add zero API requests');
@@ -76,7 +80,7 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0}
   await page.locator('.desktop-nav a[href="#radar"]').focus();await page.keyboard.press('Enter');await pause(100);assert.equal(await page.locator('#radar').isVisible(),true);
   await page.locator('.radar-filters button').first().focus();assert.notEqual(await page.locator('.radar-filters button').first().evaluate(el=>getComputedStyle(el).outlineStyle),'none');report.checks.push('keyboard navigation and visible focus');
   await page.setViewportSize({width:390,height:844});await page.locator('.radar-filters button').filter({hasText:'My Radar'}).click();assert.ok(await page.locator('.radar-feed .radar-signal').count());
-  await page.locator('.signal-context summary').first().click();assert.equal(await page.locator('.signal-context[open]').count(),1);report.checks.push('mobile filters and provenance disclosure');
+  await page.locator('.signal-context summary').first().click();assert.equal(await page.locator('.signal-context[open]').count(),1);assert.ok(await page.locator('.signal-evidence').first().isVisible());assert.ok(await page.getByRole('heading',{name:/高可信|中可信|低可信/}).first().isVisible());report.checks.push('mobile filters, evidence and confidence disclosure');
   await page.context().setOffline(true);await pause(100);assert.ok(await page.getByText('网络已断开',{exact:true}).count());await page.context().setOffline(false);
   report.errors.push(...app.errors);await app.context.close();
   for(const mode of ['quiet','stale','error','partial','empty']){

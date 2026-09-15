@@ -4,7 +4,7 @@
 浏览器 → worker/index.ts 门禁 → Vinext app router → app/api → lib/market-data.ts → OKX / Yahoo。
 独立云端链路：站主登录 → app/api/monitor → MONITOR_URL → monitor/worker.mjs → D1。
 
-2026-09-15：Classic / Radar 共用 app/market-radar.tsx 状态与请求。已有 quotes/trends → lib/radar/engine.ts（纯检测/去重/生命周期）→ components/radar/use-radar.ts（会话 store）→ radar-feed.tsx。默认体验复用现有 localStorage；无新增 API、数据库或定时器。规则与限制见 RADAR.md。
+2026-09-15：Classic / Radar 共用 app/market-radar.tsx 状态与请求。quotes/trends snapshot → lib/radar/engine.ts（纯检测/证据/去重/生命周期）→ raw session store → lib/radar/intelligence.ts（confidence/clustering/context/ranking/summary）→ radar-feed.tsx。Benchmark 合入已有轮询分组，不进入自选或 Classic UI；无新增 API、数据库或定时器。规则见 RADAR.md 与 INTELLIGENCE.md。
 
 | 关注点 | 首要文件 | 边界 |
 | --- | --- | --- |

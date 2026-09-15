@@ -23,6 +23,7 @@ import { retryDelay, reusePoints } from "@/lib/refresh-policy";
 import { RadarFeed } from "@/components/radar/radar-feed";
 import { useRadar } from "@/components/radar/use-radar";
 import { experienceForHash } from "@/lib/radar/navigation";
+import { benchmarkSymbols } from "@/lib/radar/engine";
 import type { MarketMode, RadarHistory } from "@/lib/radar/types";
 
 type HistoryData={key:string;points:Point[];timezone:string;source:string;currency:string};
@@ -145,12 +146,13 @@ export default function MarketRadar(){
   },[]);
 
   const symbolKey=useMemo(()=>[...new Set([...OVERVIEW,...watchlist,selected,...alerts.filter(a=>a.enabled).map(a=>a.symbol)])].sort().join(","),[watchlist,selected,alerts]);
+  const requestKey=useMemo(()=>{const symbols=symbolKey.split(",");return [...new Set([...symbols,...benchmarkSymbols(symbols)])].sort().join(",");},[symbolKey]);
   const radarSnapshot=useMemo(()=>({quotes,histories:trends,symbols:symbolKey.split(",")}),[quotes,trends,symbolKey]);
-  const radar=useRadar(radarSnapshot,now,hydrated&&mayRun);
+  const radar=useRadar(radarSnapshot,watchlist,now,hydrated&&mayRun);
   const refresh=useCallback(async(background=false,provider?:"crypto"|"stocks")=>{
     if(!hydrated)return;
     const sequence=refreshSequence.current;
-    const symbols=symbolKey.split(","),crypto=symbols.filter(s=>s.endsWith("-USDT")),stocks=symbols.filter(s=>!s.endsWith("-USDT"));
+    const symbols=requestKey.split(","),crypto=symbols.filter(s=>s.endsWith("-USDT")),stocks=symbols.filter(s=>!s.endsWith("-USDT"));
     const groups:string[][]=[];
     if(provider!=="stocks")for(let i=0;i<crypto.length;i+=20)groups.push(crypto.slice(i,i+20));
     if(provider!=="crypto")for(let i=0;i<stocks.length;i+=4)groups.push(stocks.slice(i,i+4));
@@ -179,9 +181,9 @@ export default function MarketRadar(){
       }finally{clearTimeout(timeout);if(quoteRequests.current.get(key)===controller)quoteRequests.current.delete(key);}
     }));
     if(!background&&sequence===refreshSequence.current)setLoading(false);
-  },[symbolKey,hydrated]);
+  },[requestKey,hydrated]);
   useEffect(()=>{
-    const wanted=new Set(symbolKey.split(","));
+    const wanted=new Set(requestKey.split(","));
     setErrors(prev=>Object.fromEntries(Object.entries(prev).filter(([symbol])=>wanted.has(symbol))));
     if(hydrated&&online&&(visible||(auto&&backgroundTabs)))void refresh();
     return()=>{refreshSequence.current++;for(const controller of quoteRequests.current.values())controller.abort();quoteRequests.current.clear();};
@@ -199,7 +201,7 @@ export default function MarketRadar(){
     const controllers=new Set<AbortController>();let stopped=false,running=false;
     async function update(){
       if(running)return;running=true;
-      const symbols=symbolKey.split(",").filter(s=>s.endsWith("-USDT"));
+      const symbols=requestKey.split(",").filter(s=>s.endsWith("-USDT"));
       for(let i=0;i<symbols.length&&!stopped;i+=3){
         await Promise.all(symbols.slice(i,i+3).map(async symbol=>{
           const controller=new AbortController();controllers.add(controller);const timeout=setTimeout(()=>controller.abort(),35_000);
@@ -210,7 +212,7 @@ export default function MarketRadar(){
     const first=setTimeout(()=>void update(),1500);
     const interval=auto?setInterval(()=>void update(),60_000):undefined;
     return()=>{stopped=true;clearTimeout(first);clearInterval(interval);for(const c of controllers)c.abort();};
-  },[symbolKey,hydrated,visible,online,auto]);
+  },[requestKey,hydrated,visible,online,auto]);
   useEffect(()=>{
     if(!hydrated||(range==="1d"&&!selected.endsWith("-USDT"))){setHistoryError("");return;}
     if(!visible||!online)return;
@@ -313,7 +315,7 @@ export default function MarketRadar(){
         <button className="runtime-link" onClick={()=>setSettingsOpen(true)}><Layers size={15}/>{backgroundTabs?"标签页后台已启用":"仅前台运行"}<ChevronRight size={14}/></button>
         <label className="refresh-label"><Switch checked={auto} onCheckedChange={setAuto} aria-label="自动刷新与提醒"/>自动监控</label>
       </section>
-      <div className="radar-view" hidden={marketMode!=="radar"}><RadarFeed signals={radar.signals} coverage={radar.coverage} watchlist={watchlist} scanning={mayRun} loading={loading} online={online} onAsset={viewAsset} onAdd={()=>{setCandidate("");setAddOpen(true);}} onRemove={removeAsset}/></div>
+      <div className="radar-view" hidden={marketMode!=="radar"}><RadarFeed intelligence={radar.intelligence} coverage={radar.coverage} watchlist={watchlist} scanning={mayRun} loading={loading} online={online} onAsset={viewAsset} onAdd={()=>{setCandidate("");setAddOpen(true);}} onRemove={removeAsset}/></div>
       <div className="classic-experience" hidden={marketMode!=="classic"}>
       <div className="overview-wrap"><section className="overview" aria-label="市场概览">
         {OVERVIEW.map(symbol=>{const a=assetFor(symbol),q=quotes[symbol];return <button key={symbol} className={`overview-card ${selected===symbol?"is-selected":""}`} aria-pressed={selected===symbol} onClick={()=>setSelected(symbol)} aria-label={`查看${a.name}走势`}><div className="overview-top"><AssetIcon asset={a} small/><span>{a.name}</span><span className="unit">{symbol.startsWith("^")?"指数":q?.currency??(symbol.endsWith("-USDT")?"USDT":"USD")}</span></div>{!q&&loading?<Skeleton className="skeleton-price"/>:<div className="overview-price numeric"><PricePulse value={q?.price} text={price(q?.price,q?.currency,false)} identity={symbol}/></div>}<div className="overview-bottom"><div><Change value={q?.changePercent}/><span className="overview-caption">{symbol.endsWith("-USDT")?"24 小时":"较前收"}</span></div><Sparkline points={trends[symbol]?.points??q?.points} change={q?.changePercent}/></div>{errors[symbol]&&<div className="error-text">{q?"更新失败 · 上次报价":"暂未取得行情"}</div>}</button>;})}

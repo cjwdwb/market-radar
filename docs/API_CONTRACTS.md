@@ -14,6 +14,7 @@
 - 时间戳为毫秒；保留 timestamp 与 fetchedAt 的区别、nullable 数值、source、timezone、session。
 - USDT 为 OKX 滚动 24 小时涨跌；Yahoo 相对前收盘价。不得在归一化时混为同一口径。
 - 成功行情响应使用 no-store；不修改错误码或将局部失败静默变成零价格。
+- Radar 2.1 没有修改 API response。客户端把必要 benchmark symbol 合入既有 `/api/quotes` 分组；crypto benchmark 历史复用既有 `/api/history`。benchmark 是内部 snapshot 依赖，不代表用户自选，局部失败不改变其他结果。
 
 ## 独立 monitor 服务
 实现和校验：monitor/worker.mjs 的 validConfig、status、fetch。
@@ -22,4 +23,3 @@ GET 状态；GET /history；POST /run 手动执行；PUT 设置。站点代理�
 PUT：enabled 布尔、watchlist 最多 20、alerts 最多 20；提醒 id 唯一，目标价和 createdAt 为正有限数。
 状态含 enabled、watchlist、updatedAt、lastStarted、lastFinished、report、alerts；完整约束按实现核对。
 存储代次由 createdAt 驱动，防止旧设置覆盖新代次/重复触发；修改需覆盖 monitor 测试。
-
