@@ -16,9 +16,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  width: "device-width",
-  initialScale: 1,
-  viewportFit: "cover",
+  // Vinext 0.0.50 omits viewportFit. Suppress its default tag and render one explicit tag below.
+  width: undefined,
+  initialScale: undefined,
   themeColor: "#080808",
 };
 
@@ -29,7 +29,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className="dark" suppressHydrationWarning>
-      <head><script dangerouslySetInnerHTML={{__html:`try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches&&!sessionStorage.getItem('radar-brand-seen')&&!location.hash){document.documentElement.dataset.intro='play';sessionStorage.setItem('radar-brand-seen','1');setTimeout(function(){delete document.documentElement.dataset.intro},2200)}}catch(e){}`}}/></head>
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+        <script dangerouslySetInnerHTML={{__html:`try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches&&!sessionStorage.getItem('radar-brand-seen')&&!location.hash){var root=document.documentElement;root.dataset.intro='play';sessionStorage.setItem('radar-brand-seen','1');var finish=function(){delete root.dataset.intro;['pointerdown','keydown','wheel'].forEach(function(type){window.removeEventListener(type,finish)})};['pointerdown','keydown','wheel'].forEach(function(type){window.addEventListener(type,finish,{passive:true})});setTimeout(finish,matchMedia('(max-width:600px)').matches?1100:1600)}}catch(e){}`}}/>
+      </head>
       <body className="antialiased"><MotionExperience/>{children}</body>
     </html>
   );

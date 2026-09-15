@@ -1,29 +1,61 @@
-# 市场雷达 · Market Radar
+# Market Radar · 市场雷达
 
-中文加密货币与全球股票监控面板，支持手机和桌面浏览器。
+一个为桌面与手机设计的中文市场行情工作台。界面采用黑白主调和低饱和涨跌色，支持实时行情、自选列表、15 分钟 K 线、价格提醒和可选的云端监控。
 
-- 从 Yahoo Finance 获取真实报价，默认每 15 秒更新；不提供模拟价格。
-- 覆盖加密币 USD 交易对、美股、上海/深圳股票与港股；支持输入完整行情代码。
-- 最多 20 个自选，按市场筛选、按涨跌排序，展示当日、1 周、1 月和 3 月走势。
-- 支持涨至或跌至目标价的一次性提醒、重新启用与提醒记录。
-- 自选和提醒仅保存在本浏览器；系统通知需要本次访问主动开启并授权。
+![Market Radar 桌面界面](docs/screenshots/desktop-after.png)
 
-## 行情与提醒边界
+## 功能
 
-免费行情可能延迟、限流或中断。接口为 Yahoo Finance 的公开图表端点，兼容性与可用性没有服务保证。报价时间与查询时间分开展示，更新失败会标记旧报价。日涨跌以每日响应的前收盘价为基准，不是滚动 24 小时涨跌。
+- OKX 欧易 USDT 现货报价与 15 分钟 K 线。
+- Yahoo Finance 美股、A 股、港股和兼容的旧 USD 交易对行情。
+- K 线拖动、双指或 `Ctrl + 滚轮` 缩放、快捷回到最新行情。
+- 最多 20 个本机自选，支持市场筛选、涨跌排序和价格提醒。
+- 访问码保护；可选独立 Cloudflare Worker + D1 云端监控。
+- 适配 320 px 手机、平板和桌面，支持键盘与 `prefers-reduced-motion`。
 
-股市按行情源常规交易时段处理。报价过期、取数失败、休市、暂停监控或关闭标签页后台功能且页面不在前台时不触发提醒。加密报价超过 3 分钟、股票报价超过 20 分钟、查询结果超过 2 分钟时不参与提醒。提醒是在下一次可用报价达到条件时触发，不承诺捕捉两次查询间短暂触价。关闭页面或锁屏后停止检查，不提供服务器后台任务或离线推送。程序不执行交易，也不需要交易账户凭据。
+## 技术栈
 
-[Yahoo Finance 交易所和数据延迟说明](https://help.yahoo.com/kb/SLN2310.html)
+React 19、TypeScript、Vinext、Vite、Tailwind CSS、Radix UI、Recharts 和 Cloudflare Workers。运行环境需要 Node.js 22.15 或更高版本。
 
-## 项目
+## 本地开发
 
-React / Vinext / Cloudflare Workers。主界面在 `app/market-radar.tsx`，行情代理在 `app/api`，报价归一化和缓存逻辑在 `lib/market-data.ts`，阈值判断在 `lib/market.ts`。站点身份由 `.openai/hosting.json` 保存。
+```bash
+npm ci
+cp .env.example .dev.vars
+npm run dev
+```
 
-Node.js 22.13 及以上版本。按锁文件安装依赖后可通过 `npm run dev` 启动本地开发，`npm run build` 生成站点产物。托管发布由 Sites 完成。
+在 `.dev.vars` 中填写：
 
-报价缓存为 10 秒，报价与提醒每 15 秒查询，慢请求尚未完成时跳过下一次轮询。周/月历史走势图仍每 60 秒检查、缓存 4 分钟。遇到 HTTP 429 时遵守 Retry-After，至少等待 60 秒再向行情源查询。
+- `ACCESS_CODE_HASH`：访问码去除空格与连字符、转为大写后的 SHA-256。
+- `ACCESS_SESSION_SECRET`：至少 32 个字符的随机字符串。
+- `SITE_OWNER_EMAIL`、`MONITOR_URL`、`MONITOR_TOKEN`：仅启用云端监控时需要。
 
-## 标签页后台监控
+构建和测试：
 
-运行设置提供自动监控、标签页后台监控和本次访问的系统通知。前台目标轮询间隔 15 秒，后台标签页目标间隔 60 秒，返回前台立即补查。后台模式默认开启，可关闭，配置仅保存于本浏览器。浏览器降频、冻结、关闭、锁屏或设备休眠均可能使监控暂停；此功能不是云端任务，不提供关闭页面后的持续运行或离线推送。当前 Sites 接口未提供可配置的定时任务入口，云端运行须另外接入任务执行服务与推送通道。
+```bash
+npm run build
+npm test
+```
+
+Windows 环境中的项目脚本依赖 Bash；也可以直接执行 `node node_modules/vinext/dist/cli.js build` 验证构建。
+
+## 项目结构
+
+- `app/market-radar.tsx`：行情工作台和主要交互。
+- `components/candle-chart.tsx`：15 分钟 K 线及视口交互。
+- `lib/market-data.ts`、`lib/okx.ts`：行情聚合与数据源。
+- `worker/access-gate.ts`：访问码验证。
+- `monitor/`：可选的云端定时监控 Worker 和 D1 schema。
+- `tests/`：行情、提醒、访问控制、图表与刷新策略测试。
+- `docs/`：架构、接口约定、设计决策和验证说明。
+
+本轮视觉与交互改进的前后数据和截图见 [`docs/VISUAL_REFINEMENT.md`](docs/VISUAL_REFINEMENT.md)。
+
+## 数据与安全边界
+
+行情接口可能延迟、限流或暂时中断。页面会保留并标记上次报价；过期、休市或失败报价不会触发提醒。系统只监控行情，不执行交易，也不需要交易账户凭据。
+
+本机自选和提醒保存在浏览器。云端监控需要单独部署 `monitor/worker.mjs`、配置 D1 和服务端密钥。不要提交 `.env`、`.dev.vars`、访问码、Token 或构建产物。
+
+项目中的品牌标识归其设计者所有。第三方行情数据受对应数据提供方条款约束。

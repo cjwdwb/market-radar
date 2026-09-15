@@ -29,6 +29,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -41,3 +42,6 @@ next-env.d.ts
 /.sites-runtime/
 /outputs/
 /work/
+
+# Local Worker preview secrets
+.dev.vars*

@@ -59,11 +59,13 @@ const priceFormats=new Map<string,Intl.NumberFormat>();
 const compactFormat=new Intl.NumberFormat("zh-CN",{notation:"compact",maximumFractionDigits:2});
 export function price(value:number|null|undefined,currency="USD",symbol=true) {
   if(value==null || !Number.isFinite(value)) return "—";
-  const digits = value!==0&&Math.abs(value)<1?4:2;
-  const currencyStyle=symbol&&currency!=="USDT",key=`${currencyStyle?currency:"decimal"}:${digits}`;
+  const magnitude=Math.abs(value);
+  const scientific=magnitude!==0&&(magnitude<1e-16||magnitude>=1e15);
+  const digits=magnitude!==0&&magnitude<1?Math.max(4,Math.min(20,3-Math.floor(Math.log10(magnitude)))):2;
+  const currencyStyle=symbol&&currency!=="USDT",key=`${currencyStyle?currency:"decimal"}:${scientific?"scientific":digits}`;
   let formatter=priceFormats.get(key);
   if(!formatter){
-    formatter=new Intl.NumberFormat("en-US",{style:currencyStyle?"currency":"decimal",...(currencyStyle?{currency,currencyDisplay:"narrowSymbol" as const}:{}),minimumFractionDigits:digits,maximumFractionDigits:digits});
+    formatter=new Intl.NumberFormat("en-US",{style:currencyStyle?"currency":"decimal",...(currencyStyle?{currency,currencyDisplay:"narrowSymbol" as const}:{}),...(scientific?{notation:"scientific" as const,maximumSignificantDigits:4}:{minimumFractionDigits:Math.min(4,digits),maximumFractionDigits:digits})});
     if(priceFormats.size>=32)priceFormats.delete(priceFormats.keys().next().value!);
     priceFormats.set(key,formatter);
   }

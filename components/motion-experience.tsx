@@ -10,6 +10,7 @@ export function MotionExperience() {
     const reduced = matchMedia("(prefers-reduced-motion: reduce)");
     const precise = matchMedia("(hover: hover) and (pointer: fine) and (min-width: 901px)");
     const animations = new Set<Animation>();
+    const opening = document.querySelector(".brand-opening");
     let introTimer = 0;
     const finishIntro = () => {
       if (root.dataset.intro) delete root.dataset.intro;
@@ -20,11 +21,28 @@ export function MotionExperience() {
     };
     const cancelIntro = () => finishIntro();
     if (root.dataset.intro) {
-      introTimer = window.setTimeout(finishIntro, 1900);
+      introTimer = window.setTimeout(finishIntro, 1600);
       window.addEventListener("pointerdown", cancelIntro, { passive: true });
       window.addEventListener("keydown", cancelIntro);
       window.addEventListener("wheel", cancelIntro, { passive: true });
     }
+    const openingFinished = (event: Event) => { if(event.target===opening) finishIntro(); };
+    opening?.addEventListener("animationend",openingFinished);
+
+    // Follow the visible viewport when a phone keyboard opens, without a continuous frame loop.
+    const visual = window.visualViewport;
+    let viewportFrame = 0, previousHeight = -1, previousTop = -1;
+    const updateViewport = () => {
+      viewportFrame = 0;
+      const height = Math.round(visual?.height ?? innerHeight), top = Math.round(visual?.offsetTop ?? 0);
+      if(height!==previousHeight){root.style.setProperty("--radar-viewport-height",`${height}px`);previousHeight=height;}
+      if(top!==previousTop){root.style.setProperty("--radar-viewport-top",`${top}px`);previousTop=top;}
+    };
+    const queueViewport = () => {if(!viewportFrame)viewportFrame=requestAnimationFrame(updateViewport);};
+    visual?.addEventListener("resize",queueViewport);
+    visual?.addEventListener("scroll",queueViewport);
+    window.addEventListener("resize",queueViewport);
+    updateViewport();
 
     // Never hide pending sections: failed JS, rapid scrolling and keyboard focus stay usable.
     const observer = new IntersectionObserver(entries => {
@@ -34,7 +52,7 @@ export function MotionExperience() {
         if (reduced.matches || root.dataset.intro) continue;
         const animation = entry.target.animate(
           [{ opacity: .65, transform: `translateY(${precise.matches ? 8 : 3}px)` }, { opacity: 1, transform: "translateY(0)" }],
-          { duration: precise.matches ? 480 : 240, easing: "cubic-bezier(.16,1,.3,1)" }
+          { duration: precise.matches ? 380 : 220, easing: "cubic-bezier(.16,1,.3,1)" }
         );
         animations.add(animation);
         animation.onfinish = () => { animations.delete(animation); layoutChanged(); };
@@ -117,6 +135,12 @@ export function MotionExperience() {
 
     return () => {
       clearTimeout(introTimer); finishIntro(); observer.disconnect(); resizeObserver.disconnect();
+      opening?.removeEventListener("animationend",openingFinished);
+      cancelAnimationFrame(viewportFrame);
+      visual?.removeEventListener("resize",queueViewport);
+      visual?.removeEventListener("scroll",queueViewport);
+      window.removeEventListener("resize",queueViewport);
+      root.style.removeProperty("--radar-viewport-height");root.style.removeProperty("--radar-viewport-top");
       animations.forEach(animation => animation.cancel());
       cancelAnimationFrame(frame); resetMagnet();
       window.removeEventListener("pointerdown", cancelIntro);

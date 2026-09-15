@@ -12,6 +12,13 @@ test('reused formatters preserve currency, tiny prices and compact quantities',(
  assert.equal(price(null),'—');assert.equal(compact(123456),new Intl.NumberFormat('zh-CN',{notation:'compact',maximumFractionDigits:2}).format(123456));
 });
 
+test('sub-cent quotes retain meaningful digits rather than becoming a zero price',()=>{
+ assert.equal(price(.00001234,'USDT',false),'0.00001234');
+ assert.equal(price(-.00000004567,'USD',false),'-0.00000004567');
+ assert.match(price(1e-20,'USDT'),/1E-20 USDT/);
+ assert.equal(price(.0024,'USD',false),'0.0024');
+});
+
 const ticker={instId:'BTC-USDT',last:'110',open24h:'100',ts:String(Date.now()),high24h:'115',low24h:'95',volCcy24h:'5000'};
 test('lightweight crypto quotes never request candle histories',async()=>{
  const original=fetch,paths=[];

@@ -5,7 +5,7 @@ import {boundWindow,clamp,rememberWindow,resolveWindow,zoomWindow,type ChartView
 type Position={x:number;y:number};
 type Gesture={window:ChartWindow;center:number;distance:number;anchor:number;plotWidth:number;bounds:DOMRect|undefined};
 
-export function useChartViewport(points:{time:number}[],width:number){
+export function useChartViewport(points:{time:number}[],width:number,axisWidth=width<600?78:100){
   const [view,setView]=useState<ChartView>({count:null,endTime:null});
   const [dragging,setDragging]=useState(false);
   const svg=useRef<SVGSVGElement>(null);
@@ -14,7 +14,7 @@ export function useChartViewport(points:{time:number}[],width:number){
   const pending=useRef<ChartView|null>(null),frame=useRef<number|null>(null);
   const window=resolveWindow(points,view,width<600?40:60);
   const current=useRef(window);current.current=window;
-  const left=12,right=width<600?78:100,plot=width-left-right;
+  const left=12,plot=Math.max(80,width-left-axisWidth);
   function commit(next:ChartWindow){
     const bounded=boundWindow(points.length,next.start,next.count);current.current=bounded;
     pending.current=rememberWindow(points,bounded);
@@ -57,8 +57,9 @@ export function useChartViewport(points:{time:number}[],width:number){
   }
   const wheel=useRef<(e:WheelEvent)=>void>(()=>{});
   wheel.current=e=>{
-    if(!points.length)return;e.preventDefault();
-    if(!e.ctrlKey&&Math.abs(e.deltaX)>Math.abs(e.deltaY)){commit({...current.current,start:current.current.start+e.deltaX/plot*current.current.count});return;}
+    // Ordinary scrolling always belongs to the page; Ctrl/trackpad pinch opts into chart zoom.
+    if(!points.length||!e.ctrlKey)return;
+    e.preventDefault();
     const delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?354:1);
     if(!delta)return;
     const previous=current.current;

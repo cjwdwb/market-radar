@@ -2,7 +2,8 @@ import { getChatGPTUser } from "@/app/chatgpt-auth";
 export const dynamic = "force-dynamic";
 async function proxy(request: Request) {
   const user = await getChatGPTUser();
-  if (!user || user.email.toLowerCase() !== "rreillyh210@gmail.com") return Response.json({ error: "请使用网站所有者账号登录" }, { status: 401 });
+  const ownerEmail=process.env.SITE_OWNER_EMAIL?.trim().toLowerCase();
+  if (!ownerEmail || !user || user.email.toLowerCase() !== ownerEmail) return Response.json({ error: "请使用网站所有者账号登录" }, { status: 401 });
   const token = process.env.MONITOR_TOKEN, base = process.env.MONITOR_URL;
   if (!token || !base) return Response.json({ error: "云端监控尚未配置" }, { status: 503 });
   if (request.method !== "GET" && request.headers.get("origin") !== new URL(request.url).origin) return Response.json({ error: "请求来源无效" }, { status: 403 });
