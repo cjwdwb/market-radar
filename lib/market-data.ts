@@ -1,7 +1,14 @@
 import { assetFor, type Point, type Quote, type Range } from "./market";
 import { getOKXHistory, getOKXQuote, getOKXTickers } from "./okx";
+import { marketJson, MarketRequestError } from "./market-request";
 
-type YahooResult = { meta: Record<string, any>; timestamp?: number[]; indicators?: { quote?: { close?: (number|null)[]; open?: (number|null)[]; high?: (number|null)[]; low?: (number|null)[]; volume?: (number|null)[] }[] } };
+type YahooMeta = {
+  regularMarketPrice?: number; regularMarketTime?: number; chartPreviousClose?: number; previousClose?: number;
+  regularMarketDayHigh?: number; regularMarketDayLow?: number; regularMarketVolume?: number; exchangeDataDelayedBy?: number;
+  longName?: string; shortName?: string; currency?: string; exchangeTimezoneName?: string;
+  currentTradingPeriod?: { regular?: { start: number; end: number } };
+};
+type YahooResult = { meta: YahooMeta; timestamp?: number[]; indicators?: { quote?: { close?: (number|null)[]; open?: (number|null)[]; high?: (number|null)[]; low?: (number|null)[]; volume?: (number|null)[] }[] } };
 const cache = new Map<string,{expires:number;data:YahooResult}>();
 const inFlight = new Map<string,Promise<YahooResult>>();
 let upstreamRetryAt = 0;
@@ -30,7 +37,7 @@ export function parseQuote(symbol:string,data:YahooResult,now=Date.now()):Quote 
   const crypto=assetFor(symbol).market==="crypto";
   let session:Quote["session"]="unknown";
   if(crypto) session="open";
-  else if(Number.isFinite(regular?.start)&&Number.isFinite(regular?.end)) session=now/1000>=regular.start&&now/1000<regular.end?"open":"closed";
+  else if(regular&&Number.isFinite(regular.start)&&Number.isFinite(regular.end)) session=now/1000>=regular.start&&now/1000<regular.end?"open":"closed";
   return {symbol,name:m.longName??m.shortName??assetFor(symbol).name,currency:m.currency??"USD",price:current,
     previousClose:previous,change,changePercent:change!==null&&previous?change/previous*100:null,
     high:numeric(m.regularMarketDayHigh),low:numeric(m.regularMarketDayLow),volume:numeric(m.regularMarketVolume),
@@ -47,15 +54,13 @@ async function fetchChart(symbol:string,range:Range):Promise<YahooResult> {
     const url=new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`);
     url.searchParams.set("interval",config.interval);url.searchParams.set("range",config.range);url.searchParams.set("includePrePost","false");
     if(assetFor(symbol).market==="crypto"&&range==="1w")url.searchParams.set("range","7d");
-    const res=await fetch(url,{headers:{"User-Agent":"MarketRadar/1.0","Accept":"application/json"},signal:AbortSignal.timeout(12_000)});
-    if(res.status===429){
-      const retryAfter=res.headers.get("Retry-After");
-      const seconds=retryAfter!==null?Number(retryAfter):NaN;
-      const retryAt=Number.isFinite(seconds)?Date.now()+seconds*1000:retryAfter?Date.parse(retryAfter):NaN;
-      upstreamRetryAt=Math.max(upstreamRetryAt,Date.now()+60_000,Number.isFinite(retryAt)?retryAt:0);
+    let body: {chart?:{result?:YahooResult[];error?:unknown}};
+    try {
+      body=await marketJson<typeof body>(url,{headers:{"User-Agent":"MarketRadar/1.0","Accept":"application/json"},timeoutMs:12_000,attempts:2});
+    } catch(error) {
+      if(error instanceof MarketRequestError&&error.retryAt)upstreamRetryAt=Math.max(upstreamRetryAt,error.retryAt);
+      throw error;
     }
-    if(!res.ok)throw new Error(res.status===429?"行情源请求繁忙，请稍后刷新":res.status===404?"未找到该代码的行情":"行情源暂时不可用");
-    const body=await res.json() as {chart?:{result?:YahooResult[];error?:unknown}};
     const result=body.chart?.result?.[0];
     if(!result?.meta||body.chart?.error)throw new Error("该代码暂无可用行情，请检查市场后缀");
     if(cache.size>=180)cache.delete(cache.keys().next().value!);

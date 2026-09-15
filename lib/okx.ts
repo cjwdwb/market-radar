@@ -1,4 +1,8 @@
 import { assetFor, type Point, type Quote, type Range } from "./market";
+import { marketJson, MarketRequestError } from "./market-request";
+
+const inFlight = new Map<string, Promise<unknown[]>>();
+const retryAfter = new Map<string, number>();
 
 export function parseCandles(rows: unknown): Point[] {
   if (!Array.isArray(rows)) throw new Error("欧易行情格式异常");
@@ -12,20 +16,38 @@ export function parseCandles(rows: unknown): Point[] {
   return [...points.values()].sort((a, b) => a.time - b.time);
 }
 
-async function request(path: string, params: Record<string, string>) {
+async function requestOnce(path: string, params: Record<string, string>) {
+  if ((retryAfter.get(path) ?? 0) > Date.now()) throw new MarketRequestError("欧易行情限流，等待恢复后自动重试", 429, retryAfter.get(path));
   let failure: unknown;
+  // History may follow a 6s monitor proxy: 16s candles + 8s historical fallback
+  // leaves headroom below the browser's existing 35s history timeout.
+  const deadline = Date.now() + (path === "/api/v5/market/history-candles" ? 8_000 : 16_000);
   for (const origin of ["https://openapi.okx.com", "https://www.okx.com"]) {
     try {
       const url = new URL(path, origin);
       for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-      const response = await fetch(url, { headers: { Accept: "application/json" }, signal: AbortSignal.timeout(6000) });
-      if (!response.ok) throw new Error(response.status === 429 ? "欧易行情限流，请稍后重试" : "欧易行情暂时不可用");
-      const body = await response.json() as { code: string; data: unknown[] };
+      const remaining = Math.min(8000, deadline - Date.now());
+      if (remaining <= 0) break;
+      const body = await marketJson<{ code: string; data: unknown[] }>(url, { timeoutMs: remaining });
+      if (body.code === "50011") throw new MarketRequestError("欧易行情限流，等待恢复后自动重试", 429, Date.now() + 60_000);
       if (body.code !== "0" || !Array.isArray(body.data)) throw new Error("欧易暂无该交易对行情，请检查代码");
       return body.data;
-    } catch (error) { failure = error; }
+    } catch (error) {
+      if (error instanceof MarketRequestError && error.status === 429) { retryAfter.set(path, Math.max(retryAfter.get(path) ?? 0, error.retryAt ?? Date.now() + 60_000)); throw error; }
+      if (error instanceof MarketRequestError && error.blocked) throw error;
+      failure = error;
+    }
   }
   throw failure;
+}
+
+async function request(path: string, params: Record<string, string>) {
+  const key = path + "?" + new URLSearchParams(params).toString();
+  const pending = inFlight.get(key);
+  if (pending) return pending;
+  const operation = requestOnce(path, params);
+  inFlight.set(key, operation);
+  try { return await operation; } finally { inFlight.delete(key); }
 }
 
 export async function getOKXHistory(symbol: string, range: Range) {

@@ -26,6 +26,8 @@ import { experienceForHash } from "@/lib/radar/navigation";
 import type { MarketMode, RadarHistory } from "@/lib/radar/types";
 
 type HistoryData={key:string;points:Point[];timezone:string;source:string;currency:string};
+type QuoteResponse={results?:QuoteResult[];error?:string};
+type HistoryResponse=Omit<HistoryData,"key">&{fetchedAt:number;error?:string};
 const STORAGE_KEY="market-radar-preferences-v1";
 const PERIODS:{value:Range;label:string}[]=[{value:"15m",label:"15 分钟"},{value:"1d",label:"1 日"},{value:"1w",label:"1 周"},{value:"1m",label:"1 月"},{value:"3m",label:"3 月"}];
 function tone(n:number|null|undefined){return n==null||n===0?"neutral":n>0?"positive":"negative";}
@@ -162,7 +164,7 @@ export default function MarketRadar(){
       try{
         const response=await fetch("/api/quotes?symbols="+encodeURIComponent(key),{signal:controller.signal,cache:"no-store"});
         if(!response.ok)throw new Error("连接失败");
-        const body=await response.json();if(!Array.isArray(body.results))throw new Error("无效行情响应");
+        const body=await response.json() as QuoteResponse;if(!Array.isArray(body.results))throw new Error("无效行情响应");
         if(sequence!==refreshSequence.current)return;
         const results:QuoteResult[]=body.results.filter((r:QuoteResult)=>group.includes(r.symbol));
         if(results.some(r=>r.quote))quoteRetries.current.delete(key);else fail();
@@ -201,7 +203,7 @@ export default function MarketRadar(){
       for(let i=0;i<symbols.length&&!stopped;i+=3){
         await Promise.all(symbols.slice(i,i+3).map(async symbol=>{
           const controller=new AbortController();controllers.add(controller);const timeout=setTimeout(()=>controller.abort(),35_000);
-          try{const response=await fetch("/api/history?symbol="+encodeURIComponent(symbol)+"&range=1d",{signal:controller.signal,cache:"no-store"});if(!response.ok)return;const body=await response.json();if(!stopped&&Array.isArray(body.points))setTrends(prev=>{const points=reusePoints(prev[symbol]?.points,body.points);return {...prev,[symbol]:{points,source:body.source,currency:body.currency,fetchedAt:body.fetchedAt,intervalMs:900000}};});}catch{}finally{controllers.delete(controller);clearTimeout(timeout);}
+          try{const response=await fetch("/api/history?symbol="+encodeURIComponent(symbol)+"&range=1d",{signal:controller.signal,cache:"no-store"});if(!response.ok)return;const body=await response.json() as HistoryResponse;if(!stopped&&Array.isArray(body.points))setTrends(prev=>{const points=reusePoints(prev[symbol]?.points,body.points);return {...prev,[symbol]:{points,source:body.source,currency:body.currency,fetchedAt:body.fetchedAt,intervalMs:900000}};});}catch{}finally{controllers.delete(controller);clearTimeout(timeout);}
         }));
       }running=false;
     }
@@ -219,7 +221,7 @@ export default function MarketRadar(){
     const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),35_000);
     historyPending.current=true;setHistoryLoading(!cached);setHistoryError("");
     fetch(`/api/history?symbol=${encodeURIComponent(selected)}&range=${range}`,{signal:controller.signal,cache:"no-store"})
-      .then(async response=>{const body=await response.json();if(!response.ok)throw new Error(body.error??"走势暂时不可用");return body;})
+      .then(async response=>{const body=await response.json() as HistoryResponse;if(!response.ok)throw new Error(body.error??"走势暂时不可用");return body;})
       .then(body=>{if(!cancelled){const data:HistoryData={key,points:reusePoints(historyCache.current.get(key)?.data.points,body.points),timezone:body.timezone,source:body.source,currency:body.currency};historyCache.current.delete(key);historyCache.current.set(key,{data,at:Date.now()});if(historyCache.current.size>24)historyCache.current.delete(historyCache.current.keys().next().value!);setHistory(data);}})
       .catch(error=>{if(!cancelled)setHistoryError(controller.signal.aborted?"走势请求超时，请重试":error.message);})
       .finally(()=>{clearTimeout(timeout);if(!cancelled){historyPending.current=false;setHistoryLoading(false);}});
@@ -274,9 +276,9 @@ export default function MarketRadar(){
     setAdding(true);
     try{
       const response=await fetch(`/api/quotes?symbols=${encodeURIComponent(symbol)}`,{signal:AbortSignal.timeout(18_000),cache:"no-store"});
-      const body=await response.json();const result=body.results?.[0];
+      const body=await response.json() as QuoteResponse;const result=body.results?.[0];
       if(!response.ok||!result?.quote)throw new Error(result?.error??body.error??"暂时无法验证该代码");
-      setQuotes(q=>({...q,[symbol]:result.quote}));setWatchlist(list=>[...list,symbol]);setSelected(symbol);setAddOpen(false);setCandidate("");toast.success("已添加到自选");
+      const quote=result.quote;setQuotes(q=>({...q,[symbol]:quote}));setWatchlist(list=>[...list,symbol]);setSelected(symbol);setAddOpen(false);setCandidate("");toast.success("已添加到自选");
     }catch(error){toast.error(error instanceof Error?error.message:"暂时无法添加，请稍后重试");}finally{setAdding(false);}
   }
   function createAlert(event:React.FormEvent){

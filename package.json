@@ -10,7 +10,8 @@
     "dev": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vite",
     "build": "bash scripts/build-verified.sh",
     "start": "WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext start",
-    "test": "npm run build && node --experimental-strip-types --import ./tests/register-types.mjs --test tests/*.test.mjs",
+    "test": "npm run build && npm run typecheck && node --experimental-strip-types --import ./tests/register-types.mjs --test tests/*.test.mjs",
+    "typecheck": "node scripts/typecheck.mjs",
     "lint": "bash scripts/sites-env.sh -- eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "bash scripts/sites-env.sh -- drizzle-kit generate",
     "test:market": "node --experimental-strip-types --import ./tests/register-types.mjs --test tests/market-data.test.mjs tests/monitor.test.mjs"

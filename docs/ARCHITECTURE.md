@@ -18,6 +18,6 @@
 
 前台 USDT 目标 5 秒、股票 15 秒；允许后台时目标 60 秒，浏览器可能降频。
 Yahoo 缓存：1d/15m 为 10 秒，其余为 240 秒；进程内缓存与在途去重，不是跨实例共享缓存。
-Yahoo 429 遵守 Retry-After 且至少等待 60 秒。OKX 的实现独立，不套用 Yahoo 缓存结论。
+Yahoo 与 OKX 429 遵守 Retry-After 且至少等待 60 秒；OKX 按路径记录限流、按完整请求键合并在途请求。两者仍使用各自的缓存策略，传输时限与验证见 RELIABILITY.md。
 UI 文案描述云端每分钟执行；这里只确认 scheduled 处理器存在，没有验证线上 cron。
 UI 视觉约束按需读取 mobile-design.md、motion-design.md；历史研究见 project-references.md。

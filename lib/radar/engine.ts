@@ -120,7 +120,7 @@ export function scanRadar(previous: RadarStore, snapshot: RadarSnapshot, now: nu
   const gates = Object.fromEntries([...monitoredGates, ...recentGates]);
   for (const item of evaluations) {
     const gate = gates[item.signal.fingerprint];
-    if (gate && item.strength < .7 && item.signal.evidenceAt > gate.evidenceAt) gates[item.signal.fingerprint] = { ...gate, recovered: true };
+    if (gate && !gate.recovered && item.strength < .7 && item.signal.evidenceAt > gate.evidenceAt) gates[item.signal.fingerprint] = { ...gate, recovered: true };
   }
   const signals = previous.signals.map(signal => {
     if (signal.status !== "active") return signal;
@@ -136,5 +136,10 @@ export function scanRadar(previous: RadarStore, snapshot: RadarSnapshot, now: nu
     signals.push(signal);
     gates[signal.fingerprint] = { lastTriggeredAt: now, evidenceAt: signal.evidenceAt, recovered: false };
   }
-  return { signals: signals.sort((a, b) => b.detectedAt - a.detectedAt || a.id.localeCompare(b.id)).slice(0, MAX_SIGNALS), gates };
+  const sorted = signals.sort((a, b) => b.detectedAt - a.detectedAt || a.id.localeCompare(b.id)).slice(0, MAX_SIGNALS);
+  const sameSignals = sorted.length === previous.signals.length && sorted.every((signal, i) => signal === previous.signals[i]);
+  const entries = Object.entries(gates);
+  const sameGates = entries.length === Object.keys(previous.gates).length && entries.every(([key, gate]) => gate === previous.gates[key]);
+  if (sameSignals && sameGates) return previous;
+  return { signals: sameSignals ? previous.signals : sorted, gates: sameGates ? previous.gates : gates };
 }

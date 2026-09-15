@@ -1,9 +1,9 @@
 # 当前状态
-最新任务：MR-RADAR-V2，已完成 Classic + Radar 第一阶段；本地分支 `codex/mr-radar-v2`，未部署网站。
+最新任务：MR-RADAR-RELIABILITY，完成行情传输恢复、限流与请求合并、Radar 无变化状态复用及官方 Cloudflare 类型接入；本地分支 `codex/mr-radar-v2`，未推送或部署网站。
 
-当前验证：构建成功，43/43 tests，Radar新增代码lint通过；独立审计两项P2已修复并复核。五种视口、默认体验、自选共享、信号回跳、提醒、失败/慢/空状态、键盘、实时reduced-motion与共享intro均通过。规则、实际数据覆盖和限制详见 RADAR.md；旧 tsc Cloudflare 类型缺失仍存在。
+当前验证：构建、全项目类型检查、55 项 tests 与相关代码 lint 通过；五种视口和 17 项浏览器检查通过。真实四标的报价与 OKX 96 根历史成功返回。独立审计提出的超时边界已修复并测试，但独立审计因额度限制未完成最终复核。详细测量、命令与限制见 RELIABILITY.md；产品规则见 RADAR.md。
 
-下次工作先读 RADAR.md 与归档任务卡。GitHub仓库已由用户改为公开；本轮没有修改远程可见性。
+下次工作先读 RELIABILITY.md、RADAR.md 与归档任务卡。GitHub仓库已由用户改为公开；本轮没有修改远程可见性。
 
 ## 前一阶段记录
 日期：2026-09-15；视觉升级基线：87925c4。

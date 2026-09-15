@@ -13,7 +13,7 @@ test('USDT is explicit and legacy USD remains a separate symbol',()=>{
 });
 test('K-line requests fall back to the official historical endpoint when rate limited',async()=>{
   const original=fetch,paths=[];globalThis.fetch=async url=>{const path=new URL(url).pathname;paths.push(path);return path.endsWith('/history-candles')?Response.json({code:'0',data:[['2000','10','13','9','12','5','0','0','0'],['1000','11','12','8','10','3','0','0','1']]}):new Response('',{status:429});};
-  try{const result=await getOKXHistory('BTC-USDT','15m');assert.equal(result.points.length,2);assert.equal(result.currency,'USDT');assert.deepEqual(paths,['/api/v5/market/candles','/api/v5/market/candles','/api/v5/market/history-candles']);}finally{globalThis.fetch=original;}
+  try{const result=await getOKXHistory('BTC-USDT','15m');assert.equal(result.points.length,2);assert.equal(result.currency,'USDT');assert.deepEqual(paths,['/api/v5/market/candles','/api/v5/market/history-candles']);}finally{globalThis.fetch=original;}
 });
 test('OKX ticker uses 24-hour reference and quote currency',async()=>{
   const original=globalThis.fetch;globalThis.fetch=async()=>Response.json({code:'0',data:[{instId:'BTC-USDT',last:'110',open24h:'100',ts:String(Date.now()),high24h:'115',low24h:'95',volCcy24h:'5000'}]});

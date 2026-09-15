@@ -36,7 +36,17 @@ test('polling is deduplicated and deterministic, input store remains immutable',
  const snapshot=fixture({move:3,volume:500}),first=scanRadar(emptyRadarStore(),snapshot,now),serialized=JSON.stringify(first);
  const second=scanRadar(first,snapshot,now+5000);
  assert.deepEqual(second.signals,first.signals);assert.equal(JSON.stringify(first),serialized);
+ assert.equal(second,first,'unchanged polling preserves store identity');
  assert.deepEqual(scanRadar(emptyRadarStore(),snapshot,now),first);
+});
+
+test('quiet scans reuse state while expiration still creates a new immutable state',()=>{
+ const empty=emptyRadarStore();assert.equal(scanRadar(empty,fixture(),now),empty);
+ const snapshot=fixture({move:3}),active=scanRadar(empty,snapshot,now);
+ const expired=scanRadar(active,snapshot,now+46*60_000);
+ assert.notEqual(expired,active);assert.ok(expired.signals.every(s=>s.status==='expired'));
+ assert.ok(active.signals.every(s=>s.status==='active'));
+ assert.equal(scanRadar(expired,snapshot,now+47*60_000),expired);
 });
 test('stale, errored, future, delayed, closed and mismatched quotes never trigger',()=>{
  for(const changes of [{timestamp:now-181000},{fetchedAt:now-121000},{timestamp:now+61000},{fetchedAt:now+61000},{error:'failed'},{symbol:'ETH-USDT'},{price:NaN}]){

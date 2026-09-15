@@ -18,10 +18,10 @@
 - 单项：node --experimental-strip-types --import ./tests/register-types.mjs --test tests/refresh-policy.test.mjs
 - 同样按需选择 market-data、monitor、quote-performance、chart-viewport、access-gate、navigation-section、ui-components 测试。
 - tests/rendered-html.test.mjs 依赖 dist/server/index.js，须先成功构建。
-- npm test = 构建 + 全部 tests/*.test.mjs；npm run lint 为既有检查入口。
+- npm test = 构建 + 官方 Worker 类型生成与 tsc + 全部 tests/*.test.mjs；npm run lint 为既有检查入口。
+- npm run typecheck 依赖构建输出 dist/server/wrangler.json，声明生成到被忽略的 .wrangler/types/worker-configuration.d.ts。详情见 RELIABILITY.md。
 - 本次仅修改工作流文档，没有运行产品测试或验证部署。
 
 ## 文档入口
 架构见 ARCHITECTURE.md；协议见 API_CONTRACTS.md；决策见 DECISIONS.md；交接见 CURRENT_STATE.md。
 README 的单一 Yahoo 来源、无云端监控描述与当前代码不一致；涉及这些行为时以上述实现为准。
-
