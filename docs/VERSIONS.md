@@ -1,5 +1,7 @@
 # 版本与回退索引
 
+开发中：Radar 2.3（Classic × Radar Integration）在 `codex/mr-radar-integration` 本地实现；生产仍为 Sites v19 / Radar 2.2。2.3 最终浏览器复测待执行，没有生产发布标签，未部署。当前验收状态见 `tasks/ACTIVE.md`。
+
 此索引把可确认的 Sites 发布号映射到 Git 提交。标签采用 `sites-vNN`，避免与未来语义化版本混淆。标签只标识源码回退点；生产环境的密钥、数据库和访问策略不包含在 Git 中。
 
 为让项目从最初版本开始都能被准确定位，早期未保留 Sites 发布证据的源码阶段采用 `milestone-vNN` 标签；Radar 2.x 采用 `radar-v2.x` 产品标签。两类标签都只标记 Git 源码，不代表曾部署到生产。

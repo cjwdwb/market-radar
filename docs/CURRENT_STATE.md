@@ -1,4 +1,6 @@
 # 当前状态
+当前开发：Market Radar 2.3，分支 `codex/mr-radar-integration`，基线 `899b59ef1e8eea7cc51a29561628963a309ce121`。已实现 Classic 活跃 Radar 入口、同资产筛选与返回、实时事件引用及共享提醒状态；独立审计 1 MEDIUM 已修复并代码复核。最终浏览器复测等待执行授权，详见 tasks/ACTIVE.md；2.3 NOT DEPLOYED，未推送，未建立发布标签。以下 2.2 为当前生产版本。
+
 GitHub 同步已完成：2.2 源码、介绍和部署记录已推送至 main；远端版本标签 milestone-v01–v07、sites-v08–v19、radar-v2.1/v2.2 均已读取核验。以下早期“上传待完成”属于历史状态，现已解除。
 
 Market Radar 2.2 已于 2026-09-16 发布成功：Sites v19，源码 `52ebe5fbe052c24d44d648fad661573057c59f0a`，环境 revision 3。平台状态 succeeded，网址 https://market-radar-rex.swt-aether.chatgpt.site 。保留 public 与应用访问码。记录见 `tasks/archive/MR-PUBLISH-WORKFLOW.md`。以下为此前阶段记录。

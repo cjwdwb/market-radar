@@ -19,7 +19,7 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0}
  const payload=`${Math.floor(Date.now()/1000)+3600}.${crypto.randomBytes(16).toString('hex')}`;
  const sig=crypto.createHmac('sha256',vars.ACCESS_SESSION_SECRET).update(`radar-v1:${vars.ACCESS_CODE_HASH}:${payload}`).digest('hex');
  await context.addCookies([{name:'__Host-radar_access',value:`${payload}.${sig}`,url:base.replace('http:','https:'),secure:true,httpOnly:true,sameSite:'Lax'}]);
- const page=await context.newPage();await page.clock.setFixedTime(stamp);
+ const page=await context.newPage();await page.clock.install({time:stamp});await page.clock.setFixedTime(stamp);
  if(!intro)await page.addInitScript(()=>sessionStorage.setItem('radar-brand-seen','1'));
  if(storage)await page.addInitScript(()=>{Storage.prototype.getItem=()=>{throw Error('Storage unavailable')};Storage.prototype.setItem=()=>{throw Error('Storage unavailable')};});
  const errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('/api/'))requests.push(r.url())});
@@ -40,10 +40,92 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0}
  await page.route('**/api/monitor**',route=>route.fulfill({status:401,json:{error:'仅站主管理'}}));
  return {context,page,errors,requests};
 }
+
+async function integrationChecks(browser,report){
+ const app=await fixture(browser),{page}=app;
+ await page.goto(base+'/#price-chart',{waitUntil:'networkidle'});await page.locator('.candle-canvas').waitFor();
+ const awareness=page.locator('.asset-radar-awareness');await awareness.waitFor();
+ await page.waitForFunction(()=>document.querySelector('.asset-radar-awareness')?.textContent.includes('活跃事件'));
+ // Context replaces, but does not overwrite, the user's existing Radar filters.
+ await page.locator('.desktop-nav a[href="#radar"]').click();await page.getByRole('button',{name:'美股',exact:true}).click();
+ await page.locator('.desktop-nav a[href="#overview"]').click();await page.keyboard.press('Tab');await awareness.focus();
+ assert.equal(await awareness.evaluate(el=>getComputedStyle(el).outlineStyle),'solid');await page.keyboard.press('Enter');
+ await page.locator('.radar-asset-context').waitFor();assert.match(await page.locator('.radar-asset-context').innerText(),/BTC-USDT/);
+ assert.ok(await page.locator('.radar-signal[data-context-event]').count());
+ for(const symbol of await page.locator('.radar-feed .radar-signal').evaluateAll(els=>els.map(el=>el.dataset.symbol)))assert.equal(symbol,'BTC-USDT');
+ assert.equal(await page.locator('.radar-feed details[open]').count(),0);
+ await page.getByRole('button',{name:'退出资产筛选',exact:true}).click();assert.equal(await page.getByRole('button',{name:'美股',exact:true}).getAttribute('aria-pressed'),'true');
+ await page.locator('.desktop-nav a[href="#overview"]').click();await awareness.click();
+ const card=page.locator('.radar-signal[data-context-event]');await card.locator('.signal-context > summary').click();
+ await card.getByRole('button',{name:'查看图表',exact:true}).click();await page.locator('.radar-context-banner').waitFor();
+ assert.equal(await page.locator('.selected-title h2').innerText(),'BTC');
+ await page.getByRole('tab',{name:'1 周',exact:true}).click();await page.locator('.price-chart').waitFor();await pause(300);
+ // Stop scheduled polling only during the navigation measurement; advance frames explicitly.
+ await page.clock.pauseAt(stamp+600000);await pause(500);
+ const requestStart=app.requests.length;
+ await page.getByRole('button',{name:'返回 Radar',exact:true}).click();await page.clock.runFor(48);await page.locator('.radar-asset-context').waitFor();
+ assert.equal(await card.locator('details').getAttribute('open'),'');
+ for(let i=0;i<3;i++){
+  await page.getByRole('button',{name:'返回图表',exact:true}).click();await page.clock.runFor(48);await awareness.waitFor();
+  assert.equal(await page.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
+  await awareness.click();await page.clock.runFor(48);await page.locator('.radar-asset-context').waitFor();
+ }
+ report.integrationNavigationRequests=app.requests.slice(requestStart);assert.equal(report.integrationNavigationRequests.length,0);await page.clock.resume();
+ // User-authored price alerts remain independent from system events and are reused.
+ await card.getByRole('button',{name:'设置价格提醒',exact:true}).click();await page.locator('#alert-price').fill('200');
+ await page.getByRole('button',{name:'创建提醒',exact:true}).click();await card.getByRole('button',{name:'查看价格提醒 (1)',exact:true}).waitFor();
+ await card.getByRole('button',{name:'查看价格提醒 (1)',exact:true}).click();await page.locator('#price-alerts').waitFor();
+ assert.equal(await page.locator('[role=dialog]').count(),0);assert.equal(await page.locator('.alert-item').count(),1);
+ await page.getByRole('switch',{name:'暂停BTC提醒',exact:true}).click();await awareness.click();
+ await page.locator('.radar-signal[data-context-event]').locator('details > summary').click();
+ await page.locator('.radar-signal[data-context-event]').getByRole('button',{name:'设置价格提醒',exact:true}).waitFor();
+ report.checks.push('2.3 keyboard Classic→asset Radar; filter/disclosure preserved; manual range retained; zero navigation requests; price alert state shared');
+ // Different symbol invalidates the source reference immediately.
+ await page.locator('.radar-signal[data-context-event] .signal-asset').click();await page.locator('.radar-context-banner').waitFor();
+ // Do not navigate to #watchlist: hash cleanup would hide a table-selection regression.
+ await page.locator('.watch-table .asset-cell').filter({hasText:'NVDA'}).click();assert.equal(await page.locator('.radar-context-banner').count(),0);
+ await page.locator('.watch-table .asset-cell').filter({hasText:'BTC'}).click();assert.equal(await page.locator('.radar-context-banner').count(),0);
+ assert.match(page.url(),/#price-chart$/);
+ await page.locator('.symbol-rail button').filter({hasText:'NVDA'}).click();assert.equal(await page.locator('.radar-context-banner').count(),0);
+ assert.match(await awareness.getAttribute('aria-label'),/NVDA/);
+ await awareness.click();assert.match(await page.locator('.radar-asset-context').innerText(),/NVDA/);
+ report.checks.push('2.3 symbol changes invalidate source and related Radar follows the current asset');
+ await page.getByRole('button',{name:'返回图表',exact:true}).click();
+ await page.getByRole('switch',{name:'自动刷新与提醒',exact:true}).click();
+ await page.waitForFunction(()=>document.querySelector('.asset-radar-awareness')?.textContent.includes('扫描暂不可用'));
+ assert.ok(!(await awareness.innerText()).includes('活跃事件'));report.checks.push('2.3 paused scanner never presents cached events as active awareness');
+ report.errors.push(...app.errors);assert.deepEqual(app.errors,[]);await app.context.close();
+
+ for(const [name,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
+  const mobile=await fixture(browser),p=mobile.page;await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.candle-canvas').waitFor();
+  const indicator=p.locator('.asset-radar-awareness');await p.waitForFunction(()=>document.querySelector('.asset-radar-awareness')?.textContent.includes('活跃事件'));await indicator.scrollIntoViewIfNeeded();
+  assert.ok((await indicator.boundingBox()).height>=44);
+  await p.screenshot({path:`${output}/integration-${name}-classic.png`});
+  await indicator.click();await p.locator('.radar-asset-context').waitFor();await p.locator('.radar-asset-context').scrollIntoViewIfNeeded();
+  await p.screenshot({path:`${output}/integration-${name}-radar.png`});
+  const event=p.locator('.radar-signal[data-context-event]');await event.locator('.signal-context > summary').click();
+  await event.getByRole('button',{name:'查看图表',exact:true}).click();await p.locator('.radar-context-banner').waitFor();
+  await p.screenshot({path:`${output}/integration-${name}-origin.png`});
+  await p.getByRole('button',{name:'返回 Radar',exact:true}).click();await p.locator('.radar-asset-context').waitFor();
+  // Same shared Watchlist in mobile context, including persistence after watch/unwatch.
+  await event.getByRole('button',{name:'移出自选',exact:true}).click();await event.getByRole('button',{name:'加入自选',exact:true}).waitFor();
+  assert.ok(!(await p.evaluate(()=>JSON.parse(localStorage.getItem('market-radar-preferences-v1')).watchlist)).includes('BTC-USDT'));
+  await event.getByRole('button',{name:'加入自选',exact:true}).click();await p.getByRole('button',{name:'添加并查看',exact:true}).click();await event.getByRole('button',{name:'移出自选',exact:true}).waitFor();
+  assert.ok((await p.evaluate(()=>JSON.parse(localStorage.getItem('market-radar-preferences-v1')).watchlist)).includes('BTC-USDT'));
+  await event.getByRole('button',{name:'设置价格提醒',exact:true}).click();await p.locator('#alert-price').fill('200');await p.getByRole('button',{name:'创建提醒',exact:true}).click();
+  await event.getByRole('button',{name:'查看价格提醒 (1)',exact:true}).click();await p.locator('.alert-item').waitFor();
+  await p.locator('.asset-radar-awareness').click();await p.locator('.radar-asset-context').waitFor();
+  await p.emulateMedia({reducedMotion:'reduce'});assert.equal(await event.evaluate(el=>getComputedStyle(el).animationName),'none');
+  const sizes=await p.evaluate(()=>({width:innerWidth,content:document.documentElement.scrollWidth}));assert.ok(sizes.content<=width,`integration ${name} overflow`);
+  report.checks.push(`2.3 ${name}: context, chart, return, watch/unwatch, alert, reduced-motion, no overflow`);
+  assert.deepEqual(mobile.errors,[]);report.errors.push(...mobile.errors);await mobile.context.close();
+ }
+}
 (async()=>{
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={viewports:[],checks:[],errors:[]};let page;
  try{
+  if(process.env.RADAR_INTEGRATION==='1')await integrationChecks(browser,report);
   const app=await fixture(browser);page=app.page;
   await page.goto(base,{waitUntil:'networkidle'});await page.locator('.candle-canvas').waitFor();
   assert.equal(await page.locator('.classic-experience').isVisible(),true);
@@ -56,9 +138,10 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0}
   for(const benchmark of ['BTC-USDT','QQQ','000300.SS','^HSI'])assert.ok(quoteSymbols.has(benchmark),`missing benchmark ${benchmark}`);
   assert.equal(await page.getByRole('button',{name:'Radar 移除 QQQ',exact:true}).count(),0);report.checks.push('benchmarks share quote snapshots without entering My Radar');
   assert.ok(await page.locator('.signal-cluster').count());assert.ok(await page.locator('.signal-confidence').count());assert.ok(await page.locator('.radar-summary').count());report.checks.push('cluster, confidence and deterministic summary render');
+  await page.clock.pauseAt(stamp+600000);await pause(500);
   const requestStart=app.requests.length;
-  for(let i=0;i<4;i++){await page.locator('.desktop-nav a[href="#overview"]').click();await page.locator('.desktop-nav a[href="#radar"]').click();}
-  report.navigationRequests=app.requests.slice(requestStart);assert.equal(report.navigationRequests.length,0);report.checks.push('eight experience navigation clicks add zero API requests');
+  for(let i=0;i<4;i++){await page.locator('.desktop-nav a[href="#overview"]').click();await page.clock.runFor(48);await page.locator('.desktop-nav a[href="#radar"]').click();await page.clock.runFor(48);}
+  report.navigationRequests=app.requests.slice(requestStart);assert.equal(report.navigationRequests.length,0);await page.clock.resume();report.checks.push('eight experience navigation clicks add zero API requests (polling clock paused)');
   await page.getByRole('button',{name:'Radar 移除 SOL-USDT',exact:true}).click();
   await page.locator('.desktop-nav a[href="#watchlist"]').click();await pause(100);assert.equal(await page.getByRole('button',{name:'查看Solana行情',exact:true}).count(),0);
   await page.locator('.desktop-nav a[href="#radar"]').click();await page.getByRole('button',{name:'Radar 添加自选',exact:true}).click();await page.locator('#custom-symbol').fill('SOL-USDT');await page.getByRole('button',{name:'添加并查看',exact:true}).click();

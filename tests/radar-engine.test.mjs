@@ -4,7 +4,7 @@ import { scanRadar, radarCoverage, benchmarkFor, benchmarkSymbols } from '../lib
 import { emptyRadarStore } from '../lib/radar/types.ts';
 import { experienceForHash } from '../lib/radar/navigation.ts';
 import { buildRadarIntelligence } from '../lib/radar/intelligence.ts';
-import { chartRangeForEvent, summarizeWatchlistCoverage } from '../lib/radar/workflow.ts';
+import { assetRadarContext, chartRangeForEvent, enabledPriceAlertCounts, resolveRadarEvent, summarizeWatchlistCoverage } from '../lib/radar/workflow.ts';
 
 const now=1_789_372_800_000;
 function fixture({symbol='BTC-USDT',move=0,volume=100,at=now,count=70}={}) {
@@ -184,4 +184,53 @@ test('workflow chart context maps only supported signal intervals and preserves 
  const event={signals:[{metrics:{intervalMinutes:60}}]};assert.equal(chartRangeForEvent(event,'15m'),'1d');
  assert.equal(chartRangeForEvent({signals:[{metrics:{intervalMinutes:5}}]},'1w'),'1d');
  assert.equal(chartRangeForEvent({signals:[{metrics:{intervalMinutes:30}}]},'1w'),'1w');
+});
+
+test('asset awareness uses current intelligence ordering and excludes other assets and inactive events',()=>{
+ const raw=scanRadar(emptyRadarStore(),fixture({move:3,volume:500}),now).signals;
+ const events=buildRadarIntelligence(raw,[],now).events;
+ assert.equal(assetRadarContext(events,'AAPL').primaryEvent,undefined);
+ const context=assetRadarContext(events,'BTC-USDT');assert.ok(context.activeEvents.length);assert.equal(context.primaryEvent,events[0]);
+ const single=assetRadarContext([events[0]],'BTC-USDT');assert.equal(single.activeEvents.length,1);assert.equal(single.primaryEvent,events[0]);
+ const inputs=[{...events[0],id:'resolved',status:'resolved'},{...events[0],id:'expired',status:'expired'},...events];
+ assert.deepEqual(assetRadarContext(inputs,'BTC-USDT').activeEvents,events);
+ for(const [i,event] of context.activeEvents.entries())assert.equal(event,events[i]);
+});
+
+test('relative awareness consumes exact current confidence and benchmark context without recomputing',()=>{
+ const raw=scanRadar(emptyRadarStore(),relativeFixture(),now).signals;
+ const intelligence=buildRadarIntelligence(raw,['NVDA'],now);
+ const context=assetRadarContext(intelligence.events,'NVDA');
+ assert.equal(context.primaryEvent,intelligence.events[0]);
+ const relative=context.activeEvents.find(event=>event.signals.some(signal=>signal.type==='relative_weakness'));
+ assert.ok(relative);assert.equal(relative.confidence,intelligence.events.find(event=>event.id===relative.id).confidence);
+ assert.ok(relative.signals.some(signal=>signal.evidence.benchmark?.symbol==='QQQ'));
+});
+
+test('navigation references follow current lifecycle and refuse missing clusters or mismatched assets',()=>{
+ const events=buildRadarIntelligence(scanRadar(emptyRadarStore(),fixture({move:3}),now).signals,[],now).events;
+ const reference={symbol:'BTC-USDT',eventId:events[0].id};
+ assert.equal(resolveRadarEvent(events,reference,'BTC-USDT'),events[0]);
+ const updated={...events[0],status:'resolved',confidence:{level:'low',reasons:['updated']}};
+ assert.equal(resolveRadarEvent([updated],reference,'BTC-USDT'),updated);
+ assert.equal(assetRadarContext([updated],'BTC-USDT').activeEvents.length,0);
+ assert.equal(resolveRadarEvent([{...updated,id:'new-cluster'}],reference,'BTC-USDT'),undefined);
+ assert.equal(resolveRadarEvent(events,reference,'NVDA'),undefined);
+ assert.equal(resolveRadarEvent([],reference,'BTC-USDT'),undefined);
+ assert.equal(resolveRadarEvent(events,null,'BTC-USDT'),undefined);
+});
+
+test('watch/unwatch ranking propagates into derived asset context and alert counts stay independent',()=>{
+ const a=scanRadar(emptyRadarStore(),fixture({move:3}),now).signals;
+ const b=scanRadar(emptyRadarStore(),fixture({symbol:'NVDA',move:-3}),now).signals;
+ const raw=[...a,...b],snapshot=JSON.stringify(raw);
+ for(const watches of [['NVDA'],['BTC-USDT'],[]]){
+  const events=buildRadarIntelligence(raw,watches,now).events;
+  for(const symbol of ['NVDA','BTC-USDT'])assert.equal(assetRadarContext(events,symbol).primaryEvent,events.find(event=>event.symbol===symbol&&event.status==='active'));
+ }
+ assert.equal(JSON.stringify(raw),snapshot);
+ const alerts=[{symbol:'BTC-USDT',enabled:true},{symbol:'BTC-USDT',enabled:false},{symbol:'NVDA',enabled:true}];
+ assert.deepEqual([...enabledPriceAlertCounts(alerts)],[['BTC-USDT',1],['NVDA',1]]);
+ assert.equal(enabledPriceAlertCounts(alerts.map(alert=>({...alert,enabled:false}))).size,0);
+ assert.equal(enabledPriceAlertCounts([]).size,0);
 });

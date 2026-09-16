@@ -1,4 +1,25 @@
 import type { RadarCoverage, RadarIntelligenceEvent } from "./types";
+import type { PriceAlert } from "../market";
+
+/** Navigation identity only: facts are always read from the current intelligence. */
+export type RadarEventReference = { symbol: string; eventId: string };
+
+export function assetRadarContext(events: RadarIntelligenceEvent[], symbol: string) {
+  const activeEvents = events.filter(event => event.symbol === symbol && event.status === "active");
+  // Input order is the intelligence ranking. Never introduce a Classic score.
+  return { symbol, activeEvents, primaryEvent: activeEvents[0] };
+}
+
+export function resolveRadarEvent(events: RadarIntelligenceEvent[], reference: RadarEventReference | null, selected: string) {
+  if (!reference || reference.symbol !== selected) return undefined;
+  return events.find(event => event.symbol === selected && event.id === reference.eventId);
+}
+
+export function enabledPriceAlertCounts(alerts: PriceAlert[]): ReadonlyMap<string, number> {
+  const counts = new Map<string, number>();
+  for (const alert of alerts) if (alert.enabled) counts.set(alert.symbol, (counts.get(alert.symbol) ?? 0) + 1);
+  return counts;
+}
 
 export type RadarCoverageState = "ready" | "partial" | "waiting";
 export type RadarCoverageSummary = { total: number; ready: number; partial: number; waiting: number; state: RadarCoverageState | "empty" };
