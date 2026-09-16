@@ -1,6 +1,8 @@
 # 当前状态
 Market Radar 2.1 Intelligence Layer 已于 2026-09-16 发布到 https://market-radar-rex.swt-aether.chatgpt.site 。Sites v18，源码 `44022bd41a7601f920ba68578381fcd17ddd88a1`，产品实现 `0710a7e`；平台确认 succeeded，环境 revision 3。保留 public + 应用访问码，未推送 GitHub。发布记录见 `tasks/archive/MR-PUBLISH-INTELLIGENCE.md`。
 
+Market Radar 2.2 Coverage & Workflow 已在本地分支 `codex/mr-radar-workflow` 完成，最终实现 `81d193d`，未部署生产。新增 Watchlist coverage summary、Radar→Classic chart context、既有周期的安全映射、From Radar 返回路径和展开层 Watch/Alert actions；没有新增 signal、API 或 timer。相关审计与限制见 `tasks/archive/MR-RADAR-WORKFLOW.md`。
+
 Radar 现支持基于真实同步 benchmark 的相对强弱、Engine 结构化证据、独立 high/medium/low Confidence、同资产相关信号聚合、可解释排序与 60 分钟确定性摘要。未知标的不推断 benchmark；benchmark 失败只局部关闭相对信号，不污染 Classic 健康状态。
 
 本轮全量 Node tests 64/64、类型检查与 Vinext 构建通过。独立审计的 3 HIGH + 1 MEDIUM 已全部修复，最终复核 BLOCKER/HIGH/MEDIUM 均为 0。D1 持久事件历史和完整日/周摘要延期；原因及性能数据见 `docs/INTELLIGENCE.md` 与 `tasks/archive/MR-RADAR-INTELLIGENCE.md`。
