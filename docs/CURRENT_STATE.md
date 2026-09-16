@@ -1,4 +1,8 @@
 # 当前状态
+Market Radar 2.1 Intelligence Layer 已于 2026-09-16 在本地分支 `codex/mr-radar-intelligence` 完成，最终实现 `0710a7e`，尚未推送或发布。Radar 现支持基于真实同步 benchmark 的相对强弱、Engine 结构化证据、独立 high/medium/low Confidence、同资产相关信号聚合、可解释排序与 60 分钟确定性摘要。未知标的不推断 benchmark；benchmark 失败只局部关闭相对信号，不污染 Classic 健康状态。
+
+本轮全量 Node tests 64/64、类型检查与 Vinext 构建通过。独立审计的 3 HIGH + 1 MEDIUM 已全部修复，最终复核 BLOCKER/HIGH/MEDIUM 均为 0。D1 持久事件历史和完整日/周摘要延期；原因及性能数据见 `docs/INTELLIGENCE.md` 与 `tasks/archive/MR-RADAR-INTELLIGENCE.md`。
+
 GitHub 已整理为稳定 `main`、`sites-v08` 至 `sites-v17` 发布标签、`CHANGELOG.md` 与 `docs/VERSIONS.md` 版本索引。标签只恢复源码；v11–v13 的映射依据已有部署日志与连续提交顺序，证据等级已在版本索引注明。证据不足的 v1–v7 未补造标签。本次整理未改产品或生产环境。
 
 最新任务：MR-PUBLISH-V17，用户明确授权后于 2026-09-15 发布成功。线上源码 `106c144055b0ce2aab9f6be2f8f8a21e05c4b2e2`，Sites v17，部署 `appgdep_6aa924e19de08191bc408cbc895fcc4b`，环境 revision 3。
