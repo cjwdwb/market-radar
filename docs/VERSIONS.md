@@ -14,10 +14,11 @@
 | v06 | `milestone-v06` | `5f9123a` | 图表指标、缩放与快速标的导航 | 源码里程碑 |
 | v07 | `milestone-v07` | `7aa3e6c` | 访问码与签名访问会话 | 源码里程碑 |
 | Radar 2.1 | `radar-v2.1` | `ee16706` | Relative、Evidence、Confidence、Cluster 和摘要 | Sites v18 已发布 |
-| Radar 2.2 | `radar-v2.2` | `2178f23` | Coverage 与 Radar→Classic 工作流 | 本地完成，未部署 |
+| Radar 2.2 | `radar-v2.2` | `2178f23` | Coverage 与 Radar→Classic 工作流 | 后续作为 Sites v19 发布 |
 
 | Sites 版本 | Git 标签 | 源码提交 | 主要内容 | 证据 |
 | --- | --- | --- | --- | --- |
+| 19 | `sites-v19` | `52ebe5f` | Radar 2.2 Coverage 与事件工作流 | MR-PUBLISH-WORKFLOW；平台 succeeded |
 | 18 | `sites-v18` | `ee16706` | Signal Intelligence：Relative、Evidence、Confidence、Cluster | MR-PUBLISH-INTELLIGENCE 任务归档与平台成功状态 |
 | 17 | `sites-v17` | `106c144` | Classic + Radar、行情可靠性与状态复用 | Sites v17 发布记录及任务归档 |
 | 16 | `sites-v16` | `87925c4` | 精细视觉、响应式布局与手机品牌图标 | `MR-MOBILE-VIEWPORT` 明确记录 |
