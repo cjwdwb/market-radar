@@ -1,4 +1,6 @@
 # 当前状态
+GitHub 同步已完成：2.2 源码、介绍和部署记录已推送至 main；远端版本标签 milestone-v01–v07、sites-v08–v19、radar-v2.1/v2.2 均已读取核验。以下早期“上传待完成”属于历史状态，现已解除。
+
 Market Radar 2.2 已于 2026-09-16 发布成功：Sites v19，源码 `52ebe5fbe052c24d44d648fad661573057c59f0a`，环境 revision 3。平台状态 succeeded，网址 https://market-radar-rex.swt-aether.chatgpt.site 。保留 public 与应用访问码。记录见 `tasks/archive/MR-PUBLISH-WORKFLOW.md`。以下为此前阶段记录。
 
 Market Radar 2.1 Intelligence Layer 已于 2026-09-16 发布到 https://market-radar-rex.swt-aether.chatgpt.site 。Sites v18，源码 `44022bd41a7601f920ba68578381fcd17ddd88a1`，产品实现 `0710a7e`；平台确认 succeeded，环境 revision 3。保留 public + 应用访问码，未推送 GitHub。发布记录见 `tasks/archive/MR-PUBLISH-INTELLIGENCE.md`。

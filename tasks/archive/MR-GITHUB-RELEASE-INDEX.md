@@ -1,6 +1,6 @@
 # MR-GITHUB-RELEASE-INDEX
 
-状态：本地整理完成，GitHub 推送待完成（2026-09-16）。多次推送因 TLS 握手失败，尚未核验远端更新。
+状态：完成。GitHub main 已推送至包含 2.2 发布记录的 `be13711`，并通过 ls-remote 核验。此前网络中断时部分 annotated tags 实际已创建；本次确认它们的目标提交与本地里程碑一致，保留远端标签，补充 sites-v19。
 
 ## 目标
 
@@ -12,7 +12,7 @@
 - 保留既有 `sites-v08`–`sites-v17`，并补充已确认的 `sites-v18`。
 - 建立产品标签 `radar-v2.1`、`radar-v2.2`；后者指向 2.2 完成归档前的实现提交 `2178f23`。
 - 更新 `README.md`、`CHANGELOG.md` 与 `docs/VERSIONS.md`，明确源码里程碑、产品版本和已发布 Sites 版本的区别。
-- 待完成：将当前稳定分支及新增标签同步至 GitHub，并读取远端引用复核。
+- 已完成：同步最新稳定源码与介绍，核验 milestone-v01–v07、sites-v08–v19、radar-v2.1/v2.2 的远端引用。
 
 ## 边界
 
