@@ -1,3 +1,9 @@
 # 当前任务
 
-当前没有进行中的任务。最近完成的 GitHub 版本索引整理见 `tasks/archive/MR-GITHUB-RELEASE-INDEX.md`。
+## MR-PUBLISH-WORKFLOW
+
+- 用户授权发布 Market Radar 2.2；源码基线 `2189857`，产品实现 `81d193d`。
+- 目标：同步 Sites 源码、保存版本、发布现有网站并核对平台状态。
+- 范围：发布记录及任务文档；不修改产品、访问配置、数据库或运行密钥。
+- 验证：复用同产品源码的 26/26 相关测试、typecheck/build 和审计记录；浏览器检查此前未运行。当前 Windows 缺少 bash，使用平台远程构建。
+- GitHub 上传仍待完成，不作为本次 Sites 发布前置条件。
