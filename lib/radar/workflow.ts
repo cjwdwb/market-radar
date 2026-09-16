@@ -15,7 +15,8 @@ export function summarizeWatchlistCoverage(coverage: RadarCoverage[], watchlist:
 /** Existing chart ranges are the only supported context targets. */
 export function chartRangeForEvent(event: RadarIntelligenceEvent, fallback: "15m" | "1d" | "1w" | "1m" | "3m") {
   const minutes = event.signals.find(signal => Number.isFinite(signal.metrics.intervalMinutes))?.metrics.intervalMinutes;
-  if (minutes === 5 || minutes === 15) return "15m" as const;
+  if (minutes === 5) return "1d" as const;
+  if (minutes === 15) return "15m" as const;
   if (minutes === 60) return "1d" as const;
   return fallback;
 }

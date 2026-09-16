@@ -182,6 +182,6 @@ test('workflow coverage summary is watchlist-only and distinguishes partial read
 });
 test('workflow chart context maps only supported signal intervals and preserves fallback',()=>{
  const event={signals:[{metrics:{intervalMinutes:60}}]};assert.equal(chartRangeForEvent(event,'15m'),'1d');
- assert.equal(chartRangeForEvent({signals:[{metrics:{intervalMinutes:5}}]},'1w'),'15m');
+ assert.equal(chartRangeForEvent({signals:[{metrics:{intervalMinutes:5}}]},'1w'),'1d');
  assert.equal(chartRangeForEvent({signals:[{metrics:{intervalMinutes:30}}]},'1w'),'1w');
 });
