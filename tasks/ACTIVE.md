@@ -1,8 +1,3 @@
-# 当前任务：MR-PUBLISH-INTELLIGENCE
+# 当前任务
 
-- 授权：用户明确要求发布网站，替代上一阶段仅本地限制。
-- 目标：将已审计的 Market Radar 2.1 发布到现有 Sites 项目。
-- 基线：d71bd54；工作树干净，产品实现 0710a7e。
-- 范围：发布打包、Sites 源码同步、保存版本、部署与任务记录；不修改产品代码、访问码、受众、数据库或 GitHub。
-- 验证：复用同源码 64 项 Node tests、类型检查和构建结果；按 Sites 脚本检查产物，确认平台部署成功与返回网址。
-- 流程：小型发布任务合并规划与实施；无需新增优化或产品审计。保留 public + 应用访问码及现有环境变量。
+暂无进行中的任务。最近完成：`MR-PUBLISH-INTELLIGENCE`，详见 `tasks/archive/MR-PUBLISH-INTELLIGENCE.md`。
