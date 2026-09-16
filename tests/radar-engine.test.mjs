@@ -4,6 +4,7 @@ import { scanRadar, radarCoverage, benchmarkFor, benchmarkSymbols } from '../lib
 import { emptyRadarStore } from '../lib/radar/types.ts';
 import { experienceForHash } from '../lib/radar/navigation.ts';
 import { buildRadarIntelligence } from '../lib/radar/intelligence.ts';
+import { chartRangeForEvent, summarizeWatchlistCoverage } from '../lib/radar/workflow.ts';
 
 const now=1_789_372_800_000;
 function fixture({symbol='BTC-USDT',move=0,volume=100,at=now,count=70}={}) {
@@ -173,4 +174,14 @@ test('relative signals fail closed on missing, stale, mismatched, unsynchronized
  for(const change of variants){const snapshot=relativeFixture();change(snapshot);const result=scanRadar(emptyRadarStore(),snapshot,now);assert.ok(!result.signals.some(s=>s.type.startsWith('relative_')));assert.equal(radarCoverage(snapshot,now)[0].relativeEligible,false);}
  const staleAsset=relativeFixture();staleAsset.quotes.NVDA.fetchedAt=now-121000;assert.equal(scanRadar(emptyRadarStore(),staleAsset,now).signals.length,0);
  const crypto=relativeFixture({symbol:'ETH-USDT'});crypto.histories['BTC-USDT'].intervalMs=300000;assert.ok(!scanRadar(emptyRadarStore(),crypto,now).signals.some(s=>s.type.startsWith('relative_')));
+});
+test('workflow coverage summary is watchlist-only and distinguishes partial readiness',()=>{
+ const coverage=[{symbol:'BTC-USDT',eligible:true,reason:'基线可用',relativeEligible:false,relativeReason:'当前标的暂未配置可靠基准'},{symbol:'NVDA',eligible:true,reason:'基线可用',relativeEligible:true,relativeReason:'同步基准可用'},{symbol:'AAPL',eligible:false,reason:'等待历史基线',relativeEligible:false,relativeReason:'等待历史基线'},{symbol:'QQQ',eligible:true,reason:'基线可用',relativeEligible:false,relativeReason:'基准'}];
+ assert.deepEqual(summarizeWatchlistCoverage(coverage,['BTC-USDT','NVDA','AAPL']),{total:3,ready:1,partial:1,waiting:1,state:'partial'});
+ assert.deepEqual(summarizeWatchlistCoverage(coverage,['QQQ']),{total:1,ready:0,partial:1,waiting:0,state:'partial'});
+});
+test('workflow chart context maps only supported signal intervals and preserves fallback',()=>{
+ const event={signals:[{metrics:{intervalMinutes:60}}]};assert.equal(chartRangeForEvent(event,'15m'),'1d');
+ assert.equal(chartRangeForEvent({signals:[{metrics:{intervalMinutes:5}}]},'1w'),'15m');
+ assert.equal(chartRangeForEvent({signals:[{metrics:{intervalMinutes:30}}]},'1w'),'1w');
 });

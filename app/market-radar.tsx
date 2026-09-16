@@ -24,7 +24,8 @@ import { RadarFeed } from "@/components/radar/radar-feed";
 import { useRadar } from "@/components/radar/use-radar";
 import { experienceForHash } from "@/lib/radar/navigation";
 import { benchmarkSymbols } from "@/lib/radar/engine";
-import type { MarketMode, RadarHistory } from "@/lib/radar/types";
+import { chartRangeForEvent } from "@/lib/radar/workflow";
+import type { MarketMode, RadarHistory, RadarIntelligenceEvent } from "@/lib/radar/types";
 
 type HistoryData={key:string;points:Point[];timezone:string;source:string;currency:string};
 type QuoteResponse={results?:QuoteResult[];error?:string};
@@ -59,6 +60,7 @@ export default function MarketRadar(){
   const alertsRef=useRef<PriceAlert[]>([]);
   const [hydrated,setHydrated]=useState(false);
   const [selected,setSelected]=useState("BTC-USDT");
+  const [radarContext,setRadarContext]=useState<RadarIntelligenceEvent|null>(null);
   const [trends,setTrends]=useState<Record<string,RadarHistory>>({});
   const [quotes,setQuotes]=useState<Record<string,Quote>>({});
   const [errors,setErrors]=useState<Record<string,string>>({});
@@ -130,7 +132,7 @@ export default function MarketRadar(){
     if(!hydrated)return;
     let frame=0;
     const navigate=()=>{
-      const hash=location.hash;setMarketMode(experienceForHash(hash,defaultMarketMode));setSection(hash||"#overview");
+      const hash=location.hash;setMarketMode(experienceForHash(hash,defaultMarketMode));setSection(hash||"#overview");if(hash!=="#price-chart")setRadarContext(null);
       cancelAnimationFrame(frame);
       frame=requestAnimationFrame(()=>{frame=requestAnimationFrame(()=>{
         const destination=document.getElementById(hash.slice(1)||"overview");
@@ -140,10 +142,13 @@ export default function MarketRadar(){
     window.addEventListener("hashchange",navigate);
     return()=>{window.removeEventListener("hashchange",navigate);cancelAnimationFrame(frame);};
   },[hydrated,defaultMarketMode]);
-  const viewAsset=useCallback((symbol:string)=>{
-    setSelected(symbol);setMarketMode("classic");setSection("#price-chart");
+  const viewAsset=useCallback((target:RadarIntelligenceEvent|string)=>{
+    const event=typeof target === "string" ? null : target;
+    const symbol=typeof target === "string" ? target : target.symbol;
+    setSelected(symbol);if(event){setRadarContext(event);setRange(chartRangeForEvent(event,range));}else setRadarContext(null);setMarketMode("classic");setSection("#price-chart");
     location.hash="price-chart";
-  },[]);
+  },[range]);
+  const toggleRadarWatch=useCallback((symbol:string)=>{if(watchlist.includes(symbol))removeAsset(symbol);else {setCandidate(symbol);setAddOpen(true);}},[watchlist,removeAsset]);
 
   const symbolKey=useMemo(()=>[...new Set([...OVERVIEW,...watchlist,selected,...alerts.filter(a=>a.enabled).map(a=>a.symbol)])].sort().join(","),[watchlist,selected,alerts]);
   const requestKey=useMemo(()=>{const symbols=symbolKey.split(",");return [...new Set([...symbols,...benchmarkSymbols(symbols)])].sort().join(",");},[symbolKey]);
@@ -316,8 +321,9 @@ export default function MarketRadar(){
         <button className="runtime-link" onClick={()=>setSettingsOpen(true)}><Layers size={15}/>{backgroundTabs?"标签页后台已启用":"仅前台运行"}<ChevronRight size={14}/></button>
         <label className="refresh-label"><Switch checked={auto} onCheckedChange={setAuto} aria-label="自动刷新与提醒"/>自动监控</label>
       </section>
-      <div className="radar-view" hidden={marketMode!=="radar"}><RadarFeed intelligence={radar.intelligence} coverage={radar.coverage} watchlist={watchlist} scanning={mayRun} loading={loading} online={online} onAsset={viewAsset} onAdd={()=>{setCandidate("");setAddOpen(true);}} onRemove={removeAsset}/></div>
+      <div className="radar-view" hidden={marketMode!=="radar"}><RadarFeed intelligence={radar.intelligence} coverage={radar.coverage} watchlist={watchlist} scanning={mayRun} loading={loading} online={online} onAsset={viewAsset} onWatch={toggleRadarWatch} onAlert={openAlert} onAdd={()=>{setCandidate("");setAddOpen(true);}} onRemove={removeAsset}/></div>
       <div className="classic-experience" hidden={marketMode!=="classic"}>
+      {radarContext&&<section className="radar-context-banner" aria-label="来自 Radar 的市场上下文"><div><span>FROM RADAR · {radarContext.confidence.level === "high" ? "高可信" : radarContext.confidence.level === "medium" ? "中可信" : "低可信"}</span><strong>{displaySymbol(radarContext.symbol)} · {radarContext.title}</strong><small>{radarContext.metric} · 检测于 {formatTime(radarContext.detectedAt)}</small></div><button className="btn" onClick={()=>{setRadarContext(null);location.hash="radar"}}>返回 Radar</button></section>}
       <div className="overview-wrap"><section className="overview" aria-label="市场概览">
         {OVERVIEW.map(symbol=>{const a=assetFor(symbol),q=quotes[symbol];return <button key={symbol} className={`overview-card ${selected===symbol?"is-selected":""}`} aria-pressed={selected===symbol} onClick={()=>setSelected(symbol)} aria-label={`查看${a.name}走势`}><div className="overview-top"><AssetIcon asset={a} small/><span>{a.name}</span><span className="unit">{symbol.startsWith("^")?"指数":q?.currency??(symbol.endsWith("-USDT")?"USDT":"USD")}</span></div>{!q&&loading?<Skeleton className="skeleton-price"/>:<div className="overview-price numeric"><PricePulse value={q?.price} text={price(q?.price,q?.currency,false)} identity={symbol}/></div>}<div className="overview-bottom"><div><Change value={q?.changePercent}/><span className="overview-caption">{symbol.endsWith("-USDT")?"24 小时":"较前收"}</span></div><Sparkline points={trends[symbol]?.points??q?.points} change={q?.changePercent}/></div>{errors[symbol]&&<div className="error-text">{q?"更新失败 · 上次报价":"暂未取得行情"}</div>}</button>;})}
       </section><span className="overview-scroll-hint" aria-hidden="true">滑动查看更多 <ChevronRight size={12}/></span></div>
