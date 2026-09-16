@@ -1,6 +1,6 @@
 # 版本与回退索引
 
-开发中：Radar 2.3（Classic × Radar Integration）在 `codex/mr-radar-integration` 本地实现；生产仍为 Sites v19 / Radar 2.2。2.3 最终浏览器复测待执行，没有生产发布标签，未部署。当前验收状态见 `tasks/ACTIVE.md`。
+本地完成：Radar 2.3（Classic × Radar Integration），分支 `codex/mr-radar-integration`、产品源码 `009c2a9`；最终浏览器、Node tests、构建/typecheck 与审计复核完成。生产仍为 Sites v19 / Radar 2.2。2.3 未推送、无生产发布标签、未部署。验收记录见 `tasks/archive/MR-RADAR-INTEGRATION.md`。
 
 此索引把可确认的 Sites 发布号映射到 Git 提交。标签采用 `sites-vNN`，避免与未来语义化版本混淆。标签只标识源码回退点；生产环境的密钥、数据库和访问策略不包含在 Git 中。
 

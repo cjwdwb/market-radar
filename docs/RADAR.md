@@ -57,7 +57,9 @@ From Radar 仅存 `symbol/eventId` 引用，显示时从最新 Intelligence 解�
 
 新增 provider symbols、API、Radar timer、Signal/Intelligence engine 均为 0；模式切换不改变请求依赖。用户切换资产或图表范围仍可触发现有历史请求。
 
-本地验证：30 项 Radar 相关测试、构建和类型检查通过；全量 70 项 Node tests 在审计修复前通过。Edge 已实际执行新增 1440/768/390/320/844 横屏工作流、Watch/Alert 与 reduced-motion；完整脚本末尾旧导航计数受正常轮询干扰而失败。随后已改用受控时钟隔离轮询，并补自选表换资产回归，最后一轮执行被工具返回用户拒绝，尚待复测。独立审计发现并修复 1 MEDIUM（表格绕过统一选中入口）；代码 Verify 无剩余 finding。截图位于本地忽略目录 `outputs/radar/integration-*.png`；不得将旧截图或脚本存在视为最终浏览器复测通过。
+最终本地验证（产品源码 `009c2a9`）：30 项 Radar 相关测试、全量 70 项 Node tests、构建和类型检查通过。用户允许后，Edge 完整脚本实际执行并通过 30 项检查：1440×1000、768×1024、390×844、320×740、844×390 均无横向溢出或 pageerror；覆盖双向导航、手动范围保留、Watch/Alert、暂停、换资产及自选表回归、错误/空/慢请求、键盘和实时 reduced-motion。请求测量窗口用 Playwright 时钟暂停既有轮询、逐次推进导航帧；上下文往返和八次普通导航均新增 0 个 API 请求。这是隔离导航副作用的测量，不代表关闭或改变生产轮询。
+
+独立审计发现并修复 1 MEDIUM（表格绕过统一选中入口），Auditor 代码 Verify 无剩余 finding；最新浏览器回归亦通过。报告位于 `outputs/radar/verification.json`，截图位于 `outputs/radar/integration-*.png`；均在本地忽略目录，测试行情不进入应用。未验证真机 Safari、线上行情或生产 2.3。
 
 主 client chunk 726,707 → 730,018 bytes（约 +0.46%，最终数值以本轮构建为准），既有 500 KB warning 保留；无已证明瓶颈，Optimizer 跳过。未做自选行徽标、大型情报面板、精确滚动恢复、新信号、AI、D1 历史或 Market State。NOT DEPLOYED。
 

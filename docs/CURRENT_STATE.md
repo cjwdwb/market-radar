@@ -1,5 +1,5 @@
 # 当前状态
-当前开发：Market Radar 2.3，分支 `codex/mr-radar-integration`，基线 `899b59ef1e8eea7cc51a29561628963a309ce121`。已实现 Classic 活跃 Radar 入口、同资产筛选与返回、实时事件引用及共享提醒状态；独立审计 1 MEDIUM 已修复并代码复核。最终浏览器复测等待执行授权，详见 tasks/ACTIVE.md；2.3 NOT DEPLOYED，未推送，未建立发布标签。以下 2.2 为当前生产版本。
+本地完成：Market Radar 2.3，分支 `codex/mr-radar-integration`，基线 `899b59ef1e8eea7cc51a29561628963a309ce121`，产品源码 `009c2a9`。已实现 Classic 活跃 Radar 入口、同资产筛选与返回、实时事件引用及共享提醒状态；独立审计 1 MEDIUM 已修复并代码复核。最终 70/70 Node tests、构建/typecheck、30 项 Edge 检查全部通过，含五视口与请求隔离测量；详见 tasks/archive/MR-RADAR-INTEGRATION.md。2.3 NOT DEPLOYED，未推送，未建立发布标签。以下 2.2 为当前生产版本。
 
 GitHub 同步已完成：2.2 源码、介绍和部署记录已推送至 main；远端版本标签 milestone-v01–v07、sites-v08–v19、radar-v2.1/v2.2 均已读取核验。以下早期“上传待完成”属于历史状态，现已解除。
 
