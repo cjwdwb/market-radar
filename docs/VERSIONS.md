@@ -18,7 +18,7 @@
 
 | Sites 版本 | Git 标签 | 源码提交 | 主要内容 | 证据 |
 | --- | --- | --- | --- | --- |
-| 18 | `radar-v2.1` | `ee16706` | Signal Intelligence：Relative、Evidence、Confidence、Cluster | MR-PUBLISH-INTELLIGENCE 任务归档与平台成功状态 |
+| 18 | `sites-v18` | `ee16706` | Signal Intelligence：Relative、Evidence、Confidence、Cluster | MR-PUBLISH-INTELLIGENCE 任务归档与平台成功状态 |
 | 17 | `sites-v17` | `106c144` | Classic + Radar、行情可靠性与状态复用 | Sites v17 发布记录及任务归档 |
 | 16 | `sites-v16` | `87925c4` | 精细视觉、响应式布局与手机品牌图标 | `MR-MOBILE-VIEWPORT` 明确记录 |
 | 15 | `sites-v15` | `fa2c4f6` | 帧率优化、价格脉冲与微交互 | 发布日志明确记录 |

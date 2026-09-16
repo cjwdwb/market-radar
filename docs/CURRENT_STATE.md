@@ -3,6 +3,8 @@ Market Radar 2.1 Intelligence Layer 已于 2026-09-16 发布到 https://market-r
 
 Market Radar 2.2 Coverage & Workflow 已在本地分支 `codex/mr-radar-workflow` 完成，最终实现 `81d193d`，未部署生产。新增 Watchlist coverage summary、Radar→Classic chart context、既有周期的安全映射、From Radar 返回路径和展开层 Watch/Alert actions；没有新增 signal、API 或 timer。相关审计与限制见 `tasks/archive/MR-RADAR-WORKFLOW.md`。
 
+GitHub 版本索引现覆盖初版到 2.2：`milestone-v01`–`milestone-v07` 为早期源码里程碑，`sites-v08`–`sites-v18` 为可确认的 Sites 发布回退点，`radar-v2.1` 与 `radar-v2.2` 为产品源码标签。2.2 已同步至 GitHub `main`，仍未部署 Sites；完整说明见 `docs/VERSIONS.md` 与 `CHANGELOG.md`。
+
 Radar 现支持基于真实同步 benchmark 的相对强弱、Engine 结构化证据、独立 high/medium/low Confidence、同资产相关信号聚合、可解释排序与 60 分钟确定性摘要。未知标的不推断 benchmark；benchmark 失败只局部关闭相对信号，不污染 Classic 健康状态。
 
 本轮全量 Node tests 64/64、类型检查与 Vinext 构建通过。独立审计的 3 HIGH + 1 MEDIUM 已全部修复，最终复核 BLOCKER/HIGH/MEDIUM 均为 0。D1 持久事件历史和完整日/周摘要延期；原因及性能数据见 `docs/INTELLIGENCE.md` 与 `tasks/archive/MR-RADAR-INTELLIGENCE.md`。
