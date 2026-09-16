@@ -2,8 +2,23 @@
 
 此索引把可确认的 Sites 发布号映射到 Git 提交。标签采用 `sites-vNN`，避免与未来语义化版本混淆。标签只标识源码回退点；生产环境的密钥、数据库和访问策略不包含在 Git 中。
 
+为让项目从最初版本开始都能被准确定位，早期未保留 Sites 发布证据的源码阶段采用 `milestone-vNN` 标签；Radar 2.x 采用 `radar-v2.x` 产品标签。两类标签都只标记 Git 源码，不代表曾部署到生产。
+
+| 产品里程碑 | Git 标签 | 源码提交 | 主要内容 | 发布声明 |
+| --- | --- | --- | --- | --- |
+| 初版 | `milestone-v01` | `679511d` | 实时行情与本机价格提醒 | 源码里程碑 |
+| v02 | `milestone-v02` | `8be3aa9` | 15 秒刷新、缓存和退避 | 源码里程碑 |
+| v03 | `milestone-v03` | `fcc7fd8` | 市场工作台与后台运行策略 | 源码里程碑 |
+| v04 | `milestone-v04` | `d168fe2` | OKX 15 分钟 K 线、量能与云端监控 | 源码里程碑 |
+| v05 | `milestone-v05` | `c5f2e5f` | Radar 终端视觉与 K 线韧性 | 源码里程碑 |
+| v06 | `milestone-v06` | `5f9123a` | 图表指标、缩放与快速标的导航 | 源码里程碑 |
+| v07 | `milestone-v07` | `7aa3e6c` | 访问码与签名访问会话 | 源码里程碑 |
+| Radar 2.1 | `radar-v2.1` | `ee16706` | Relative、Evidence、Confidence、Cluster 和摘要 | Sites v18 已发布 |
+| Radar 2.2 | `radar-v2.2` | `2178f23` | Coverage 与 Radar→Classic 工作流 | 本地完成，未部署 |
+
 | Sites 版本 | Git 标签 | 源码提交 | 主要内容 | 证据 |
 | --- | --- | --- | --- | --- |
+| 18 | `radar-v2.1` | `ee16706` | Signal Intelligence：Relative、Evidence、Confidence、Cluster | MR-PUBLISH-INTELLIGENCE 任务归档与平台成功状态 |
 | 17 | `sites-v17` | `106c144` | Classic + Radar、行情可靠性与状态复用 | Sites v17 发布记录及任务归档 |
 | 16 | `sites-v16` | `87925c4` | 精细视觉、响应式布局与手机品牌图标 | `MR-MOBILE-VIEWPORT` 明确记录 |
 | 15 | `sites-v15` | `fa2c4f6` | 帧率优化、价格脉冲与微交互 | 发布日志明确记录 |
@@ -21,7 +36,8 @@ v11–v13 的 Sites 版本列表接口在整理时暂时不可用，因此表中
 
 - `main`：GitHub 默认稳定分支，包含当前文档和下一次发布准备。
 - `codex/*`：开发工作分支；完成验证后以快进或普通 PR 合入 `main`。
-- `sites-vNN`：不可移动的发布源码标签。不要强制更新已有标签；修复后发布应建立新编号。
+- `sites-vNN`：不可移动的已发布源码标签。不要强制更新已有标签；修复后发布应建立新编号。
+- `milestone-vNN`、`radar-v2.x`：不可移动的源码回退点；不能据此推断生产环境、访问配置或数据状态。
 
 ## 回退前检查
 

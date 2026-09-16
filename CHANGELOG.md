@@ -2,6 +2,19 @@
 
 本文件记录 Market Radar 的可识别产品里程碑。完整发布来源、验证范围和回退注意事项见 [docs/VERSIONS.md](docs/VERSIONS.md)。
 
+## Radar 2.2 — Coverage & Workflow — 2026-09-16
+
+- 为 My Radar 增加完整、部分覆盖和等待数据的概况。
+- 事件可直接进入对应资产与合适的图表范围，并在 Classic 保留 From Radar 上下文与返回路径。
+- 展开事件后可复用既有自选和价格提醒操作。
+- 仅完成本地验证与审计，未部署生产。
+
+## Radar 2.1 — Signal Intelligence — 2026-09-16
+
+- 增加同步 benchmark 相对强弱、结构化触发证据和独立 Confidence。
+- 同一资产的相关信号聚合为可解释事件，并按自选、严重度、可信度和时效排序。
+- 已作为 Sites v18 发布源码；版本回退点为 `radar-v2.1`。
+
 ## Sites v17 — 2026-09-15
 
 - 加入 Classic / Radar 双体验和可追溯的市场异动信号。

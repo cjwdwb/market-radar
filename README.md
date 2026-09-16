@@ -1,13 +1,14 @@
 # Market Radar · 市场雷达
 
-一个为桌面与手机设计的中文市场行情工作台。界面采用黑白主调和低饱和涨跌色，支持实时行情、自选列表、15 分钟 K 线、价格提醒和可选的云端监控。
+一个为桌面与手机设计的中文市场行情工作台。Market Radar 把真实行情、自选和价格提醒连接成一条清晰路径：查看市场、发现异常、理解证据、进入图表，再继续关注或设置提醒。界面采用黑白主调和低饱和涨跌色，适合长时间阅读。
 
 ![Market Radar 桌面界面](docs/screenshots/desktop-after.png)
 
 ## 功能
 
 - Markets / Classic 与 Radar 双体验，默认体验可在运行设置中保存。
-- Radar 共享自选与行情，识别价格异动、区间突破/跌破、波动和可靠的量能异常；支持来源追溯与有限会话历史。
+- Radar 共享自选与行情，识别价格异动、区间突破/跌破、波动和可靠的量能异常；支持来源追溯、有限会话历史、相对强弱、Confidence、组合事件与确定性摘要。
+- Radar 2.2 提供自选覆盖概况、事件到图表的上下文跳转、返回 Radar 路径，以及复用同一份自选和价格提醒的工作流操作。
 - OKX 欧易 USDT 现货报价与 15 分钟 K 线。
 - Yahoo Finance 美股、A 股、港股和兼容的旧 USD 交易对行情。
 - K 线拖动、双指或 `Ctrl + 滚轮` 缩放、快捷回到最新行情。
@@ -56,7 +57,7 @@ Windows 环境中的项目脚本依赖 Bash；也可以直接执行 `node node_m
 
 Classic + Radar 的规则、覆盖限制和验证结果见 [`docs/RADAR.md`](docs/RADAR.md)。
 
-版本历史与回退点见 [`docs/VERSIONS.md`](docs/VERSIONS.md)，面向使用者的变更摘要见 [`CHANGELOG.md`](CHANGELOG.md)。Git 标签采用 `sites-vNN`，对应曾发布到 Sites 的版本号；开发过程仍以 `main` 为准。
+版本历史与回退点见 [`docs/VERSIONS.md`](docs/VERSIONS.md)，面向使用者的变更摘要见 [`CHANGELOG.md`](CHANGELOG.md)。`sites-vNN` 只表示已确认的 Sites 发布源码；`milestone-vNN` 和 `radar-v2.x` 表示可回退的 Git 产品里程碑，不宣称生产发布。开发过程以 `main` 为准。
 
 ## 数据与安全边界
 
