@@ -2,6 +2,13 @@
 
 本文件记录 Market Radar 的可识别产品里程碑。完整发布来源、验证范围和回退注意事项见 [docs/VERSIONS.md](docs/VERSIONS.md)。
 
+## Radar 2.3 — Classic × Radar Deep Integration — 2026-09-17
+
+- Classic 图表旁提供当前资产 Radar 入口，可查看同资产事件并返回图表，保留用户选择的周期。
+- From Radar 上下文引用实时事件，避免事件变化后继续展示旧事实。
+- Classic 与 Radar 共享自选及价格提醒状态，事件详情可查看已有提醒。
+- 已发布为 Sites v20，源码 `f96a526`；平台确认部署成功。发布前 70 项 Node tests、30 项浏览器检查、构建和类型检查通过；线上登录后完整交互未复测。
+
 ## Radar 2.2 — Coverage & Workflow — 2026-09-16
 
 - 为 My Radar 增加完整、部分覆盖和等待数据的概况。
