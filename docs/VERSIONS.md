@@ -1,6 +1,6 @@
 # 版本与回退索引
 
-当前生产：Radar 2.3（Classic × Radar Integration），2026-09-17 发布为 Sites v20，部署源码 `f96a526`，平台确认 succeeded。产品实现与验收见 `tasks/archive/MR-RADAR-INTEGRATION.md`，发布证据见 `tasks/archive/MR-PUBLISH-INTEGRATION.md`。
+当前生产：Radar 2.4（Asset Intelligence Foundation），2026-09-18 发布为 Sites v21，部署源码 `c618b41`，平台确认 succeeded。产品实现与验收见 `tasks/archive/MR-ASSET-INTELLIGENCE.md`，发布证据见 `tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md`。
 
 此索引把可确认的 Sites 发布号映射到 Git 提交。标签采用 `sites-vNN`，避免与未来语义化版本混淆。标签只标识源码回退点；生产环境的密钥、数据库和访问策略不包含在 Git 中。
 
@@ -18,9 +18,11 @@
 | Radar 2.1 | `radar-v2.1` | `ee16706` | Relative、Evidence、Confidence、Cluster 和摘要 | Sites v18 已发布 |
 | Radar 2.2 | `radar-v2.2` | `2178f23` | Coverage 与 Radar→Classic 工作流 | 后续作为 Sites v19 发布 |
 | Radar 2.3 | `radar-v2.3` | `f96a526` | Classic ⇄ Radar 同资产上下文、实时事件引用与共享提醒 | Sites v20 已发布 |
+| Radar 2.4 | `radar-v2.4` | `c618b41` | 共享资产情报、覆盖/可用性、事件关系与相对证据；PRE24 正确性修复 | Sites v21 已发布 |
 
 | Sites 版本 | Git 标签 | 源码提交 | 主要内容 | 证据 |
 | --- | --- | --- | --- | --- |
+| 21 | `sites-v21` | `c618b41` | Asset Intelligence Foundation | MR-PUBLISH-ASSET-INTELLIGENCE；平台 succeeded |
 | 20 | `sites-v20` | `f96a526` | Classic × Radar Deep Integration | MR-PUBLISH-INTEGRATION；平台 succeeded |
 | 19 | `sites-v19` | `52ebe5f` | Radar 2.2 Coverage 与事件工作流 | MR-PUBLISH-WORKFLOW；平台 succeeded |
 | 18 | `sites-v18` | `ee16706` | Signal Intelligence：Relative、Evidence、Confidence、Cluster | MR-PUBLISH-INTELLIGENCE 任务归档与平台成功状态 |

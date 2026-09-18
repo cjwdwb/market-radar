@@ -1,6 +1,6 @@
 # Asset Intelligence Context — 2.4
 
-本地实现；生产仍 2.3 / Sites v20。2.4 不生成 Market State 或交易判断。
+2.4 已于 2026-09-18 发布为 Sites v21；发布证据见 tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md。2.4 不生成 Market State 或交易判断。
 
 ## Boundary
 
@@ -62,4 +62,4 @@ Radar 同资产 feed 的 current events 使用 Context 引用，历史仍由现�
 
 新增 provider symbols / quote / history / benchmark / API / timer / dependency 均为 0。只派生 selected asset，输入最多现有 120 条 raw history 对应事件，无全市场 Context map。主包和本机计算测量及最终测试/审计结果写入 `tasks/archive/MR-ASSET-INTELLIGENCE.md`，不能据此推断设备 FPS。
 
-Deferred：Market State、评分、confidence 分布、全资产聚合视图、持久历史、AI、2.5/2.8/3.0。NOT DEPLOYED。
+Deferred：Market State、评分、confidence 分布、全资产聚合视图、持久历史、AI、2.5/2.8/3.0。开发阶段保留本地；后续经用户明确授权发布。

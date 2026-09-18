@@ -1,6 +1,6 @@
 # Classic + Radar
 
-2.4 本地实现增加统一 Asset Intelligence Context：在现有 Intelligence 之后派生 selected asset 的 current events、主事件、覆盖/时效、方向关系与相对证据引用。Classic 和 Radar 共用父组件同一个 Context，仍保持原导航与用户状态。契约见 [ASSET_INTELLIGENCE.md](ASSET_INTELLIGENCE.md)；此阶段不发布，生产仍 2.3 / Sites v20。
+2.4 增加统一 Asset Intelligence Context：在现有 Intelligence 之后派生 selected asset 的 current events、主事件、覆盖/时效、方向关系与相对证据引用。Classic 和 Radar 共用父组件同一个 Context，仍保持原导航与用户状态。契约见 [ASSET_INTELLIGENCE.md](ASSET_INTELLIGENCE.md)；2026-09-18 已发布为 Sites v21，发布证据见 tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md。
 
 Market Radar 有两种体验，共用一个页面状态、访问门禁、自选、行情、价格提醒和设置。
 

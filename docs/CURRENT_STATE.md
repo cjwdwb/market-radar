@@ -1,4 +1,5 @@
 # 当前状态
+Market Radar 2.4 已于 2026-09-18 发布为 Sites v21，部署源码 c618b41c1ef3ee9c3f79b8496a3bbd24462ae5f7；平台确认 succeeded，环境 revision 3。GitHub main 与 Sites 源码已上传，原网址及访问码策略保留。发布记录见 tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md。以下“本地/未部署”描述为此前开发阶段记录。
 本地工作：2.4 Asset Intelligence Foundation 已实现统一纯函数 Context；全量 80/80 tests、typecheck、build 和五视口 36 项浏览器检查通过，独立审计未发现可证实的 BLOCKER/HIGH/MEDIUM。无新 Signal、请求或 timer。当前分支 codex/mr-asset-intelligence，HEAD db35e5c，保留此前 Provider/PRE24 未提交成果；本轮未推送、未部署。契约见 docs/ASSET_INTELLIGENCE.md，验证与限制见 tasks/archive/MR-ASSET-INTELLIGENCE.md。
 Market Radar 2.3 已于 2026-09-17 发布为 Sites v20，部署源码 f96a5266d6b9b9febaab858e5de5b097e97b55a1，平台状态 succeeded，环境 revision 3。源码已推送 GitHub main 与 Sites main。产品验收见 tasks/archive/MR-RADAR-INTEGRATION.md；发布及版本标签记录见 tasks/archive/MR-PUBLISH-INTEGRATION.md。以下为历史阶段记录，其中未发布、未上传描述不代表当前状态。
 

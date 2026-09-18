@@ -9,6 +9,7 @@
 - 包含 PRE24 正确性修复：证据量纲、极小价格精度、缺失自选覆盖计数和当前筛选空状态。
 - 开发 Provider 文档单独归档；产品不引入 LLM、依赖、请求或 timer。
 - 发布前全量 80/80 tests、typecheck、build、五视口 36 项浏览器检查及独立审计/VERIFY 完成。生产发布结果见版本索引与发布任务归档。
+- 已发布为 Sites v21，源码 `c618b41`，平台确认 succeeded；GitHub 产品标签 `radar-v2.4` 与发布标签 `sites-v21` 对应同一源码。
 
 ## Radar 2.3 — Classic × Radar Deep Integration — 2026-09-17
 
