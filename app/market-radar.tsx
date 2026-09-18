@@ -25,7 +25,7 @@ import { AssetRadarAwareness, RadarOriginContext } from "@/components/radar/asse
 import { useRadar } from "@/components/radar/use-radar";
 import { experienceForHash } from "@/lib/radar/navigation";
 import { benchmarkSymbols } from "@/lib/radar/engine";
-import { assetRadarContext, chartRangeForEvent, enabledPriceAlertCounts, resolveRadarEvent, type RadarEventReference } from "@/lib/radar/workflow";
+import { buildAssetIntelligenceContext, chartRangeForEvent, enabledPriceAlertCounts, resolveRadarEvent, type RadarEventReference } from "@/lib/radar/workflow";
 import type { MarketMode, RadarHistory, RadarIntelligenceEvent } from "@/lib/radar/types";
 
 type HistoryData={key:string;points:Point[];timezone:string;source:string;currency:string};
@@ -158,10 +158,9 @@ export default function MarketRadar(){
   const requestKey=useMemo(()=>{const symbols=symbolKey.split(",");return [...new Set([...symbols,...benchmarkSymbols(symbols)])].sort().join(",");},[symbolKey]);
   const radarSnapshot=useMemo(()=>({quotes,histories:trends,symbols:symbolKey.split(",")}),[quotes,trends,symbolKey]);
   const radar=useRadar(radarSnapshot,watchlist,now,hydrated&&mayRun);
-  const selectedRadar=useMemo(()=>assetRadarContext(radar.intelligence.events,selected),[radar.intelligence.events,selected]);
   const radarContext=resolveRadarEvent(radar.intelligence.events,radarOrigin,selected);
   const priceAlertCounts=useMemo(()=>enabledPriceAlertCounts(alerts),[alerts]);
-  const selectedCoverage=radar.coverage.find(item=>item.symbol===selected);
+  const selectedRadar=useMemo(()=>buildAssetIntelligenceContext({events:radar.intelligence.events,coverage:radar.coverage,symbol:selected,now,enabled:hydrated&&mayRun,online,isWatched:watchlist.includes(selected),enabledAlertCount:priceAlertCounts.get(selected)??0}),[radar.intelligence.events,radar.coverage,selected,now,hydrated,mayRun,online,watchlist,priceAlertCounts]);
   function openRelatedRadar(){setRadarAssetFocus(true);setRadarOrigin(null);setMarketMode("radar");setSection("#radar");location.hash="radar";}
   function returnToRadar(){setRadarOrigin(null);setMarketMode("radar");setSection("#radar");location.hash="radar";}
   function openRadarAlert(symbol:string){
@@ -347,7 +346,7 @@ export default function MarketRadar(){
             <div className="symbol-rail" aria-label="快速切换自选"><Star size={13}/><div>{[...new Set([selected,...watchlist])].map(symbol=><button key={symbol} aria-pressed={selected===symbol} onClick={()=>selectAsset(symbol)}><span>{displaySymbol(symbol)}</span><span className={errors[symbol]?"muted":tone(quotes[symbol]?.changePercent)}>{errors[symbol]?"更新失败":percent(quotes[symbol]?.changePercent)}</span></button>)}</div></div>
             <div className="chart-top"><div><div className="selected-title"><AssetIcon asset={activeAsset}/><h2>{displaySymbol(selected)}</h2><span className="market-tag">{MARKET_LABELS[activeAsset.market]}</span></div><p className="selected-subtitle">{selectedName} <span> / {quote?.currency??(activeAsset.market==="cn"?"CNY":activeAsset.market==="hk"?"HKD":"USD")}</span></p><div className="chart-price"><strong className="numeric"><PricePulse value={quote?.price} text={price(quote?.price,quote?.currency,false)} identity={selected}/></strong>{!selected.startsWith("^")&&<span className="quote-unit">{quote?.currency??(selected.endsWith("-USDT")?"USDT":activeAsset.market==="cn"?"CNY":activeAsset.market==="hk"?"HKD":"USD")}</span>}<Change value={quote?.changePercent}/></div></div><span className="chart-top-actions"><button className="icon-btn" aria-label={`为${selectedName}设置提醒`} onClick={()=>openAlert(selected)}><BellPlus size={18}/></button><button className="icon-btn" aria-label={chartExpanded?"收起图表":"展开图表"} aria-pressed={chartExpanded} onClick={()=>setChartExpanded(v=>!v)}>{chartExpanded?<Minimize2 size={17}/>:<Maximize2 size={17}/>}</button></span></div>
             <div className="chart-market-summary"><span>{selected.endsWith("-USDT")?"24h 高":"日内最高"}<b>{price(quote?.high,quote?.currency,false)}</b></span><span>{selected.endsWith("-USDT")?"24h 低":"日内最低"}<b>{price(quote?.low,quote?.currency,false)}</b></span><span>{activeAsset.market==="crypto"?"成交额":"成交量"}<b>{compact(quote?.volume)} <small>{activeAsset.market==="crypto"?quote?.currency:"股 / 份"}</small></b></span><span className="summary-freshness">{quoteStatus}<b>{formatTime(quote?.timestamp)} <small>本地时间</small></b></span></div>
-            {radarOrigin?.symbol===selected?<RadarOriginContext symbol={selected} event={radarContext} onReturn={returnToRadar} onDismiss={()=>setRadarOrigin(null)}/>:<AssetRadarAwareness context={selectedRadar} enabled={hydrated&&mayRun} reason={selectedCoverage&&!selectedCoverage.eligible?selectedCoverage.reason:!selectedCoverage?"等待可靠数据":undefined} onOpen={openRelatedRadar}/>}
+            {radarOrigin?.symbol===selected?<RadarOriginContext symbol={selected} event={radarContext} onReturn={returnToRadar} onDismiss={()=>setRadarOrigin(null)}/>:<AssetRadarAwareness context={selectedRadar} onOpen={openRelatedRadar}/>}
             <Tabs value={range} onValueChange={value=>setRange(value as Range)}>
               <div className="period-tabs"><TabsList className="range-list" aria-label="走势时间范围">{PERIODS.map(p=><TabsTrigger key={p.value} value={p.value} className="range-trigger">{p.label}</TabsTrigger>)}</TabsList><span className="chart-legend"><span className="line-swatch" style={{background:chartColor}}/>{range==="15m"?"K 线 + 成交量":"价格走势"}</span></div>
               <TabsContent value={range}>

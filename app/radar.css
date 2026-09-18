@@ -30,6 +30,12 @@
 .radar-coverage-summary{padding:16px 20px;margin-top:16px}.radar-coverage-summary .panel-heading{margin-bottom:8px}.radar-coverage-summary h3{font-size:13px}.coverage-state{font-size:11px;color:var(--text-secondary)}.coverage-ready{color:var(--market-up)}.coverage-partial{color:#c6a66a}.coverage-waiting{color:var(--text-secondary)}
 .asset-radar-awareness{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:10px 20px;border-block:1px solid var(--line-subtle);background:var(--surface-subtle);color:var(--text-primary);text-align:left;font-size:14px;line-height:1.6}
 .asset-radar-awareness>span:nth-child(2){flex:1;min-width:0;overflow-wrap:anywhere}.asset-radar-awareness>svg{flex-shrink:0}
+.asset-intelligence-hint{display:block;font-size:12px;color:var(--text-secondary)}
+.asset-intelligence-details{margin-top:8px;max-width:640px;overflow-wrap:anywhere;font-size:13px;line-height:1.7}
+.asset-intelligence-details summary{cursor:pointer;min-height:44px;align-content:center;color:var(--text-secondary)}
+.asset-intelligence-details summary:focus-visible{outline:2px solid var(--text-primary);outline-offset:2px}
+.asset-intelligence-details dl{display:grid;gap:10px;padding-block:8px}.asset-intelligence-details dt{color:var(--text-secondary)}
+.asset-intelligence-details dd{margin:0}.asset-intelligence-details ul{padding-left:18px}
 .context-label{font-size:12px;letter-spacing:.08em;color:var(--text-secondary)}
 .asset-radar-awareness:hover{background:var(--surface-raised)}
 .asset-radar-awareness:focus-visible,.radar-asset-context button:focus-visible,.radar-context-banner button:focus-visible{outline:2px solid var(--text-primary);outline-offset:-3px}

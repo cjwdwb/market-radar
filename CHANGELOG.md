@@ -2,6 +2,14 @@
 
 本文件记录 Market Radar 的可识别产品里程碑。完整发布来源、验证范围和回退注意事项见 [docs/VERSIONS.md](docs/VERSIONS.md)。
 
+## Radar 2.4 — Asset Intelligence Foundation — 2026-09-18
+
+- Classic 与 Radar 共用确定性的当前资产情报，保留已有排名、Confidence、组合事件及原始信号。
+- 增加可追溯的覆盖/可用性、事件方向关系、相对证据和用户跟踪状态；离线、暂停或过期时保守降级，详情默认折叠。
+- 包含 PRE24 正确性修复：证据量纲、极小价格精度、缺失自选覆盖计数和当前筛选空状态。
+- 开发 Provider 文档单独归档；产品不引入 LLM、依赖、请求或 timer。
+- 发布前全量 80/80 tests、typecheck、build、五视口 36 项浏览器检查及独立审计/VERIFY 完成。生产发布结果见版本索引与发布任务归档。
+
 ## Radar 2.3 — Classic × Radar Deep Integration — 2026-09-17
 
 - Classic 图表旁提供当前资产 Radar 入口，可查看同资产事件并返回图表，保留用户选择的周期。

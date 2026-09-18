@@ -72,9 +72,15 @@ function prepare(snapshot: RadarSnapshot, symbol: string, now: number): Prepared
 export function radarCoverage(snapshot: RadarSnapshot, now: number): RadarCoverage[] {
   return [...new Set(snapshot.symbols)].map(symbol => {
     const data = prepare(snapshot, symbol, now);
-    if (typeof data === "string") return { symbol, eligible: false, reason: data, relativeEligible: false, relativeReason: data };
+    if (typeof data === "string") {
+      // Classify existing gates here, where their meaning is owned. No second freshness threshold.
+      const readiness = data === "等待报价" || data === "等待历史基线" ? "waiting"
+        : data === "报价过期或延迟" || data === "历史数据过期" || data === "最近完整 K 线缺失" ? "stale"
+        : data === "历史周期不支持" ? "unsupported" : "insufficient";
+      return { symbol, eligible: false, readiness, reason: data, relativeEligible: false, relativeReason: data };
+    }
     const relative = relativeReadiness(snapshot, symbol, data, now);
-    return { symbol, eligible: true, reason: "基线可用", relativeEligible: relative === true, relativeReason: relative === true ? "同步基准可用" : relative };
+    return { symbol, eligible: true, readiness: "ready", reason: "基线可用", relativeEligible: relative === true, relativeReason: relative === true ? "同步基准可用" : relative };
   });
 }
 
@@ -127,8 +133,8 @@ function evaluate(snapshot: RadarSnapshot, now: number): Evaluation[] {
       const high = Math.max(...rangeBars.map(p => p.high!)), low = Math.min(...rangeBars.map(p => p.low!));
       const up = (latest.close / high - 1) * 100, down = (1 - latest.close / low) * 100;
       const context = `收盘价相对之前 20 根完整 K 线范围；确认缓冲 ${bufferPercent.toFixed(2)}%。`;
-      push("breakout", "recent", up / bufferPercent, "区间突破", `高于区间上沿 ${percent(up)}`, context, "up", { rangeHigh: high, rangeLow: low, bufferPercent }, { reason: "最新完整 K 线收盘价越过之前 20 根 K 线区间和波动缓冲。", items: [{ label: "高于区间上沿", value: up, unit: "%", baseline: high, threshold: bufferPercent }], sampleSize: rangeBars.length, minimumSamples: 20 });
-      push("breakdown", "recent", down / bufferPercent, "区间跌破", `低于区间下沿 ${percent(-down)}`, context, "down", { rangeHigh: high, rangeLow: low, bufferPercent }, { reason: "最新完整 K 线收盘价跌破之前 20 根 K 线区间和波动缓冲。", items: [{ label: "低于区间下沿", value: down, unit: "%", baseline: low, threshold: bufferPercent }], sampleSize: rangeBars.length, minimumSamples: 20 });
+      push("breakout", "recent", up / bufferPercent, "区间突破", `高于区间上沿 ${percent(up)}`, context, "up", { rangeHigh: high, rangeLow: low, bufferPercent }, { reason: "最新完整 K 线收盘价越过之前 20 根 K 线区间和波动缓冲。", items: [{ label: "高于区间上沿", value: up, unit: "%", threshold: bufferPercent }, { label: `区间上沿价格 (${quote.currency})`, value: high }], sampleSize: rangeBars.length, minimumSamples: 20 });
+      push("breakdown", "recent", down / bufferPercent, "区间跌破", `低于区间下沿 ${percent(-down)}`, context, "down", { rangeHigh: high, rangeLow: low, bufferPercent }, { reason: "最新完整 K 线收盘价跌破之前 20 根 K 线区间和波动缓冲。", items: [{ label: "低于区间下沿", value: down, unit: "%", threshold: bufferPercent }, { label: `区间下沿价格 (${quote.currency})`, value: low }], sampleSize: rangeBars.length, minimumSamples: 20 });
     }
     const baselineVolatility = rms(baselineReturns), currentVolatility = rms(returns.slice(-4));
     const volatilityThreshold = Math.max(market === "crypto" ? .25 : .15, baselineVolatility * 3);
@@ -139,7 +145,7 @@ function evaluate(snapshot: RadarSnapshot, now: number): Evaluation[] {
       const baselineVolume = mean(volumeBars.slice(0, -1).map(p => p.volume!));
       if (baselineVolume > 0) {
         const multiple = latest.volume! / baselineVolume;
-        push("volume_spike", "15m", multiple / 2.5, "成交量异常", `15 分钟成交量 ${multiple.toFixed(2)}×`, "相对前 20 根完整 K 线平均基础币成交量；不使用滚动 24 小时成交额。", "neutral", { volume: latest.volume!, baselineVolume, multiple, thresholdMultiple: 2.5 }, { reason: "最新完整 15 分钟 K 线成交量超过此前 20 根平均量的 2.5 倍。", items: [{ label: "成交量倍数", value: multiple, unit: "×", baseline: baselineVolume, threshold: 2.5 }], sampleSize: 20, minimumSamples: 20 });
+        push("volume_spike", "15m", multiple / 2.5, "成交量异常", `15 分钟成交量 ${multiple.toFixed(2)}×`, "相对前 20 根完整 K 线平均基础币成交量；不使用滚动 24 小时成交额。", "neutral", { volume: latest.volume!, baselineVolume, multiple, thresholdMultiple: 2.5 }, { reason: "最新完整 15 分钟 K 线成交量超过此前 20 根平均量的 2.5 倍。", items: [{ label: "成交量倍数", value: multiple, unit: "×", threshold: 2.5 }, { label: "前 20 根平均基础币成交量", value: baselineVolume }], sampleSize: 20, minimumSamples: 20 });
       }
     }
 

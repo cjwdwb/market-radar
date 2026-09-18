@@ -43,7 +43,8 @@ export type RadarSignal = {
   evidence: RadarSignalEvidence;
 };
 export type RadarSnapshot = { quotes: Record<string, Quote>; histories: Record<string, RadarHistory>; symbols: string[] };
-export type RadarCoverage = { symbol: string; eligible: boolean; reason: string; relativeEligible?: boolean; relativeReason?: string };
+export type RadarReadiness = "ready" | "waiting" | "stale" | "unsupported" | "insufficient";
+export type RadarCoverage = { symbol: string; eligible: boolean; reason: string; readiness?: RadarReadiness; relativeEligible?: boolean; relativeReason?: string };
 export type RadarStore = {
   signals: RadarSignal[];
   gates: Record<string, { lastTriggeredAt: number; evidenceAt: number; recovered: boolean }>;
@@ -60,3 +61,17 @@ export type RadarIntelligenceEvent = {
 };
 export type RadarSummary = { windowMinutes: 60; activeEvents: number; watchlistAssets: number; priorityEvents: number; highlights: RadarIntelligenceEvent[] };
 export type RadarIntelligence = { events: RadarIntelligenceEvent[]; summary: RadarSummary };
+
+/** Derived from current pipeline outputs; no navigation state or independent financial score. */
+export type AssetIntelligenceContext = {
+  symbol: string;
+  coverage: { state: "healthy" | "partial" | Exclude<RadarReadiness, "ready">; reason: string; relativeReady: boolean; relativeReason: string; source?: RadarCoverage };
+  freshness: { state: "current" | "degraded" | "stale" | "insufficient" | "unavailable"; reason: string };
+  activeEvents: RadarIntelligenceEvent[];
+  primaryEvent?: RadarIntelligenceEvent;
+  eventCount: number;
+  latestEvidenceAt?: number;
+  relationship: { state: "aligned" | "mixed" | "neutral" | "insufficient"; events: RadarIntelligenceEvent[] };
+  relativeSignals: RadarSignal[];
+  user: { isWatched: boolean; enabledAlertCount: number };
+};

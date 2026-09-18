@@ -4,9 +4,112 @@ import { scanRadar, radarCoverage, benchmarkFor, benchmarkSymbols } from '../lib
 import { emptyRadarStore } from '../lib/radar/types.ts';
 import { experienceForHash } from '../lib/radar/navigation.ts';
 import { buildRadarIntelligence } from '../lib/radar/intelligence.ts';
-import { assetRadarContext, chartRangeForEvent, enabledPriceAlertCounts, resolveRadarEvent, summarizeWatchlistCoverage } from '../lib/radar/workflow.ts';
+import { assetRadarContext, buildAssetIntelligenceContext, chartRangeForEvent, enabledPriceAlertCounts, resolveRadarEvent, summarizeWatchlistCoverage } from '../lib/radar/workflow.ts';
 
 const now=1_789_372_800_000;
+function intelligenceContext(snapshot, overrides={}) {
+ const events=buildRadarIntelligence(scanRadar(emptyRadarStore(),snapshot,now).signals,[],now).events;
+ return buildAssetIntelligenceContext({events,coverage:radarCoverage(snapshot,now),symbol:snapshot.symbols[0],now,enabled:true,online:true,isWatched:false,enabledAlertCount:0,...overrides});
+}
+
+test('asset intelligence retains ranked event identity, primary confidence, clusters and immutable inputs',()=>{
+ const snapshot=relativeFixture({assetMove:4,benchmarkMove:.5});
+ const events=buildRadarIntelligence(scanRadar(emptyRadarStore(),snapshot,now).signals,[],now).events;
+ const before=JSON.stringify(events),coverage=radarCoverage(snapshot,now);
+ const context=intelligenceContext(snapshot,{events,coverage});
+ assert.equal(context.coverage.state,'healthy');assert.equal(context.freshness.state,'current');
+ assert.equal(context.primaryEvent,events[0]);assert.equal(context.primaryEvent.confidence,events[0].confidence);
+ assert.equal(context.eventCount,events.length);assert.ok(events.some(e=>e.signals.length>1));
+ assert.deepEqual(context.activeEvents,events);assert.equal(JSON.stringify(events),before);
+ assert.equal(context.coverage.source,coverage[0]);assert.equal(context.latestEvidenceAt,now);
+ assert.deepEqual(context,intelligenceContext(snapshot,{events,coverage}));
+});
+
+test('healthy no events differs from waiting, unsupported, insufficient, stale and relative-only partial coverage',()=>{
+ assert.equal(intelligenceContext(relativeFixture({assetMove:0,benchmarkMove:0})).freshness.state,'current');
+ assert.equal(intelligenceContext(relativeFixture({assetMove:0,benchmarkMove:0})).eventCount,0);
+ assert.equal(intelligenceContext(fixture(),{coverage:[]}).coverage.state,'waiting');
+ const waiting=fixture();delete waiting.quotes['BTC-USDT'];
+ assert.equal(intelligenceContext(waiting).coverage.state,'waiting');
+ const historyWaiting=fixture();delete historyWaiting.histories['BTC-USDT'];
+ assert.equal(intelligenceContext(historyWaiting).coverage.state,'waiting');
+ const unsupported=fixture();unsupported.histories['BTC-USDT'].intervalMs=1;
+ assert.equal(intelligenceContext(unsupported).coverage.state,'unsupported');
+ assert.equal(intelligenceContext(fixture({count:10})).coverage.state,'insufficient');
+ assert.equal(intelligenceContext(fixture({at:now-600000})).freshness.state,'stale');
+ const partial=relativeFixture();delete partial.quotes.QQQ;
+ const context=intelligenceContext(partial);
+ assert.equal(context.coverage.state,'partial');assert.equal(context.freshness.state,'degraded');
+ assert.ok(context.eventCount>0);assert.equal(context.relativeSignals.length,0);
+});
+
+test('context never carries other symbols, resolved, expired or out-of-lifetime events as current',()=>{
+ const snapshot=fixture({move:3}),base=intelligenceContext(snapshot),event=base.primaryEvent;
+ const variants=['resolved','expired'].map(status=>({...event,status}));
+ const wrong={...event,id:'other',symbol:'NVDA'};
+ const stale={...event,id:'stale',signals:event.signals.map(s=>({...s,expiresAt:now}))};
+ const context=intelligenceContext(snapshot,{events:[...variants,wrong,stale,event]});
+ assert.deepEqual(context.activeEvents,[event]);assert.equal(context.primaryEvent,event);
+ assert.equal(intelligenceContext(snapshot,{events:[stale],coverage:[{symbol:'BTC-USDT',eligible:true,relativeEligible:true}]}).freshness.state,'stale');
+ for(const symbol of ['NVDA','0700.HK']){
+  const next=intelligenceContext(snapshot,{symbol});assert.equal(next.eventCount,0);assert.equal(next.primaryEvent,undefined);assert.equal(next.relativeSignals.length,0);assert.equal(next.coverage.state,'waiting');
+ }
+ assert.equal(intelligenceContext(snapshot,{events:variants}).primaryEvent,undefined);
+ assert.equal(intelligenceContext(snapshot,{events:[{...event,signals:[]}]}).eventCount,0);
+});
+
+test('relationship uses existing event directions without counting cluster members as separate events',()=>{
+ const snapshot=fixture({move:3}),event=intelligenceContext(snapshot).primaryEvent;
+ const make=(directions)=>directions.map((direction,i)=>({...event,id:`r${i}`,direction}));
+ for(const [directions,expected] of [[[], 'insufficient'],[['up'],'insufficient'],[['up','neutral'],'insufficient'],[['up','up'],'aligned'],[['down','down'],'aligned'],[['up','down'],'mixed'],[['neutral','neutral'],'neutral']]){
+  const events=make(directions),context=intelligenceContext(snapshot,{events});
+  assert.equal(context.relationship.state,expected);assert.equal(context.primaryEvent,events[0]);
+  for(const reference of context.relationship.events)assert.ok(events.includes(reference));
+ }
+});
+
+test('relative context references current evidence and drops a relative cluster when benchmark gates fail',()=>{
+ for(const assetMove of [-4,4]){
+  const snapshot=relativeFixture({assetMove}),initial=intelligenceContext(snapshot);
+  assert.ok(initial.relativeSignals.length);assert.equal(initial.relativeSignals[0].evidence.benchmark.symbol,'QQQ');
+  assert.ok(initial.activeEvents.some(event=>event.signals.includes(initial.relativeSignals[0])));
+  const coverage=radarCoverage(snapshot,now).map(row=>({...row,relativeEligible:false,relativeReason:'基准数据过期'}));
+  const degraded=intelligenceContext(snapshot,{events:initial.activeEvents,coverage});
+  assert.equal(degraded.relativeSignals.length,0);assert.equal(degraded.freshness.state,'degraded');
+  assert.ok(degraded.activeEvents.every(event=>!event.signals.some(s=>s.type.startsWith('relative_'))));
+ }
+});
+
+test('user tracking cannot change intelligence, paused/offline/unknown clock contexts expose no current facts',()=>{
+ const snapshot=relativeFixture(),events=intelligenceContext(snapshot).activeEvents;
+ const first=intelligenceContext(snapshot,{events}),tracked=intelligenceContext(snapshot,{events,isWatched:true,enabledAlertCount:3});
+ assert.deepEqual({...first,user:undefined},{...tracked,user:undefined});assert.deepEqual(tracked.user,{isWatched:true,enabledAlertCount:3});
+ for(const overrides of [{enabled:false},{online:false},{now:undefined}]){
+  const context=intelligenceContext(snapshot,{events,...overrides});assert.equal(context.eventCount,0);assert.equal(context.primaryEvent,undefined);assert.equal(context.latestEvidenceAt,undefined);assert.equal(context.relativeSignals.length,0);
+ }
+ const reordered=intelligenceContext(snapshot,{events:[...events].reverse()});assert.equal(reordered.primaryEvent,events.at(-1));
+});
+test('missing watchlist coverage counts as waiting, duplicates and benchmark helpers do not inflate totals',()=>{
+ const rows=[{symbol:'BTC-USDT',eligible:true},{symbol:'QQQ',eligible:true}];
+ assert.deepEqual(summarizeWatchlistCoverage(rows,['BTC-USDT','NVDA','NVDA']),{total:2,ready:1,partial:0,waiting:1,state:'partial'});
+ assert.deepEqual(summarizeWatchlistCoverage([],['NVDA']),{total:1,ready:0,partial:0,waiting:1,state:'waiting'});
+});
+
+test('range and volume evidence separates absolute baselines from percent and ratio thresholds',()=>{
+ for(const move of [3,-3]){
+  const signals=scanRadar(emptyRadarStore(),fixture({move,volume:500}),now).signals;
+  const range=signals.find(s=>s.type===(move>0?'breakout':'breakdown'));
+  assert.equal(range.evidence.items[0].baseline,undefined);
+  assert.equal(range.evidence.items[0].unit,'%');
+  assert.equal(range.evidence.items[1].value,move>0?range.metrics.rangeHigh:range.metrics.rangeLow);
+  assert.equal(range.evidence.items[1].unit,undefined);
+  assert.match(range.evidence.items[1].label,/USDT/);
+  const volume=signals.find(s=>s.type==='volume_spike');
+  assert.equal(volume.evidence.items[0].baseline,undefined);
+  assert.equal(volume.evidence.items[0].threshold,2.5);
+  assert.equal(volume.evidence.items[1].value,100);
+ }
+});
 function fixture({symbol='BTC-USDT',move=0,volume=100,at=now,count=70}={}) {
  const crypto=symbol.endsWith('-USDT'),interval=(crypto?15:5)*60_000;
  const points=Array.from({length:count},(_,i)=>{

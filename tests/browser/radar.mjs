@@ -102,6 +102,14 @@ async function integrationChecks(browser,report){
   assert.ok((await indicator.boundingBox()).height>=44);
   await p.screenshot({path:`${output}/integration-${name}-classic.png`});
   await indicator.click();await p.locator('.radar-asset-context').waitFor();await p.locator('.radar-asset-context').scrollIntoViewIfNeeded();
+  const assetDetails=p.locator('.asset-intelligence-details');
+  assert.equal(await assetDetails.getAttribute('open'),null);
+  await assetDetails.locator('summary').click();assert.match(await assetDetails.innerText(),/部分覆盖/);
+  assert.match(await assetDetails.innerText(),/事件关系/);
+  assert.ok((await assetDetails.locator('summary').boundingBox()).height>=44);
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await p.screenshot({path:`${output}/asset-intelligence-${name}.png`});
+  await assetDetails.locator('summary').click();
   await p.screenshot({path:`${output}/integration-${name}-radar.png`});
   const event=p.locator('.radar-signal[data-context-event]');await event.locator('.signal-context > summary').click();
   await event.getByRole('button',{name:'查看图表',exact:true}).click();await p.locator('.radar-context-banner').waitFor();
@@ -121,11 +129,46 @@ async function integrationChecks(browser,report){
   assert.deepEqual(mobile.errors,[]);report.errors.push(...mobile.errors);await mobile.context.close();
  }
 }
+async function assetIntelligenceChecks(browser,report){
+ const app=await fixture(browser),p=app.page;
+ await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});
+ const awareness=p.locator('.asset-radar-awareness');await awareness.waitFor();
+ for(const [label,symbol] of [['NVDA','NVDA'],['0700','0700.HK'],['BTC','BTC-USDT']]){
+  await p.locator('.symbol-rail button').filter({hasText:label}).click();
+  assert.equal(await awareness.getAttribute('data-symbol'),symbol);
+  const summary=await awareness.locator('span').nth(1).evaluate(el=>el.firstChild.textContent);
+  const freshness=await awareness.getAttribute('data-freshness');await awareness.click();
+  const context=p.locator('.radar-asset-context');assert.equal(await context.getAttribute('data-symbol'),symbol);
+  assert.equal(await context.getAttribute('data-freshness'),freshness);
+  assert.equal(await context.locator('div > p').first().innerText(),summary);
+  await context.locator('summary').focus();await p.keyboard.press('Enter');
+  assert.equal(await context.locator('details').getAttribute('open'),'');
+  assert.match(await context.innerText(),/0 条启用的价格提醒/);
+  await context.locator('summary').click();await p.getByRole('button',{name:'返回图表',exact:true}).click();
+ }
+ report.checks.push('2.4 fast symbol switching shares context, freshness and summary across Classic/Radar; keyboard details');
+ await awareness.click();await p.clock.pauseAt(stamp+600000);await pause(300);const start=app.requests.length;
+ for(let i=0;i<4;i++){await p.locator('.asset-intelligence-details summary').click();await p.clock.runFor(48);}
+ assert.equal(app.requests.length-start,0);await p.clock.resume();
+ report.checks.push('2.4 context disclosure adds zero requests');report.errors.push(...app.errors);await app.context.close();
+ for(const [mode,expected] of [['quiet','current'],['stale','stale'],['empty','insufficient'],['benchmark-error','degraded']]){
+  const sample=await fixture(browser,{mode}),page=sample.page;
+  await page.goto(base+'/#price-chart',{waitUntil:'networkidle'});
+  // Empty history is injected into /api/history (crypto); stocks carry history in /api/quotes.
+  await page.locator('.symbol-rail button').filter({hasText:mode==='empty'?'BTC':'NVDA'}).click();
+  await page.waitForFunction(value=>document.querySelector('.asset-radar-awareness')?.dataset.freshness===value,expected).catch(async()=>{throw Error(`${mode}: expected ${expected}, saw ${await page.locator('.asset-radar-awareness').innerText()}`)});
+  await page.locator('.asset-radar-awareness').click();
+  assert.equal(await page.locator('.radar-asset-context').getAttribute('data-freshness'),expected);
+  if(mode==='quiet')assert.match(await page.locator('.radar-empty').innerText(),/暂无活跃事件/);
+  else assert.doesNotMatch(await page.locator('.radar-empty').innerText(),/暂无活跃事件|暂无异常事件/);
+  report.checks.push(`2.4 ${mode} asset freshness: ${expected}`);report.errors.push(...sample.errors);await sample.context.close();
+ }
+}
 (async()=>{
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={viewports:[],checks:[],errors:[]};let page;
  try{
-  if(process.env.RADAR_INTEGRATION==='1')await integrationChecks(browser,report);
+  if(process.env.RADAR_INTEGRATION==='1'){await integrationChecks(browser,report);await assetIntelligenceChecks(browser,report);}
   const app=await fixture(browser);page=app.page;
   await page.goto(base,{waitUntil:'networkidle'});await page.locator('.candle-canvas').waitFor();
   assert.equal(await page.locator('.classic-experience').isVisible(),true);

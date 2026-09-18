@@ -1,5 +1,7 @@
 # Classic + Radar
 
+2.4 本地实现增加统一 Asset Intelligence Context：在现有 Intelligence 之后派生 selected asset 的 current events、主事件、覆盖/时效、方向关系与相对证据引用。Classic 和 Radar 共用父组件同一个 Context，仍保持原导航与用户状态。契约见 [ASSET_INTELLIGENCE.md](ASSET_INTELLIGENCE.md)；此阶段不发布，生产仍 2.3 / Sites v20。
+
 Market Radar 有两种体验，共用一个页面状态、访问门禁、自选、行情、价格提醒和设置。
 
 - **Markets / Classic**：主动查看市场、图表、自选和价格提醒。
@@ -61,7 +63,7 @@ From Radar 仅存 `symbol/eventId` 引用，显示时从最新 Intelligence 解�
 
 独立审计发现并修复 1 MEDIUM（表格绕过统一选中入口），Auditor 代码 Verify 无剩余 finding；最新浏览器回归亦通过。报告位于 `outputs/radar/verification.json`，截图位于 `outputs/radar/integration-*.png`；均在本地忽略目录，测试行情不进入应用。未验证真机 Safari、线上行情或生产 2.3。
 
-主 client chunk 726,707 → 730,018 bytes（约 +0.46%，最终数值以本轮构建为准），既有 500 KB warning 保留；无已证明瓶颈，Optimizer 跳过。未做自选行徽标、大型情报面板、精确滚动恢复、新信号、AI、D1 历史或 Market State。NOT DEPLOYED。
+主 client chunk 726,707 → 730,018 bytes（约 +0.46%，最终数值以本轮构建为准），既有 500 KB warning 保留；无已证明瓶颈，Optimizer 跳过。未做自选行徽标、大型情报面板、精确滚动恢复、新信号、AI、D1 历史或 Market State。2.3 已于 2026-09-17 发布为 Sites v20，源码 f96a526；本节验收仍为发布前本地记录，未新增发布后线上浏览器复测。
 
 ## 第一阶段验证结果（2026-09-15，基线 3bf421a）
 

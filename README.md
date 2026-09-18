@@ -9,6 +9,7 @@
 - Markets / Classic 与 Radar 双体验，默认体验可在运行设置中保存。
 - Radar 共享自选与行情，识别价格异动、区间突破/跌破、波动和可靠的量能异常；支持来源追溯、有限会话历史、相对强弱、Confidence、组合事件与确定性摘要。
 - Radar 2.2 提供自选覆盖概况、事件到图表的上下文跳转、返回 Radar 路径，以及复用同一份自选和价格提醒的工作流操作。
+- Radar 2.4 在 Classic 与 Radar 之间共享当前资产的情报上下文：主事件、检测覆盖、数据可用性、事件方向关系和相对基准证据。详情默认折叠；自选与价格提醒保持独立，不生成资产评分或 AI 预测。设计契约见 [Asset Intelligence](docs/ASSET_INTELLIGENCE.md)。
 - OKX 欧易 USDT 现货报价与 15 分钟 K 线。
 - Yahoo Finance 美股、A 股、港股和兼容的旧 USD 交易对行情。
 - K 线拖动、双指或 `Ctrl + 滚轮` 缩放、快捷回到最新行情。
