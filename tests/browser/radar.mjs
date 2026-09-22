@@ -13,23 +13,37 @@ function series(symbol,mode){
   const interval=(symbol.endsWith('-USDT')?15:5)*60000;
  return Array.from({length:70},(_,i)=>{const unusual=['normal','partial'].includes(mode);const close=i===69&&unusual?103:100+(i%2)*.02;return {time:stamp-(70-i)*interval,close,open:close,high:close+.02,low:close-.02,volume:i===69&&unusual?500:100,confirmed:true};});
 }
-async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0}={}){
- const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'no-preference'});
+async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,motionPreference,os='no-preference',probe=false}={}){
+ const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:os});
  const vars=Object.fromEntries(fs.readFileSync('.dev.vars','utf8').trim().split(/\r?\n/).filter(line=>line.includes('=')).map(line=>{const i=line.indexOf('=');return [line.slice(0,i),line.slice(i+1)]}));
  const payload=`${Math.floor(Date.now()/1000)+3600}.${crypto.randomBytes(16).toString('hex')}`;
  const sig=crypto.createHmac('sha256',vars.ACCESS_SESSION_SECRET).update(`radar-v1:${vars.ACCESS_CODE_HASH}:${payload}`).digest('hex');
  await context.addCookies([{name:'__Host-radar_access',value:`${payload}.${sig}`,url:base.replace('http:','https:'),secure:true,httpOnly:true,sameSite:'Lax'}]);
  const page=await context.newPage();await page.clock.install({time:stamp});await page.clock.setFixedTime(stamp);
+ if(motionPreference)await page.addInitScript(value=>{if(!localStorage.getItem('market-radar-preferences-v1'))localStorage.setItem('market-radar-preferences-v1',JSON.stringify({motionPreference:value}));},motionPreference);
+ if(probe)await page.addInitScript(()=>{
+  window.__motionProbe={listeners:0,halos:[],cls:0};
+  const add=MediaQueryList.prototype.addEventListener,remove=MediaQueryList.prototype.removeEventListener;
+  MediaQueryList.prototype.addEventListener=function(...args){if(this.media.includes('prefers-reduced-motion')&&args[0]==='change')window.__motionProbe.listeners++;return add.apply(this,args);};
+  MediaQueryList.prototype.removeEventListener=function(...args){if(this.media.includes('prefers-reduced-motion')&&args[0]==='change')window.__motionProbe.listeners--;return remove.apply(this,args);};
+  const animate=Element.prototype.animate;
+  Element.prototype.animate=function(frames,options){
+   // Stretch only the fixture's halo so switching Settings can deterministically test cancellation.
+   const halo=this.classList.contains('price-halo');const result=animate.call(this,frames,halo?{...options,duration:10000}:options);
+   if(halo)window.__motionProbe.halos.push(result);return result;
+  };
+  new PerformanceObserver(list=>{for(const entry of list.getEntries())if(!entry.hadRecentInput)window.__motionProbe.cls+=entry.value;}).observe({type:'layout-shift',buffered:true});
+ });
  if(!intro)await page.addInitScript(()=>sessionStorage.setItem('radar-brand-seen','1'));
  if(storage)await page.addInitScript(()=>{Storage.prototype.getItem=()=>{throw Error('Storage unavailable')};Storage.prototype.setItem=()=>{throw Error('Storage unavailable')};});
- const errors=[],requests=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('/api/'))requests.push(r.url())});
+ const errors=[],requests=[],priceOffset={value:0};page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('/api/'))requests.push(r.url())});
  await page.route('**/api/quotes?**',async route=>{
   if(delay)await pause(delay);
   const symbols=new URL(route.request().url()).searchParams.get('symbols').split(',');
   await route.fulfill({json:{results:symbols.map(symbol=>{
    if(mode==='error'||mode==='partial'&&symbol==='NVDA'||mode==='benchmark-error'&&['QQQ','000300.SS','^HSI'].includes(symbol))return {symbol,error:'测试：该标的请求失败'};
    const okx=symbol.endsWith('-USDT'),points=series(symbol,mode);
-   return {symbol,quote:{symbol,name:symbol,currency:okx?'USDT':symbol.endsWith('.HK')||symbol==='^HSI'?'HKD':symbol.endsWith('.SS')?'CNY':'USD',source:okx?'OKX 欧易':'Yahoo Finance',price:points.at(-1).close,change:3,changePercent:3,previousClose:100,high:103.02,low:99.98,volume:1000000,timestamp:mode==='stale'?stamp-3600000:stamp,fetchedAt:stamp,session:'open',delayMinutes:0,points:okx?[]:points}};
+   return {symbol,quote:{symbol,name:symbol,currency:okx?'USDT':symbol.endsWith('.HK')||symbol==='^HSI'?'HKD':symbol.endsWith('.SS')?'CNY':'USD',source:okx?'OKX 欧易':'Yahoo Finance',price:points.at(-1).close+priceOffset.value,change:3,changePercent:3,previousClose:100,high:103.02,low:99.98,volume:1000000,timestamp:mode==='stale'?stamp-3600000:stamp,fetchedAt:stamp,session:'open',delayMinutes:0,points:okx?[]:points}};
   }),fetchedAt:stamp}});
  });
  await page.route('**/api/history?**',async route=>{
@@ -38,7 +52,7 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0}
   await route.fulfill({status:mode==='error'?503:200,json:{symbol,points:mode==='empty'?[]:series(symbol,mode),currency:symbol.endsWith('-USDT')?'USDT':'USD',source:symbol.endsWith('-USDT')?'OKX 欧易':'Yahoo Finance',fetchedAt:stamp,timezone:'UTC'}});
  });
  await page.route('**/api/monitor**',route=>route.fulfill({status:401,json:{error:'仅站主管理'}}));
- return {context,page,errors,requests};
+ return {context,page,errors,requests,priceOffset};
 }
 
 async function integrationChecks(browser,report){
@@ -164,10 +178,83 @@ async function assetIntelligenceChecks(browser,report){
   report.checks.push(`2.4 ${mode} asset freshness: ${expected}`);report.errors.push(...sample.errors);await sample.context.close();
  }
 }
+async function motionChecks(browser,report){
+ for(const [preference,os,expected] of [['system','no-preference','normal'],['system','reduce','reduced'],['reduced','no-preference','reduced'],['normal','reduce','normal']]){
+  const app=await fixture(browser,{motionPreference:preference,os,intro:true,probe:true}),{page}=app;
+  await page.goto(base,{waitUntil:'networkidle'});await page.locator('.candle-canvas').waitFor();
+  assert.equal(await page.evaluate(()=>document.documentElement.dataset.motion),expected);
+  await page.locator('.settings-trigger').click();assert.equal(await page.locator(`input[name=motion-preference][value=${preference}]`).isChecked(),true);
+  assert.match(await page.locator('#motion-system-status').innerText(),os==='reduce'?/减少动态效果/:/标准动态效果/);
+  assert.equal(await page.locator('.experience-setting label').first().evaluate(el=>getComputedStyle(el).transitionDuration).then(value=>value.startsWith('0s')),expected==='reduced');
+  await page.emulateMedia({reducedMotion:os==='reduce'?'no-preference':'reduce'});
+  const live=preference==='system'?(expected==='normal'?'reduced':'normal'):expected;
+  await page.waitForFunction(mode=>document.documentElement.dataset.motion===mode,live,{timeout:5000}).catch(async()=>{throw Error(JSON.stringify({preference,os,live,state:await page.evaluate(()=>({dataset:{...document.documentElement.dataset},matches:matchMedia('(prefers-reduced-motion: reduce)').matches,listeners:window.__motionProbe.listeners}))}));});
+  assert.equal(await page.evaluate(()=>document.documentElement.dataset.motion),live);
+  assert.equal(await page.evaluate(()=>window.__motionProbe.listeners),1);
+  await page.locator('input[name=motion-preference][value=reduced]').check();await page.keyboard.press('Escape');
+  await page.reload({waitUntil:'networkidle'});
+  assert.equal(await page.evaluate(()=>document.documentElement.dataset.motion),'reduced');
+  assert.equal(await page.evaluate(()=>document.documentElement.dataset.intro),undefined);
+  report.checks.push(`2.45 ${preference} / OS ${os}: bootstrap, CSS mode, live OS, one listener`);
+  report.errors.push(...app.errors);await app.context.close();
+ }
+ const app=await fixture(browser,{probe:true}),{page}=app;
+ await page.goto(base+'/#overview',{waitUntil:'networkidle'});await page.locator('.candle-canvas').waitFor();
+ await page.waitForFunction(()=>document.querySelector('.asset-radar-awareness')?.textContent.includes('活跃事件'));
+ app.priceOffset.value=1;await page.locator('.refresh-button').click();
+ await page.waitForFunction(()=>window.__motionProbe.halos.some(a=>a.playState==='running'));
+ await page.locator('.settings-trigger').click();await page.locator('input[name=motion-preference][value=reduced]').check();
+ assert.equal(await page.evaluate(()=>window.__motionProbe.halos.some(a=>a.playState==='running')),false);
+ assert.equal(await page.evaluate(()=>getComputedStyle(document.documentElement).scrollBehavior),'auto');
+ await page.keyboard.press('Escape');await page.reload({waitUntil:'networkidle'});assert.equal(await page.evaluate(()=>document.documentElement.dataset.motion),'reduced');
+ await page.locator('.settings-trigger').click();await page.locator('input[name=motion-preference][value=system]').check();await page.emulateMedia({reducedMotion:'reduce'});await pause(50);
+ assert.equal(await page.evaluate(()=>document.documentElement.dataset.motion),'reduced');
+ await page.locator('input[name=motion-preference][value=normal]').check();assert.equal(await page.evaluate(()=>document.documentElement.dataset.motion),'normal');
+ await page.keyboard.press('Escape');app.priceOffset.value=2;await page.locator('.refresh-button').click();await page.waitForFunction(()=>window.__motionProbe.halos.some(a=>a.playState==='running'));
+ await page.locator('.settings-trigger').click();await page.locator('input[name=motion-preference][value=system]').check();assert.equal(await page.evaluate(()=>window.__motionProbe.halos.some(a=>a.playState==='running')),false);
+ await page.keyboard.press('Tab');await page.locator('input[name=motion-preference][value=reduced]').focus();assert.equal(await page.locator('input[name=motion-preference][value=reduced]').locator('..').evaluate(el=>getComputedStyle(el).outlineStyle),'solid');
+ report.checks.push('2.45 live user preference cancels real price halo; reload persists; normal overrides OS; system restores OS; keyboard focus');
+ report.motionMeasurement={fixtureCLS:await page.evaluate(()=>window.__motionProbe.cls),osListeners:await page.evaluate(()=>window.__motionProbe.listeners)};
+ report.errors.push(...app.errors);await app.context.close();
+ for(const [name,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
+  const test=await fixture(browser),p=test.page;await p.setViewportSize({width,height});await p.goto(base+'/#overview',{waitUntil:'networkidle'});
+  await (width>600?p.locator('.settings-trigger'):p.locator('.mobile-dock button')).click();
+  const radio=p.locator('input[name=motion-preference][value=reduced]');await radio.check();
+  const bounds=await p.locator('[role=dialog]').boundingBox();assert.ok(bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=width+1&&bounds.y+bounds.height<=height+1,name+' dialog bounds');
+  assert.ok(await radio.locator('..').evaluate(el=>el.getBoundingClientRect().height)>=44);
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:`outputs/visual245/${name}-settings-verified.png`});
+  await p.keyboard.press('Escape');await p.locator('.candle-canvas').waitFor();await p.locator('.candle-canvas').scrollIntoViewIfNeeded();
+  const canvas=p.locator('.candle-canvas');await canvas.focus();await p.keyboard.press('ArrowLeft');await p.keyboard.press('+');await p.keyboard.press('Home');
+  report.checks.push(`2.45 ${name}: motion Settings containment, 44px choice, no overflow, chart keyboard`);report.errors.push(...test.errors);await test.context.close();
+ }
+ const fail=await fixture(browser,{storage:true,intro:true,os:'reduce'});await fail.page.goto(base,{waitUntil:'networkidle'});assert.equal(await fail.page.evaluate(()=>document.documentElement.dataset.motion),'reduced');await fail.page.locator('.settings-trigger').click();await fail.page.locator('input[name=motion-preference][value=normal]').check();assert.equal(await fail.page.evaluate(()=>document.documentElement.dataset.motion),'normal');await fail.page.reload({waitUntil:'networkidle'});assert.equal(await fail.page.evaluate(()=>document.documentElement.dataset.motion),'reduced');report.errors.push(...fail.errors);await fail.context.close();report.checks.push('2.45 blocked storage allows live choice and falls back to OS after reload');
+ const noHydration=await fixture(browser,{intro:true});await noHydration.page.route('**/*',route=>route.request().resourceType()==='script'?route.abort():route.fallback());await noHydration.page.goto(base,{waitUntil:'domcontentloaded'});await noHydration.page.clock.runFor(2500);assert.equal(await noHydration.page.evaluate(()=>document.documentElement.dataset.intro),undefined);assert.ok(await noHydration.page.locator('h1').isVisible());await noHydration.context.close();report.checks.push('2.45 hydration failure leaves opening fail-open and server content visible');
+}
+
+async function visualCapture(browser, phase) {
+ const folder=`outputs/visual245/${phase}`;fs.mkdirSync(folder,{recursive:true});
+ const measures=[];
+ for(const [name,width,height] of [['desktop',1440,1000],['mobile',390,844]]){
+  const app=await fixture(browser),{page}=app;await page.setViewportSize({width,height});
+  await page.goto(base+'/#overview',{waitUntil:'networkidle'});await page.locator('.candle-canvas').waitFor();await page.waitForFunction(()=>document.querySelector('.asset-radar-awareness')?.textContent.includes('活跃事件'));await pause(450);
+  await page.screenshot({path:`${folder}/${name}-overview.png`});
+  await page.locator('#price-chart').scrollIntoViewIfNeeded();await pause(450);await page.screenshot({path:`${folder}/${name}-chart.png`});
+  await page.locator('.asset-radar-awareness').click();await page.locator('.asset-intelligence-details > summary').click();await pause(250);
+  await page.locator('.radar-asset-context').scrollIntoViewIfNeeded();await page.screenshot({path:`${folder}/${name}-context.png`});
+  measures.push({name,contextHeight:await page.locator('.radar-asset-context').evaluate(el=>el.getBoundingClientRect().height),contentWidth:await page.evaluate(()=>document.documentElement.scrollWidth),width});
+  await page.getByRole('button',{name:'返回图表',exact:true}).click();
+  await page.locator('#watchlist').scrollIntoViewIfNeeded();await pause(350);await page.screenshot({path:`${folder}/${name}-watchlist.png`});
+  await (width>900?page.locator('.settings-trigger'):page.locator('.mobile-dock button')).click();await pause(250);await page.screenshot({path:`${folder}/${name}-settings.png`});
+  assert.deepEqual(app.errors,[]);await app.context.close();
+ }
+ fs.writeFileSync(`${folder}/measurements.json`,JSON.stringify(measures,null,2));console.log(JSON.stringify(measures));
+}
 (async()=>{
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={viewports:[],checks:[],errors:[]};let page;
  try{
+  if(process.env.RADAR_VISUAL_PHASE){await visualCapture(browser,process.env.RADAR_VISUAL_PHASE);return;}
+  if(process.env.RADAR_MOTION==='1')await motionChecks(browser,report);
   if(process.env.RADAR_INTEGRATION==='1'){await integrationChecks(browser,report);await assetIntelligenceChecks(browser,report);}
   const app=await fixture(browser);page=app.page;
   await page.goto(base,{waitUntil:'networkidle'});await page.locator('.candle-canvas').waitFor();

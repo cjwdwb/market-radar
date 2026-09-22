@@ -20,7 +20,7 @@ html[data-intro=play] .overview-card{animation:soft-arrival 380ms calc(620ms + v
 .desktop-nav a{position:relative;transition:color var(--duration-fast)}
 .desktop-nav a:after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:#d4d4d4;transform:scaleX(0);transform-origin:left;transition:transform var(--duration-normal) var(--ease-out)}
 .desktop-nav a[aria-current=location]{color:var(--text-primary)}.desktop-nav a[aria-current=location]:after{transform:scaleX(1)}
-.btn,.icon-btn,.small-link,.chart-tools button,.symbol-rail button,.runtime-link,.range-trigger,.filter-trigger,.watch-table tbody tr,.mobile-dock a,.mobile-dock button{transition:background-color var(--duration-fast),color var(--duration-fast),border-color var(--duration-normal),transform var(--duration-fast) var(--ease-out),translate var(--duration-normal) var(--ease-out)}
+.btn,.icon-btn,.small-link,.chart-tools button,.symbol-rail button,.runtime-link,.range-trigger,.filter-trigger,.watch-table tbody tr,.mobile-dock a,.mobile-dock button,.experience-setting label,.asset-radar-awareness{transition:background-color var(--duration-fast),color var(--duration-fast),border-color var(--duration-normal),transform var(--duration-fast) var(--ease-out),translate var(--duration-normal) var(--ease-out)}
 .overview-card{transition:background-color var(--duration-normal),border-color var(--duration-normal)}
 .table-operations{transition:opacity var(--duration-fast)}
 .runtime-link svg:last-child,.detail-action svg{transition:transform var(--duration-normal) var(--ease-out)}
@@ -60,9 +60,13 @@ details[open]>.data-note,details[open]>.detail-grid,details[open]>.detail-name{a
   html[data-intro=play] .heading-title-inner{animation-duration:340ms;animation-delay:350ms}
   html[data-intro=play] .brand,html[data-intro=play] .toolbar{animation-duration:280ms;animation-delay:400ms}
 }
+/* One resolved mode for CSS and JS. Keep native focus, selected colors and switch position. */
+html[data-motion=reduced],html[data-motion=reduced] *,html[data-motion=reduced] *::before,html[data-motion=reduced] *::after{animation:none!important;transition-duration:0s!important;scroll-behavior:auto!important}
+html[data-motion=reduced] .brand-opening{display:none!important}
+html[data-motion=reduced] :is(.btn:active,.icon-btn:active,.chart-tools button:active,.runtime-link:hover svg:last-child,.detail-action:hover svg){transform:none}
+/* No-JS / pre-bootstrap fallback. An explicit normal choice can override the OS. */
 @media(prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
-  *,*::before,*::after{animation:none!important;transition-duration:0s!important;scroll-behavior:auto!important}
-  html[data-intro=play] .brand-opening{display:none!important}
-  .btn:active,.icon-btn:active,.chart-tools button:active,.runtime-link:hover svg:last-child,.detail-action:hover svg{transform:none}
+  html:not([data-motion]),html:not([data-motion]) *,html:not([data-motion]) *::before,html:not([data-motion]) *::after{animation:none!important;transition-duration:0s!important;scroll-behavior:auto!important}
+  html:not([data-motion]) .brand-opening{display:none!important}
+  html:not([data-motion]) :is(.btn:active,.icon-btn:active,.chart-tools button:active,.runtime-link:hover svg:last-child,.detail-action:hover svg){transform:none}
 }

@@ -27,16 +27,19 @@ const relationshipLabels = { aligned: "事件方向一致", mixed: "事件方向
 /** Both surfaces present the parent's same context; this component computes no intelligence. */
 export function AssetIntelligenceDetails({ context }: { context: AssetIntelligenceContext }) {
   return <details className="asset-intelligence-details"><summary>资产情报详情 · {coverageLabels[context.coverage.state]}</summary>
-    <dl><div><dt>检测覆盖</dt><dd>{coverageLabels[context.coverage.state]} · {context.coverage.reason}</dd></div>
+    {context.primaryEvent && <div className="intelligence-primary"><span className="context-label">主事件</span><strong>{context.primaryEvent.title}</strong><span>{context.primaryEvent.metric} · {confidence[context.primaryEvent.confidence.level]}</span></div>}
+    <dl className="intelligence-facts">
+      <div><dt>事件关系</dt><dd>{relationshipLabels[context.relationship.state]}
+        {context.relationship.events.length > 0 && <ul aria-label="事件关系依据">{context.relationship.events.map(event => <li key={event.id}>{event.title} · {event.direction === "up" ? "向上" : event.direction === "down" ? "向下" : "无明确方向"}</li>)}</ul>}
+      </dd></div>
+      <div><dt>相对检测</dt><dd>{context.coverage.relativeReason}{context.relativeSignals.map(signal => <p key={signal.id}>{signal.title} · {signal.metric} · 基准 {signal.evidence.benchmark!.symbol}</p>)}</dd></div>
+      <div><dt>检测覆盖</dt><dd>{coverageLabels[context.coverage.state]} · {context.coverage.reason}</dd></div>
       <div><dt>当前可用性</dt><dd>{context.freshness.reason}</dd></div>
-      <div><dt>相对检测</dt><dd>{context.coverage.relativeReason}</dd></div>
-      <div><dt>事件关系</dt><dd>{relationshipLabels[context.relationship.state]}</dd></div>
-      {context.primaryEvent && <div><dt>主事件</dt><dd>{context.primaryEvent.title} · {confidence[context.primaryEvent.confidence.level]}</dd></div>}
-      {context.latestEvidenceAt !== undefined && <div><dt>最近有效证据</dt><dd><time dateTime={new Date(context.latestEvidenceAt).toISOString()}>{new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(context.latestEvidenceAt)}</time> · K 线结束时间</dd></div>}
     </dl>
-    {context.relationship.events.length > 0 && <ul aria-label="事件关系依据">{context.relationship.events.map(event => <li key={event.id}>{event.title} · {event.direction === "up" ? "向上" : event.direction === "down" ? "向下" : "无明确方向"}</li>)}</ul>}
-    {context.relativeSignals.map(signal => <p key={signal.id}>{signal.title} · {signal.metric} · 基准 {signal.evidence.benchmark!.symbol}</p>)}
-    <p>{context.user.isWatched ? "已加入自选" : "未加入自选"} · {context.user.enabledAlertCount} 条启用的价格提醒（用户条件）</p>
+    <div className="intelligence-footer">
+      {context.latestEvidenceAt !== undefined && <p>最近有效证据 <time dateTime={new Date(context.latestEvidenceAt).toISOString()}>{new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(context.latestEvidenceAt)}</time> · K 线结束时间</p>}
+      <p>{context.user.isWatched ? "已加入自选" : "未加入自选"} · {context.user.enabledAlertCount} 条启用的价格提醒（用户条件）</p>
+    </div>
   </details>;
 }
 

@@ -1,5 +1,20 @@
 # 视觉与交互升级记录
 
+## 2.45 — 视觉层级与动效控制（本地）
+
+保留原字体、品牌、黑白主调与低饱和涨跌色。补齐未定义的 `surface-subtle`，统一选中底色和 badge radius；只整理触及区域已有规则。Chart 标题/价格/辅助指标对齐，桌面自选行 76→68px，手机仍用既有双列关键字段布局。导航、图表控件、动效设置共用状态反馈。
+
+资产 Context 将主事件与原始 metric 放在展开首位，关系/相对基准/覆盖/可用性以语义列表呈现，桌面双列、手机单列。返回图表与退出筛选在详情之前；默认仍折叠。组合事件取消整卡 raised 背景，仅保留克制边界；Confidence、severity 和金融含义不变。空状态使用同一面板语言，旧/离线 Context 的边界提示始终附带文字。
+
+研究采用原则，不复制作品：
+
+- [Linear UI redesign](https://linear.app/now/how-we-redesigned-the-linear-ui)：固定对齐、导航密度、区分界面框架与内容的层级。
+- [Raycast](https://www.raycast.com/)：清晰操作与键盘优先反馈。
+- [Codrops 1820 Productions](https://tympanus.net/codrops/2026/02/13/1820-productions-minimal-design-maximal-motion/)：少量字号、有限节奏、首次会话意识；不采用视差、视频、GSAP、滚动接管。
+- [web.dev reduced motion](https://web.dev/articles/prefers-reduced-motion)：用户偏好与运行中动画取消；本轮具体 contract 见 motion-design.md。
+
+四个来源于 2026-09-18 实际读取；研究为页面文字与案例说明，不声称已操作第三方产品。before / foundation / workspace / after 各阶段截图在 `outputs/visual245/`，使用同一固定行情、窗口与状态。最终验收及实测范围见任务归档，以下是历史视觉升级记录。
+
 本轮在固定测试行情、相同窗口和相同页面状态下比较。测试数据只在浏览器请求拦截中使用，没有写入生产代码。
 
 ## 实测变化

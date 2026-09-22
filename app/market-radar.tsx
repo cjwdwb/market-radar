@@ -18,6 +18,7 @@ import { ASSETS, DEFAULT_WATCHLIST, MARKET_LABELS, OVERVIEW, VALID_SYMBOL, alert
 import { CloudMonitor } from "@/components/cloud-monitor";
 import { CandleChart } from "@/components/candle-chart";
 import { PricePulse } from "@/components/price-pulse";
+import { applyMotionPreference, MOTION_CHANGE_EVENT, normalizeMotionPreference, PREFERENCES_KEY, type MotionPreference } from "@/lib/motion-preference";
 import { canMonitor } from "@/lib/monitoring";
 import { retryDelay, reusePoints } from "@/lib/refresh-policy";
 import { RadarFeed } from "@/components/radar/radar-feed";
@@ -31,7 +32,7 @@ import type { MarketMode, RadarHistory, RadarIntelligenceEvent } from "@/lib/rad
 type HistoryData={key:string;points:Point[];timezone:string;source:string;currency:string};
 type QuoteResponse={results?:QuoteResult[];error?:string};
 type HistoryResponse=Omit<HistoryData,"key">&{fetchedAt:number;error?:string};
-const STORAGE_KEY="market-radar-preferences-v1";
+const STORAGE_KEY=PREFERENCES_KEY;
 const PERIODS:{value:Range;label:string}[]=[{value:"15m",label:"15 分钟"},{value:"1d",label:"1 日"},{value:"1w",label:"1 周"},{value:"1m",label:"1 月"},{value:"3m",label:"3 月"}];
 function tone(n:number|null|undefined){return n==null||n===0?"neutral":n>0?"positive":"negative";}
 function AssetIcon({asset,small=false}:{asset:Asset;small?:boolean}){return <span className={`asset-icon ${small?"small":""}`} aria-hidden="true">{asset.mark}</span>;}
@@ -72,6 +73,8 @@ export default function MarketRadar(){
   const [visible,setVisible]=useState(true);
   const [backgroundTabs,setBackgroundTabs]=useState(true);
   const [settingsOpen,setSettingsOpen]=useState(false);
+  const [motionPreference,setMotionPreference]=useState<MotionPreference>("system");
+  const [systemMotion,setSystemMotion]=useState("normal");
   const [online,setOnline]=useState(true);
   const [now,setNow]=useState<number>();
   const [range,setRange]=useState<Range>("15m");
@@ -101,7 +104,7 @@ export default function MarketRadar(){
   const mayRun=canMonitor(auto,visible,backgroundTabs,online);
 
   useEffect(()=>{
-    let preferred:MarketMode="classic";
+    let preferred:MarketMode="classic",motion:MotionPreference="system";
     try{
       const raw=localStorage.getItem(STORAGE_KEY);
       if(raw){const data=JSON.parse(raw);
@@ -113,8 +116,10 @@ export default function MarketRadar(){
         if(typeof data.auto==="boolean")setAuto(data.auto);
         if(typeof data.backgroundTabs==="boolean")setBackgroundTabs(data.backgroundTabs);
         if(data.marketMode==="radar")preferred="radar";
+        motion=normalizeMotionPreference(data.motionPreference);
       }
     }catch{toast.info("无法读取已保存的设置，本次使用默认自选。");}
+    setMotionPreference(motion);applyMotionPreference(motion);
     setDefaultMarketMode(preferred);setMarketMode(experienceForHash(location.hash,preferred));setSection(location.hash||"#overview");
     setNow(Date.now());setHydrated(true);setVisible(document.visibilityState==="visible");setOnline(navigator.onLine);
     const visibility=()=>{setVisible(document.visibilityState==="visible");setNow(Date.now());};
@@ -125,10 +130,15 @@ export default function MarketRadar(){
   },[]);
   useEffect(()=>{alertsRef.current=alerts;},[alerts]);
   useEffect(()=>{
+    const update=()=>setSystemMotion(document.documentElement.dataset.systemMotion??"normal");
+    update();window.addEventListener(MOTION_CHANGE_EVENT,update);
+    return()=>window.removeEventListener(MOTION_CHANGE_EVENT,update);
+  },[]);
+  useEffect(()=>{
     if(!hydrated)return;
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify({watchlist,alerts,auto,backgroundTabs,marketMode:defaultMarketMode}));}
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify({watchlist,alerts,auto,backgroundTabs,marketMode:defaultMarketMode,motionPreference}));}
     catch{if(!failedStorage.current){failedStorage.current=true;toast.error("浏览器未允许保存设置，关闭后本次更改可能丢失。");}}
-  },[watchlist,alerts,auto,backgroundTabs,defaultMarketMode,hydrated]);
+  },[watchlist,alerts,auto,backgroundTabs,defaultMarketMode,motionPreference,hydrated]);
 
   useEffect(()=>{
     if(!hydrated)return;
@@ -376,6 +386,7 @@ export default function MarketRadar(){
     </main>
     <nav className="mobile-dock" aria-label="快捷操作"><a data-product-nav href="#overview" aria-current={marketMode==="classic"&&!["#watchlist","#price-alerts"].includes(section)?"page":undefined}><Activity size={19}/><span>Markets</span></a><a data-product-nav href="#radar" aria-current={marketMode==="radar"?"page":undefined}><Layers size={19}/><span>Radar</span></a><a data-product-nav href="#watchlist" aria-current={marketMode==="classic"&&section==="#watchlist"?"page":undefined}><Star size={19}/><span>自选</span></a><a data-product-nav href="#price-alerts" aria-current={marketMode==="classic"&&section==="#price-alerts"?"page":undefined}><Bell size={19}/><span>提醒</span></a><button onClick={()=>setSettingsOpen(true)}><SlidersHorizontal size={19}/><span>设置</span></button></nav>
     <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}><DialogContent className="modal-content settings-modal"><DialogHeader><span className="settings-emblem"><SlidersHorizontal size={23}/></span><DialogTitle>运行与通知</DialogTitle><DialogDescription>选择监控方式，清楚掌握雷达何时在运行。</DialogDescription></DialogHeader>
+      <div className="setting-row"><div className="setting-copy"><strong>界面动效</strong><p id="motion-description">减少开场、位移与价格光晕，保留选中、焦点和操作反馈。</p><fieldset className="experience-setting motion-setting" aria-describedby="motion-description motion-system-status"><legend className="sr-only">界面动效</legend>{(["system","normal","reduced"] as const).map(mode=><label key={mode}><input type="radio" name="motion-preference" value={mode} checked={motionPreference===mode} onChange={()=>{setMotionPreference(mode);applyMotionPreference(mode);}}/>{mode==="system"?"跟随系统":mode==="normal"?"标准":"减少"}</label>)}</fieldset><p id="motion-system-status">系统当前：{systemMotion==="reduced"?"减少动态效果":"标准动态效果"}{motionPreference!=="system"?"；已采用你的选择，可切回跟随系统。":"。"}</p></div></div>
       <div className="setting-row"><div className="setting-copy"><strong>Market Experience</strong><p>默认打开的体验；导航中可随时切换。更改后下次访问根路径生效。</p><fieldset className="experience-setting"><legend className="sr-only">默认市场体验</legend>{(["classic","radar"] as const).map(mode=><label key={mode}><input type="radio" name="market-experience" value={mode} checked={defaultMarketMode===mode} onChange={()=>setDefaultMarketMode(mode)}/>{mode==="classic"?"Classic":"Radar"}</label>)}</fieldset></div></div>
       <div className="setting-row"><div className="setting-copy"><strong><Activity size={17}/>自动监控</strong><p>前台加密货币约每 5 秒、股票约每 15 秒查询并检查提醒。</p></div><Switch checked={auto} onCheckedChange={setAuto} aria-label="开启自动监控"/></div>
       <div className="setting-row"><div className="setting-copy"><strong><Layers size={17}/>标签页后台监控</strong><p>切换到其他标签页后，每 60 秒尝试检查。浏览器可能延迟或停止执行。</p></div><Switch checked={backgroundTabs} onCheckedChange={setBackgroundTabs} aria-label="切换标签页后继续尝试监控"/></div>

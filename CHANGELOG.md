@@ -2,6 +2,14 @@
 
 本文件记录 Market Radar 的可识别产品里程碑。完整发布来源、验证范围和回退注意事项见 [docs/VERSIONS.md](docs/VERSIONS.md)。
 
+## Radar 2.45 — Visual Experience & Motion Control — 2026-09-22
+
+- 统一黑白面板层次、导航/图表控件、自选行和 Radar 事件卡；资产详情主事件前置，手机返回操作位于展开详情之前。
+- 增加持久化的跟随系统/标准/减少动效设置，统一首屏、CSS 与 JS 语义；支持实时系统偏好与运行中动画取消。
+- 保留品牌、低饱和涨跌、行情/提醒及所有金融算法；新增依赖、行情请求和 timer 均为 0。
+- 83/83 Node tests、类型检查、构建及五视口 48 项浏览器检查通过，独立审计未发现可证实的 BLOCKER/HIGH/MEDIUM。主 client chunk 增加 1,406 bytes；仍有既有大包告警，未声称真实设备 FPS 提升。
+- 开发验收见 tasks/archive/MR-VISUAL-245.md；本次发布结果以版本索引和独立发布记录为准。
+
 ## Radar 2.4 — Asset Intelligence Foundation — 2026-09-18
 
 - Classic 与 Radar 共用确定性的当前资产情报，保留已有排名、Confidence、组合事件及原始信号。

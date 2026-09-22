@@ -2,12 +2,13 @@
 
 import { useEffect } from "react";
 import { activeSection } from "@/lib/navigation-section";
+import { isMotionReduced, MOTION_CHANGE_EVENT, startMotionPreference } from "@/lib/motion-preference";
 
 /** One controller for presentation only; quote and chart updates never enter this loop. */
 export function MotionExperience() {
   useEffect(() => {
     const root = document.documentElement;
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+    const stopMotionPreference = startMotionPreference();
     const precise = matchMedia("(hover: hover) and (pointer: fine) and (min-width: 901px)");
     const animations = new Set<Animation>();
     const opening = document.querySelector(".brand-opening");
@@ -49,7 +50,7 @@ export function MotionExperience() {
       for (const entry of entries) {
         if (!entry.isIntersecting) continue;
         observer.unobserve(entry.target);
-        if (reduced.matches || root.dataset.intro) continue;
+        if (isMotionReduced() || root.dataset.intro) continue;
         const animation = entry.target.animate(
           [{ opacity: .65, transform: `translateY(${precise.matches ? 8 : 3}px)` }, { opacity: 1, transform: "translateY(0)" }],
           { duration: precise.matches ? 380 : 220, easing: "cubic-bezier(.16,1,.3,1)" }
@@ -113,7 +114,7 @@ export function MotionExperience() {
       cta?.style.removeProperty("translate");
     };
     const moveMagnet = (event: PointerEvent) => {
-      if (!cta || reduced.matches || !precise.matches || event.pointerType !== "mouse") return;
+      if (!cta || isMotionReduced() || !precise.matches || event.pointerType !== "mouse") return;
       magneticX = event.clientX; magneticY = event.clientY;
       if (!magneticFrame) magneticFrame = requestAnimationFrame(() => {
         magneticFrame = 0;
@@ -128,10 +129,11 @@ export function MotionExperience() {
     cta?.addEventListener("blur", resetMagnet);
     const preferencesChanged = () => {
       resetMagnet();
-      if (reduced.matches) { finishIntro(); animations.forEach(animation => animation.cancel()); animations.clear(); }
+      if (isMotionReduced()) { finishIntro(); animations.forEach(animation => animation.cancel()); animations.clear(); }
     };
-    reduced.addEventListener("change", preferencesChanged);
+    window.addEventListener(MOTION_CHANGE_EVENT, preferencesChanged);
     precise.addEventListener("change", preferencesChanged);
+    preferencesChanged();
 
     return () => {
       clearTimeout(introTimer); finishIntro(); observer.disconnect(); resizeObserver.disconnect();
@@ -152,7 +154,8 @@ export function MotionExperience() {
       cta?.removeEventListener("pointermove", moveMagnet);
       cta?.removeEventListener("pointerleave", resetMagnet);
       cta?.removeEventListener("blur", resetMagnet);
-      reduced.removeEventListener("change", preferencesChanged);
+      window.removeEventListener(MOTION_CHANGE_EVENT, preferencesChanged);
+      stopMotionPreference();
       precise.removeEventListener("change", preferencesChanged);
     };
   }, []);

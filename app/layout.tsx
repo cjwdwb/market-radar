@@ -5,6 +5,7 @@ import "./motion.css";
 import "./mobile.css";
 import "./radar.css";
 import { MotionExperience } from "@/components/motion-experience";
+import { MOTION_BOOTSTRAP } from "@/lib/motion-preference";
 
 export const metadata: Metadata = {
   title: "市场雷达 · Market Radar",
@@ -32,7 +33,7 @@ export default function RootLayout({
     <html lang="zh-CN" className="dark" suppressHydrationWarning>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
-        <script dangerouslySetInnerHTML={{__html:`try{if(!matchMedia('(prefers-reduced-motion: reduce)').matches&&!sessionStorage.getItem('radar-brand-seen')&&!location.hash){var root=document.documentElement;root.dataset.intro='play';sessionStorage.setItem('radar-brand-seen','1');var finish=function(){delete root.dataset.intro;['pointerdown','keydown','wheel'].forEach(function(type){window.removeEventListener(type,finish)})};['pointerdown','keydown','wheel'].forEach(function(type){window.addEventListener(type,finish,{passive:true})});setTimeout(finish,matchMedia('(max-width:600px)').matches?1100:1600)}}catch(e){}`}}/>
+        <script dangerouslySetInnerHTML={{__html:MOTION_BOOTSTRAP}}/>
       </head>
       <body className="antialiased"><MotionExperience/>{children}</body>
     </html>
