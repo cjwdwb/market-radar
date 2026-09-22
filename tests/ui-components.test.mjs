@@ -38,11 +38,14 @@ async function readCssTree(directory) {
 test("Radar asset empty state uses its own coverage while preserving offline and paused states", async () => {
   const { RadarFeed } = await vite.ssrLoadModule("/components/radar/radar-feed.tsx");
   const { buildAssetIntelligenceContext } = await vite.ssrLoadModule("/lib/radar/workflow.ts");
+  const { buildWatchlistState } = await vite.ssrLoadModule("/lib/radar/watchlist-state.ts");
   const props = {
     intelligence: { events: [], summary: { activeEvents: 0 } },
     coverage: [{ symbol: "BTC-USDT", eligible: true, relativeEligible: true, reason: "基线可用" }, { symbol: "NVDA", eligible: false, readiness: "insufficient", reason: "历史基线不足" }],
     watchlist: ["NVDA"], scanning: true, online: true, loading: false,
     priceAlertCounts: new Map(),
+    watchStates: buildWatchlistState({ snapshot: { symbols: ["NVDA"], quotes: {}, histories: {} }, watchlist: ["NVDA"], selected: "NVDA", now: 1, online: true, enabled: true }).states,
+    exportReady: false, onExport: () => {},
   };
   const context = symbol => buildAssetIntelligenceContext({ events: [], coverage: props.coverage, symbol, now: 1, enabled: true, online: true, isWatched: false, enabledAlertCount: 0 });
   const render = extra => renderToStaticMarkup(React.createElement(RadarFeed, { ...props, assetContext: context("NVDA"), ...extra }));

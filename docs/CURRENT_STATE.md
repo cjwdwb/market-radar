@@ -1,4 +1,6 @@
 # 当前状态
+
+最新本地2.7（2026-09-23 CST）：B0/C0基础上，B1/C1已打通美联储官方宏观元数据→本地SQLite→版本查询/导出恢复→Radar显式文件导入。真实2条九月记录；4次低频请求含2次解析失败，重跑新增0条。不是全月完整覆盖/个股资讯/历史价格回补；真实owner清单、价格来源权利、研究链路及云端保管仍待补。269Node、build/typecheck及新增五视口专项通过；最终回归/审计见docs/HISTORY_FOUNDATION.md。分支codex/mr-watchlist-information-history-27，HEAD00d7ef4，成果未提交/上传/部署，生产仍下述2.6/v24。旧QA不重开Gate。
 当前生产：Market Radar 2.6已于2026-09-22发布为Sites v24，源码`8641d8193e5e2c27fb316bcaed9b977d63e1d119`，平台succeeded、环境revision3。包含双窗口、连续相对表现、Alignment、历史比较及逐项展开/底部返回精修。GitHub产品/发布标签radar-v2.6、sites-v24标记部署源码；后续文档提交不重新部署。正式网址https://market-radar-rex.swt-aether.chatgpt.site ，访问设置/密钥保持原状。发布记录tasks/archive/MR-PUBLISH-STATE26.md。以下“未提交/未部署”是此前开发验收的历史状态，不代表当前生产。线上登录后/真机未复测。
 
 本地2.6精修：MR-STATE26-REFINE完成历史比较逐项展开、详情底部返回当前图表、关系缺失原因标注维度。相同fixture/操作，390px比较总览高度2368.5→475.75px；完整数值/窗口/来源保留。新build/typecheck、6项专项、10状态回归、9精修回归及320定点补证通过。独立审计无产品finding，1 LOW截图证据修复并VERIFY。未改领域规则/数据请求；分支codex/mr-state26-refine、未提交/上传/部署。报告tasks/archive/MR-STATE26-REFINE.md。

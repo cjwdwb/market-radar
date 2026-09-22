@@ -3,6 +3,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import assert from 'node:assert/strict';
+import {viewDigest} from '../../lib/information/fed-view.mjs';
 import {createRequire} from 'node:module';
 const loadPlaywright=createRequire(import.meta.url);
 const {chromium}=loadPlaywright(process.env.PLAYWRIGHT_MODULE||'playwright');
@@ -21,7 +22,7 @@ function series(symbol,mode){
   }
  return Array.from({length:70},(_,i)=>{const unusual=['normal','partial','tiny'].includes(mode),scale=mode==='tiny'?1e-10:mode==='large'?10000:1;const raw=mode==='large'?100+i*.0004:mode==='gentle'?100+i*.04:mode==='flat'?100:i===69&&unusual?103:100+(i%2)*.02;const close=raw*scale;return {time:stamp-(70-i)*interval,close,open:close,high:(raw+.02)*scale,low:(raw-.02)*scale,volume:i===69&&unusual?500:100,confirmed:true};});
 }
-async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,motionPreference,os='no-preference',probe=false,revealProbe=false}={}){
+async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,motionPreference,os='no-preference',probe=false,revealProbe=false,watchlist}={}){
  const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:os});
  const vars=Object.fromEntries(fs.readFileSync('.dev.vars','utf8').trim().split(/\r?\n/).filter(line=>line.includes('=')).map(line=>{const i=line.indexOf('=');return [line.slice(0,i),line.slice(i+1)]}));
  const payload=`${Math.floor(Date.now()/1000)+3600}.${crypto.randomBytes(16).toString('hex')}`;
@@ -29,6 +30,7 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,
  await context.addCookies([{name:'__Host-radar_access',value:`${payload}.${sig}`,url:base.replace('http:','https:'),secure:true,httpOnly:true,sameSite:'Lax'}]);
  const page=await context.newPage();await page.clock.install({time:stamp});await page.clock.setFixedTime(stamp);
  if(motionPreference)await page.addInitScript(value=>{if(!localStorage.getItem('market-radar-preferences-v1'))localStorage.setItem('market-radar-preferences-v1',JSON.stringify({motionPreference:value}));},motionPreference);
+ if(watchlist)await page.addInitScript(list=>{const key='market-radar-preferences-v1';if(!localStorage.getItem(key)||!JSON.parse(localStorage.getItem(key)).watchlist)localStorage.setItem(key,JSON.stringify({...JSON.parse(localStorage.getItem(key)||'{}'),watchlist:list}));},watchlist);
  if(probe)await page.addInitScript(()=>{
   window.__motionProbe={listeners:0,halos:[],cls:0};
   const add=MediaQueryList.prototype.addEventListener,remove=MediaQueryList.prototype.removeEventListener;
@@ -193,6 +195,95 @@ async function state26RefinementChecks(browser,report,phase){
   report.checks.push('after partial/offline: unavailable reason visible with item collapsed; missing participant labels explicit');assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);await app.context.close();
  }
  fs.writeFileSync(`${folder}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));
+}
+
+async function fed27Checks(browser,report){
+ const body={format:'fed-monetary-view-v1',source:'fed-board:monetary-v1',attribution:'Source: Board of Governors of the Federal Reserve System',rightsUrl:'https://www.federalreserve.gov/disclaimer.htm',identity:'reconstructed',vintage:'current',readRevision:1,exportedAt:stamp,range:{from:Date.parse('2026-09-01T00:00:00Z'),cutoff:stamp},coverage:{status:'endpoint_snapshot',expectedCount:null,limitation:'Not a complete historical or point-in-time collection'},records:Array.from({length:7},(_,i)=>({id:`https://www.federalreserve.gov/newsevents/pressreleases/monetary2026090${i+1}a.htm`,url:`https://www.federalreserve.gov/newsevents/pressreleases/monetary2026090${i+1}a.htm`,title:`Fixture only — monetary record ${i+1}`,publishedAt:Date.parse(`2026-09-0${i+1}T18:00:00Z`),publicationPrecision:'minute',firstReceivedAt:stamp-1000,versionReceivedAt:stamp-1000,version:1,contentHash:'1'.repeat(64)}))};
+ const text=JSON.stringify({...body,viewId:await viewDigest(body)}),file={name:'fixture-public-view.json',mimeType:'application/json',buffer:Buffer.from(text)};
+ for(const [name,width,height]of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
+  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',watchlist:['NVDA']}),p=app.page;await p.setViewportSize({width,height});await p.goto(base+'/#radar',{waitUntil:'networkidle'});
+  const panel=p.locator('.macro-timeline');assert.equal(await panel.getAttribute('open'),null);await panel.locator(':scope > summary').focus();await p.keyboard.press('Enter');
+  await panel.locator('input[type=file]').setInputFiles(file);await panel.locator('.macro-records li').first().waitFor();assert.equal(await panel.locator('.macro-records li').count(),5);assert.match(await panel.innerText(),/未在线重新核验/);assert.equal(await panel.locator('.macro-provenance').getAttribute('open'),null);await panel.locator('.macro-provenance > summary').click();assert.match(await panel.innerText(),/不是当时的在线观察/);assert.match(await panel.innerText(),/入库时间指/);await panel.locator('.macro-provenance > summary').click();
+  await panel.getByRole('button',{name:'下一页',exact:true}).click();assert.equal(await panel.locator('.macro-records li').count(),2);
+  const dates=panel.locator('input[type=date]');await dates.nth(0).fill('2026-09-07');assert.equal(await panel.locator('.macro-records li').count(),1);assert.match(await panel.locator('[role=status]').innerText(),/第 1\/1 页/);
+  await dates.nth(0).fill('2026-09-08');assert.equal(await panel.locator('.macro-records li').count(),0);assert.match(await panel.innerText(),/不代表没有官方发布/);
+  await dates.nth(0).fill('2026-08-01');assert.match(await panel.locator('[role=alert]').innerText(),/有效日期/);await dates.nth(0).fill('2026-09-01');
+  const detail=panel.locator('.macro-records details').first();await detail.locator('summary').focus();await p.keyboard.press('Enter');assert.match(await detail.innerText(),/首次入库/);assert.match(await detail.innerText(),/此版本入库/);assert.equal(await panel.locator('a').first().getAttribute('rel'),'noopener noreferrer');
+  for(const target of [panel.locator(':scope > summary'),dates.nth(0),detail.locator('summary'),panel.getByRole('button',{name:'下一页',exact:true})])assert.ok((await target.boundingBox()).height>=44);
+  await panel.evaluate(el=>el.scrollIntoView({block:'start'}));await p.screenshot({path:`${output}/fed-${name}.png`});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  if(name==='desktop'){
+   await p.clock.pauseAt(stamp+1000);await p.clock.setFixedTime(stamp);await pause(300);const start=app.requests.length;
+   await panel.getByRole('button',{name:'下一页',exact:true}).click();await dates.nth(0).fill('2026-09-02');await panel.locator('input[type=file]').setInputFiles(file);await p.clock.runFor(48);await panel.locator('.macro-records li').first().waitFor();assert.deepEqual(app.requests.slice(start),[]);report.fedQueryApiRequests=[];await p.clock.resume();
+   const invalid=structuredClone(body);invalid.records[0].url='javascript:alert(1)';await panel.locator('input[type=file]').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...invalid,viewId:await viewDigest(invalid)}))});await panel.locator('[role=alert]').waitFor();assert.equal(await panel.locator('.macro-records li').count(),0);
+   await panel.locator('input[type=file]').setInputFiles({name:'oversized.json',mimeType:'application/json',buffer:Buffer.alloc(1048577)});assert.match(await panel.locator('[role=alert]').innerText(),/1 MiB/);
+   await panel.locator('input[type=file]').setInputFiles(file);await panel.locator('.macro-records li').first().waitFor();await p.reload({waitUntil:'networkidle'});assert.equal(await p.locator('.macro-records li').count(),0);
+  }
+  assert.deepEqual(app.errors,[]);report.viewports.push({name,width,height});report.checks.push(`macro ${name}: offline import, UTC bounds, fixed pages, reset, provenance, keyboard, 44px, no overflow`);await app.context.close();
+ }
+ for(const motionPreference of ['system','normal','reduced']){
+  const app=await fixture(browser,{mode:'state26-gentle',motionPreference,os:'reduce',watchlist:['NVDA']}),p=app.page;await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.symbol-rail button').filter({hasText:'NVDA'}).click();await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();await p.locator('.classic-experience .asset-state-summary button').click();const panel=p.locator('.macro-timeline');await panel.locator(':scope > summary').click();await panel.locator('input[type=file]').setInputFiles(file);await panel.locator('.macro-records li').first().waitFor();await p.locator('.radar-asset-context').getByRole('button',{name:'返回图表',exact:true}).click();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await p.locator('.classic-experience .asset-state-summary').getAttribute('data-symbol'),'NVDA');assert.deepEqual(app.errors,[]);await app.context.close();report.checks.push(`macro ${motionPreference}: selected/range workflow preserved`);
+ }
+ if(process.env.RADAR_FED_REAL_VIEW){
+  const realText=fs.readFileSync(process.env.RADAR_FED_REAL_VIEW,'utf8'),real=JSON.parse(realText);assert.ok(real.records.length>0);assert.ok(real.records.every(r=>!r.title.includes('Fixture')));
+  const app=await fixture(browser,{os:'reduce',watchlist:[]}),p=app.page;await p.clock.setFixedTime(Date.now());await p.setViewportSize({width:390,height:844});await p.goto(base+'/#radar',{waitUntil:'networkidle'});const panel=p.locator('.macro-timeline');await panel.locator(':scope > summary').click();await panel.locator('input[type=file]').setInputFiles({name:'real-board-public-view.json',mimeType:'application/json',buffer:Buffer.from(realText)});await panel.locator('.macro-records li').first().waitFor();assert.match(await panel.innerText(),/Federal Reserve/);assert.ok((await panel.innerText()).includes(real.records[0].title));await panel.locator('.macro-records details > summary').first().click();await panel.evaluate(el=>el.scrollIntoView({block:'start'}));await p.screenshot({path:`${output}/fed-real-mobile.png`});assert.deepEqual(app.errors,[]);report.realInformation={identity:'real Board metadata exported from local database; surrounding market quotes remain fixtures',viewId:real.viewId,records:real.records.length,source:real.source};await app.context.close();report.checks.push('real Board metadata: DB view imported and visible; no mocked information records');
+ }
+}
+
+async function watchlist27Checks(browser,report){
+ report.watchlist27=[];
+ const download=async(p,button)=>{const waiting=p.waitForEvent('download');await button.click();const item=await waiting;assert.equal(await item.failure(),null);return JSON.parse(fs.readFileSync(await item.path(),'utf8'));};
+ for(const [name,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
+  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',watchlist:['NVDA','ETH-USDT']}),p=app.page;
+  await p.setViewportSize({width,height});await p.goto(base+'/#watchlist',{waitUntil:'networkidle'});
+  const overview=p.locator('.watch-state-overview');assert.equal(await overview.getAttribute('open'),null);
+  await overview.locator(':scope > summary').focus();await p.keyboard.press('Enter');
+  const state=overview.locator('[data-state-symbol=NVDA]');await state.waitFor();
+  await p.waitForFunction(()=>document.querySelector('.watch-state-overview [data-watch-dimension="relative"]')?.textContent.includes('相对跑赢'));
+  await p.waitForFunction(()=>document.querySelector('.watch-state-overview [data-state-symbol="ETH-USDT"] [data-watch-dimension="short.direction"]')?.textContent.includes('窗口偏上'));
+  const facts=await state.locator('dl').innerText();assert.match(facts,/90m/);assert.match(facts,/180m/);
+  const details=state.locator('.watch-state-details');assert.equal(await details.getAttribute('open'),null);
+  await details.locator(':scope > summary').focus();await p.keyboard.press('Enter');await details.locator('.asset-state-evidence').waitFor();assert.match(await details.innerText(),/较低波动不等于低风险/);
+  await details.locator(':scope > summary').click();await state.scrollIntoViewIfNeeded();await p.screenshot({path:`${output}/${name}-classic.png`});
+  const exported=await download(p,p.locator('.classic-experience .watch-export'));
+  assert.deepEqual(exported.assets.map(x=>x.symbol),['NVDA','ETH-USDT']);assert.equal(exported.origin,'saved_browser');assert.equal(exported.identityStatus,'unverified_owner_universe');assert.equal(exported.sessionEdited,false);
+  await overview.locator('.watch-state-link').filter({hasText:'NVDA'}).click();await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
+  await p.locator('.classic-experience .asset-state-summary button').click();
+  const radar=p.locator('.radar-watchlist [data-state-symbol=NVDA]');assert.equal(await radar.locator('dl').innerText(),facts);
+  const classic=p.locator('.classic-experience .asset-state-summary');assert.equal(await classic.getAttribute('data-symbol'),'NVDA');
+  await radar.scrollIntoViewIfNeeded();await p.screenshot({path:`${output}/${name}-radar.png`});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  for(const target of [radar.locator('.watch-state-details > summary'),p.locator('.radar-watchlist .watch-export')])assert.ok((await target.boundingBox()).height>=44);
+  await p.locator('.radar-asset-context').getByRole('button',{name:'返回图表',exact:true}).click();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
+  if(name==='desktop'){
+   await p.clock.pauseAt(stamp+1000);await p.clock.setFixedTime(stamp);await pause(400);const start=app.requests.length;
+   await classic.locator('button').click();await p.clock.runFor(48);await radar.locator('.watch-state-details > summary').click();await p.clock.runFor(48);await download(p,p.locator('.radar-watchlist .watch-export'));
+   await p.locator('.radar-asset-context').getByRole('button',{name:'返回图表',exact:true}).click();await p.clock.runFor(48);
+   report.watchlistNavigationRequests=app.requests.slice(start);assert.deepEqual(report.watchlistNavigationRequests,[]);await p.clock.resume();
+   await classic.locator('button').click();await p.getByRole('button',{name:'Radar 移除 ETH-USDT',exact:true}).click();
+   assert.equal(await p.locator('.radar-watchlist [data-state-symbol="ETH-USDT"]').count(),0);await p.getByRole('button',{name:'撤销',exact:true}).click();await p.locator('.radar-watchlist [data-state-symbol="ETH-USDT"]').waitFor();
+   await p.getByRole('button',{name:'Radar 移除 ETH-USDT',exact:true}).click();const edited=await download(p,p.locator('.radar-watchlist .watch-export'));assert.equal(edited.sessionEdited,true);assert.deepEqual(edited.assets.map(x=>x.symbol),['NVDA']);
+   await p.reload({waitUntil:'networkidle'});assert.equal(await p.locator('.radar-watchlist [data-state-symbol="ETH-USDT"]').count(),0);
+   await p.getByRole('button',{name:'Radar 添加自选',exact:true}).click();await p.locator('#custom-symbol').fill('ETH-USDT');await p.getByRole('button',{name:'添加并查看',exact:true}).click();await p.locator('.radar-watchlist [data-state-symbol="ETH-USDT"]').waitFor({state:'attached'});
+   assert.deepEqual(await p.evaluate(()=>JSON.parse(localStorage.getItem('market-radar-preferences-v1')).watchlist),['NVDA','ETH-USDT']);
+  }
+  report.watchlist27.push({name,width,height,exportedSymbols:exported.assets.map(x=>x.symbol)});report.checks.push(`watchlist ${name}: shared facts, local download, keyboard, chart/manual range, 44px, no overflow`);
+  assert.deepEqual(app.errors,[]);await app.context.close();
+ }
+ for(const [mode,list] of [['state26-short',['NVDA']],['stale',['NVDA']],['empty',['BTC-USDT']],['benchmark-error',['NVDA']],['state26-gentle',[]]]){
+  const app=await fixture(browser,{mode,watchlist:list,os:'reduce'}),p=app.page;await p.goto(base+'/#radar',{waitUntil:'networkidle'});const panel=p.locator('.radar-watchlist');
+  assert.equal(await panel.locator('[data-state-symbol]').count(),list.length);
+  if(!list.length)assert.match(await panel.innerText(),/尚未添加/);
+  if(mode==='state26-short')assert.match(await panel.locator('[data-watch-dimension="medium.direction"]').innerText(),/样本不足/);
+  if(mode==='stale')assert.match(await panel.locator('[data-watch-dimension="short.direction"]').innerText(),/已过期/);
+  if(mode==='empty'){await p.waitForFunction(()=>document.querySelector('.radar-watchlist [data-watch-dimension="short.direction"]')?.textContent.includes('样本不足'));assert.match(await panel.locator('[data-watch-dimension="short.direction"]').innerText(),/样本不足/);}
+  if(mode==='benchmark-error')assert.match(await panel.locator('[data-watch-dimension="relative"]').innerText(),/等待/);
+  const exported=await download(p,panel.locator('.watch-export'));assert.deepEqual(exported.assets.map(x=>x.symbol),list);assert.deepEqual(app.errors,[]);await app.context.close();report.checks.push(`watchlist ${mode}: partial/empty export and dimension limits`);
+ }
+ for(const motionPreference of ['system','normal','reduced']){
+  const app=await fixture(browser,{mode:'state26-gentle',motionPreference,os:'reduce'}),p=app.page;await p.goto(base+'/#radar',{waitUntil:'networkidle'});
+  const result=await download(p,p.locator('.radar-watchlist .watch-export'));assert.equal(result.origin,'app_default');assert.equal(result.assets.length,8);
+  await p.locator('.radar-watchlist .watch-state-details > summary').first().click();await p.locator('.radar-watchlist .asset-state-evidence').first().waitFor();assert.ok(await p.locator('.radar-watchlist .asset-state-evidence').count());assert.deepEqual(app.errors,[]);await app.context.close();report.checks.push(`watchlist ${motionPreference}: disclosure and local export under motion override`);
+ }
+ const blocked=await fixture(browser,{storage:true}),p=blocked.page;await p.goto(base+'/#radar',{waitUntil:'networkidle'});assert.equal((await download(p,p.locator('.radar-watchlist .watch-export'))).origin,'storage_unavailable');assert.deepEqual(blocked.errors,[]);await blocked.context.close();report.checks.push('storage unavailable remains explicit in local export');
 }
 
 async function state26Checks(browser,report){
@@ -493,6 +584,8 @@ async function visualCapture(browser, phase) {
   if(process.env.RADAR_REFINEMENT_PHASE){await refinementChecks(browser,report,process.env.RADAR_REFINEMENT_PHASE);return;}
   if(process.env.RADAR_VISUAL_PHASE){await visualCapture(browser,process.env.RADAR_VISUAL_PHASE);return;}
   if(process.env.RADAR_POST_RELEASE==='1'){await postReleaseChecks(browser,report);fs.writeFileSync(`${output}/post-release-extra.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
+  if(process.env.RADAR_FED27_ONLY==='1'){await fed27Checks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify({...report,warnings:observedWarnings},null,2));console.log(JSON.stringify(report));return;}
+  if(process.env.RADAR_WATCHLIST27_ONLY==='1'){await watchlist27Checks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify({...report,warnings:observedWarnings},null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_STATE26_ONLY==='1'){await state26Checks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_MOTION==='1')await motionChecks(browser,report);
   if(process.env.RADAR_STATE==='1')await assetStateChecks(browser,report);

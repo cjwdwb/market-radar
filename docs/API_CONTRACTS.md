@@ -23,3 +23,7 @@ GET 状态；GET /history；POST /run 手动执行；PUT 设置。站点代理�
 PUT：enabled 布尔、watchlist 最多 20、alerts 最多 20；提醒 id 唯一，目标价和 createdAt 为正有限数。
 状态含 enabled、watchlist、updatedAt、lastStarted、lastFinished、report、alerts；完整约束按实现核对。
 存储代次由 createdAt 驱动，防止旧设置覆盖新代次/重复触发；修改需覆盖 monitor 测试。
+
+## 2.7 local information view boundary
+
+B1/C1 adds no HTTP route and does not change existing access/monitor contracts. `scripts/fed-history.mjs` is an explicit local Node operator command with a fixed source/database and durable hard limits, not a server handler. Public file contract `fed-monetary-view-v1` is validated by `lib/information/fed-view.mjs`: reconstructed/current-vintage metadata, frozen readRevision/range, bounded records, checksum(not authentication), source/time/coverage. Browser file import stays in memory; no upload, collector trigger or private universe fields. Physical SQLite schema2/logical fixture-v1 and real-v2 backups are separate. Details/limits/restore evidence: HISTORY_FOUNDATION.md B1/C1. Hosted authenticated history APIs remain Deferred.

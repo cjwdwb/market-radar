@@ -1,5 +1,17 @@
 # 当前任务索引
 
+## MR-PUBLISH-FOUNDATION27 — 上传发布中
+
+用户本轮明确授权上传部署。将已验收B0/C0/B1/C1作为2.7阶段成果发布；完整2.7任务保留开放。发布卡tasks/MR-PUBLISH-FOUNDATION27.md；不启用云采集/迁移或修改访问设置。
+
+## MR-WATCHLIST-INFORMATION-HISTORY-27 — B0/C0 + B1/C1 本地交付，完整2.7仍开放
+
+2026-09-23 CST：真实美联储宏观RSS→SQLite→版本查询→新空库恢复→Radar显式本地文件导入已验证。2条九月公告，累计4请求/38580bytes（含2次解析失败），重跑0新增；不是全月完整/个股资讯/价格回补。固定来源、共享硬配额、schema2、恢复禁采集；无新HTTPAPI/云绑定/生产权限变更。
+
+本轮269Node、最终44存储专项、build/typecheck/受影响lint通过；9宏观+14自选+10旧2.6浏览器检查通过，五视口为桌面模拟。主app既有lint3error/6warning保留。独立GPT A/B finding已修并复核，稳定候选B/C1独立VERIFY PASS，无未解决confirmed finding。DS实际0。任务卡 tasks/MR-WATCHLIST-INFORMATION-HISTORY-27.md；契约/证据/运行手册 docs/HISTORY_FOUNDATION.md。
+
+实际owner清单、价格历史许可/来源、长期保管与研究D仍待补；四条主线未删减，不宣称完整2.7完成。分支codex/mr-watchlist-information-history-27，HEAD00d7ef4，保留前轮B0/C0；未提交/上传/发布/开启云采集。当前生产2.6/Sitesv24不变，旧QA不重开Gate。
+
 ## MR-PUBLISH-STATE26 — 发布成功，已归档
 
 用户明确授权“上传部署吧”；报告tasks/archive/MR-PUBLISH-STATE26.md。2.6+精修源码8641d81已上传GitHub并发布Sites v24，平台succeeded、环境revision3。radar-v2.6/sites-v24标记同一源码；说明文档随后单独提交，不重新部署。网址/访问设置保持不变，以下未上传/未部署为此前开发历史。

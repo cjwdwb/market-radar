@@ -1,5 +1,7 @@
 # 版本与回退索引
 
+待发布：Radar 2.7 Foundation（B0/C0/B1/C1阶段成果），自选状态/本机导出/离线宏观时间线与本地归档工具。完整2.7、价格回补、研究和云采集未完成；将采用radar-v2.7-foundation里程碑，实际Sites版本及源码在成功后填写。发布卡tasks/MR-PUBLISH-FOUNDATION27.md。
+
 当前生产：Radar 2.6 State Intelligence II，2026-09-22发布为Sites v24，源码`8641d8193e5e2c27fb316bcaed9b977d63e1d119`，平台终态succeeded。产品标签`radar-v2.6`和发布标签`sites-v24`对应同一源码；后续说明文档提交不代表重新部署。包含双窗口、连续Short Relative、Alignment、历史窗口比较及详情精修。产品验收见 `tasks/archive/MR-STATE-INTELLIGENCE-26.md`、`tasks/archive/MR-STATE26-REFINE.md`；发布记录见`tasks/archive/MR-PUBLISH-STATE26.md`。
 
 上一生产：Radar 2.5 Market State Intelligence，2026-09-22发布为Sites v23，源码`31a11d2d5006e10edeb4907fe8a7cafb22ca6960`，平台终态succeeded。产品标签`radar-v2.5`、发布标签`sites-v23`对应同一源码；后续文档提交不代表重新部署。包含选中资产方向结构/RMS波动对比及图表/详情精修，验收见 `tasks/archive/MR-MARKET-STATE-25.md`、`tasks/archive/MR-STATE25-REFINE.md`；发布记录 `tasks/archive/MR-PUBLISH-STATE25.md`。

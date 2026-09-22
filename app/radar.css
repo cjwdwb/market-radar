@@ -58,9 +58,31 @@
 .signal-actions{display:flex;flex-wrap:wrap;gap:8px;padding:12px 0;border-top:1px solid var(--line-subtle)}.signal-actions .btn{min-height:44px}
 .experience-setting{display:flex;gap:var(--space-2);flex-wrap:wrap;margin-block:var(--space-2)}.experience-setting label{display:flex;gap:var(--space-2);align-items:center;min-height:44px;border:1px solid var(--line-subtle);border-radius:var(--radius-control);padding:var(--space-2) 14px;cursor:pointer}.experience-setting label:has(:checked){border-color:var(--focus-color);background:var(--surface-selected)}.experience-setting label:has(:focus-visible){outline:2px solid var(--focus-color);outline-offset:3px}.experience-setting input{accent-color:#eee}
 .recent-signals{padding:16px 20px;border-top:1px solid var(--line-subtle)}.recent-signals h3{font-weight:500;font-size:13px;margin-bottom:8px}.recent-signals p,.recent-signals button{font-size:12px;color:var(--text-secondary);line-height:1.8}.recent-signals button{display:block;min-height:44px;text-align:left}
+.watch-state-toolbar,.watch-state-export{padding:12px 20px;border-top:1px solid var(--line-subtle)}
+.watch-state-overview>summary,.watch-state-details>summary{min-height:44px;align-content:center;cursor:pointer;font-size:13px}
+.watch-state-overview>summary:focus-visible,.watch-state-details>summary:focus-visible,.watch-state-link:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
+.watch-state-overview>p,.watch-export-note{font-size:12px;line-height:1.7;color:var(--text-secondary);margin-block:6px}
+.watch-state-asset{border-top:1px solid var(--line-subtle);padding-block:8px}
+.watch-state-link{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;width:100%;font-size:14px;text-align:left;overflow-wrap:anywhere}.watch-state-link span{font-size:12px;color:var(--text-secondary);flex-shrink:0}
+.watch-export{min-height:44px;margin-top:8px}
+.radar-watch-asset{padding:0 20px}.radar-watch-asset .radar-watch-row{border-top:1px solid var(--line-subtle)}
+.watch-state{font-size:13px;line-height:1.65;overflow-wrap:anywhere;min-width:0}
+.watch-state-glance{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 14px;padding:8px 0}
+.watch-state-glance dt{color:var(--text-secondary);font-size:12px}.watch-state-glance dd{margin:0;font-variant-numeric:tabular-nums}.watch-state-glance dd span,.watch-state-glance dd small{display:block}.watch-state-glance dd small{font-size:12px;color:var(--text-secondary)}
+.watch-state-transition{grid-column:1/-1;display:flex;justify-content:space-between;gap:10px}
+.watch-state-time{font-size:12px;color:var(--text-secondary);font-variant-numeric:tabular-nums;margin-block:6px}
+.watch-state-details>summary{color:var(--text-secondary)}.watch-state-details{padding-bottom:8px}
+.watch-state-details .asset-intelligence-details dl{grid-template-columns:1fr;gap:12px}
+.watch-state-details .asset-state-evidence{border-bottom:0}
+.macro-timeline{padding:12px 20px;margin-top:16px;min-width:0;font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+.macro-timeline summary{min-height:44px;align-content:center;cursor:pointer}.macro-timeline>summary{font-weight:500}.macro-timeline>summary span{font-size:12px;color:var(--text-secondary);margin-left:8px}
+.macro-timeline p{color:var(--text-secondary);margin-block:10px}.macro-timeline input{min-height:44px;max-width:100%;width:100%;border:1px solid var(--line-subtle);border-radius:var(--radius-control);padding:8px;background:var(--surface-panel);color:var(--text-primary);font-size:13px}.macro-timeline input[type=file]{padding:8px 0;border:0}
+.macro-filter{display:grid;gap:10px;margin-block:14px}.macro-filter label{display:grid;gap:5px}.macro-records{list-style:none;padding:0}.macro-records>li{border-top:1px solid var(--line-subtle);padding-block:14px}.macro-records time{font-size:12px;color:var(--text-secondary)}.macro-records h3{font-size:14px;font-weight:500;line-height:1.6;margin-top:6px}.macro-records a{display:block;min-height:44px;align-content:center}.macro-records details{margin-top:8px}.macro-pages{display:flex;gap:8px;justify-content:space-between}.macro-pages .btn{min-height:44px}
+.macro-timeline :is(summary,a,input,button):focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}.macro-notice,.macro-coverage{border-left:2px solid var(--line-strong);padding-left:10px}
 @media(max-width:1100px){.radar-feed{grid-template-columns:1fr}.radar-layout{grid-template-columns:minmax(0,1fr) 270px}}
 @media(max-width:900px){.radar-layout{grid-template-columns:1fr}.radar-intro{gap:20px}.radar-scan-status{min-width:180px;padding-left:20px}.radar-sidebar{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}.radar-coverage{margin-top:0}.mobile-dock:has(a[href='#radar']){grid-template-columns:repeat(5,1fr)}}
 @media(max-width:600px){
+  .watch-state-toolbar,.watch-state-export,.macro-timeline{padding:10px 14px}.radar-watch-asset{padding-inline:14px}
   .asset-state-summary dl{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px}.asset-state-summary dl>div:last-child{grid-column:1/-1}
   .asset-intelligence-details dl{grid-template-columns:1fr;gap:var(--space-3)}
   .asset-radar-awareness,.radar-context-banner,.radar-asset-context,.asset-state-summary{padding:10px 14px}.context-actions{gap:6px}.radar-asset-context h2{font-size:16px}
