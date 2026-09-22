@@ -1,4 +1,6 @@
 # 当前状态
+当前生产：Market Radar 2.5 已于2026-09-22发布为Sites v23，源码`31a11d2d5006e10edeb4907fe8a7cafb22ca6960`，平台确认succeeded，环境revision3。GitHub main已上传产品源码，`radar-v2.5`、`sites-v23`标记部署源码；后续介绍/发布记录提交不重新部署。正式网址https://market-radar-rex.swt-aether.chatgpt.site ，既有访问码和受众保持不变。发布记录见`tasks/archive/MR-PUBLISH-STATE25.md`。以下未发布/未上传文字为开发与QA阶段历史记录，不代表当前生产状态。
+
 最新本地精修：MR-STATE25-REFINE 在2.5未提交成果上修复极小价格折线刻度归零、隐藏/恢复图表尺寸警告、初始加载误标暂停，并分层展示详情方法/来源。独立审计发现1 LOW大额窄区间刻度精度问题，已修复并VERIFY；最终99 Node、build/typecheck和9项专项通过，62项综合浏览器在该LOW修复前通过。报告见 `tasks/archive/MR-STATE25-REFINE.md`。用户明确旧未验证事项本轮不用跟进，QA-A保留历史BLOCKED事实但不阻塞推进。当前分支codex/mr-state25-refine；本轮未上传或发布，生产仍2.45/v22。
 
 本地2.5：MR-MARKET-STATE-25 已按明确的“带QA-A缺口隔离实现”授权完成选中资产方向结构与RMS波动对比。分支 `codex/mr-market-state-25-builder`，基线8a79166、未提交diff。新测98/98 Node、build/typecheck、五视口62项浏览器通过，独立GPT两项LOW修复及复核通过；完整证据见 `tasks/archive/MR-MARKET-STATE-25.md`。连续相对状态Deferred，零新增请求/timer/依赖。候选本地验证不等于生产/真机通过；未push/merge/tag/deploy，现有生产仍为下述2.45/v22。

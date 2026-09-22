@@ -1,10 +1,10 @@
 # 版本与回退索引
 
-正在发布：Radar 2.5 Market State Intelligence，包含选中资产方向结构/RMS波动对比及图表/详情精修。当前已验收候选见 `tasks/archive/MR-MARKET-STATE-25.md`、`tasks/archive/MR-STATE25-REFINE.md`；本轮发布任务 `tasks/MR-PUBLISH-STATE25.md`。成功后在此记录精确源码、产品标签及Sites版本，尚不以本段宣称上线。
+当前生产：Radar 2.5 Market State Intelligence，2026-09-22发布为Sites v23，源码`31a11d2d5006e10edeb4907fe8a7cafb22ca6960`，平台终态succeeded。产品标签`radar-v2.5`、发布标签`sites-v23`对应同一源码；后续文档提交不代表重新部署。包含选中资产方向结构/RMS波动对比及图表/详情精修，验收见 `tasks/archive/MR-MARKET-STATE-25.md`、`tasks/archive/MR-STATE25-REFINE.md`；发布记录 `tasks/archive/MR-PUBLISH-STATE25.md`。
 
-当前生产：Radar 2.45 Visual Experience & Motion Control，2026-09-22 发布为 Sites v22，源码 `6804b41f5c6763cc631c9919e24e93fd6a076bbc`，平台终态 succeeded。产品标签 `radar-v2.45`、发布标签 `sites-v22` 均对应此部署源码；后续发布文档提交不代表重新部署。开发验收见 `tasks/archive/MR-VISUAL-245.md`，发布记录见 `tasks/archive/MR-PUBLISH-VISUAL-245.md`。
+上一生产：Radar 2.45 Visual Experience & Motion Control，2026-09-22 发布为 Sites v22，源码 `6804b41f5c6763cc631c9919e24e93fd6a076bbc`，平台终态 succeeded。产品标签 `radar-v2.45`、发布标签 `sites-v22` 均对应此部署源码；后续发布文档提交不代表重新部署。开发验收见 `tasks/archive/MR-VISUAL-245.md`，发布记录见 `tasks/archive/MR-PUBLISH-VISUAL-245.md`。
 
-上一生产：Radar 2.4（Asset Intelligence Foundation），2026-09-18 发布为 Sites v21，部署源码 `c618b41`，平台确认 succeeded。产品实现与验收见 `tasks/archive/MR-ASSET-INTELLIGENCE.md`，发布证据见 `tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md`。
+历史生产：Radar 2.4（Asset Intelligence Foundation），2026-09-18 发布为 Sites v21，部署源码 `c618b41`，平台确认 succeeded。产品实现与验收见 `tasks/archive/MR-ASSET-INTELLIGENCE.md`，发布证据见 `tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md`。
 
 此索引把可确认的 Sites 发布号映射到 Git 提交。标签采用 `sites-vNN`，避免与未来语义化版本混淆。标签只标识源码回退点；生产环境的密钥、数据库和访问策略不包含在 Git 中。
 
@@ -24,9 +24,11 @@
 | Radar 2.3 | `radar-v2.3` | `f96a526` | Classic ⇄ Radar 同资产上下文、实时事件引用与共享提醒 | Sites v20 已发布 |
 | Radar 2.4 | `radar-v2.4` | `c618b41` | 共享资产情报、覆盖/可用性、事件关系与相对证据；PRE24 正确性修复 | Sites v21 已发布 |
 | Radar 2.45 | `radar-v2.45` | `6804b41` | 视觉层级与跟随系统/标准/减少动效偏好 | Sites v22 已发布 |
+| Radar 2.5 | `radar-v2.5` | `31a11d2` | 当前资产方向结构/RMS状态、证据与失效解释；图表/详情精修 | Sites v23 已发布 |
 
 | Sites 版本 | Git 标签 | 源码提交 | 主要内容 | 证据 |
 | --- | --- | --- | --- | --- |
+| 23 | `sites-v23` | `31a11d2` | Market State Intelligence | MR-PUBLISH-STATE25；平台 succeeded |
 | 22 | `sites-v22` | `6804b41` | Visual Experience & Motion Control | MR-PUBLISH-VISUAL-245；平台 succeeded |
 | 21 | `sites-v21` | `c618b41` | Asset Intelligence Foundation | MR-PUBLISH-ASSET-INTELLIGENCE；平台 succeeded |
 | 20 | `sites-v20` | `f96a526` | Classic × Radar Deep Integration | MR-PUBLISH-INTEGRATION；平台 succeeded |

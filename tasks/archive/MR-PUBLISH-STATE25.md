@@ -1,6 +1,6 @@
 # MR-PUBLISH-STATE25
 
-2026-09-22。Planner定稿，发布执行中。用户明确授权“发布上传”。
+2026-09-22。发布成功。用户明确授权“发布上传”。
 
 ## Goal / baseline
 
@@ -20,4 +20,14 @@ Git提交与GitHub main普通快进；新增不可移动radar-v2.5标签，发�
 
 ## Execution
 
-待记录实际源码SHA、推送、保存版本、部署ID/终态和限制。无产品新增，Optimizer跳过；产品独立审计复用原报告，发布元数据由协调者核验。
+源码提交31a11d2d5006e10edeb4907fe8a7cafb22ca6960，GitHub main普通快进推送成功；radar-v2.5新增标签推送成功，git ls-remote读回二者SHA一致。核验12个关键产品/测试文件的SHA256与已有验收快照一致，git diff --check通过；本次没有重复全量产品测试。
+
+Sites官方open成功核对原源仓；publish遇到间歇性TLS错误，其中一次push后的ls-remote失败。未关证书校验、未持久写Git连接配置。官方package-site在沙箱内/外均报Unable to start the Sites workflow command，本机无可用Bash；按工具支持的remote build fallback保存精确源码，平台已确认source与31a11d2一致，不上传旧产物。
+
+Sites v23：appgprj_6a9b9dc23584819190a31ae417863e7a~appgver_f5ebdcc5134881919c4b15a7f146955c。Deployment：appgdep_6ab24a44e6908191be10f2eae84ed04d。平台终态succeeded，2026-09-22T09:30:29.007427+00:00，环境revision3。正式网址：https://market-radar-rex.swt-aether.chatgpt.site 。临时凭据只保存在会话内并经隐藏stdin传递，未落盘或写入remote URL。
+
+无产品新增，Optimizer跳过；产品独立审计复用原报告，发布元数据由协调者核验。未进行生产登录后/真机补测，不把平台发布状态当作真实行情或操作路径验收。
+
+## Completion / source identity
+
+产品标签radar-v2.5与发布标签sites-v23均标记31a11d2d5006e10edeb4907fe8a7cafb22ca6960。本记录、README及版本索引随后以单独文档提交上传GitHub，产品代码无变化，不重新部署。原开发归档的“未上传/未部署”为当时阶段记录，本轮发布授权与结果以本报告为准。网站受众public及应用访问码、密钥、数据库保持原状。

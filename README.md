@@ -6,7 +6,7 @@
 
 ## 功能
 
-2.5 Market State Intelligence 已完成本地验收，正在发布。选中资产现在可查看独立于异常事件的方向结构与 RMS 波动对比：状态有明确观测窗口、指标、来源和失效原因，Classic 与 Radar 共用同一份结果。它描述已发生的数据，不预测价格，也不提供买卖评分。
+2.5 Market State Intelligence 已上线（Sites v23）。[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site)。选中资产现在可查看独立于异常事件的方向结构与 RMS 波动对比：状态有明确观测窗口、指标、来源和失效原因，Classic 与 Radar 共用同一份结果。它描述已发生的数据，不预测价格，也不提供买卖评分。
 
 当前发布进展见 [版本索引](docs/VERSIONS.md)。本地候选的99项Node测试、类型检查、构建及五视口专项通过；独立审计修复并复核完成。[精修报告](tasks/archive/MR-STATE25-REFINE.md)区分各次回归范围。旧2.45 iPhone往返已由用户实测确认；旧生产登录后补证按用户决定不再阻塞发布，不冒称新版本真机或生产登录后全面验收。
 

@@ -9,6 +9,7 @@
 - 详情保留主事件、净变化/RMS和限制，完整计算依据默认折叠；修复极小价格归零、大额相邻刻度重复、图表尺寸warning和初始加载误标暂停。
 - 连续相对表现Deferred；既有Signal/Confidence/Cluster/Ranking、相对事件和行情刷新语义不变。
 - 最终99 Node、build/typecheck、五视口9项专项通过；62项综合浏览器在最后刻度LOW修复前通过。独立GPT审计修复并VERIFY，无未解决confirmed findings。证据见MR-MARKET-STATE-25和MR-STATE25-REFINE归档；本轮发布状态以版本索引为准。
+- 已发布为Sites v23，源码`31a11d2`，平台确认succeeded；GitHub产品标签`radar-v2.5`和发布标签`sites-v23`标记同一源码。发布记录见`tasks/archive/MR-PUBLISH-STATE25.md`。
 
 ## Radar 2.45 — Visual Experience & Motion Control — 2026-09-22
 

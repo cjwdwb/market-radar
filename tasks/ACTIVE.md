@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-PUBLISH-STATE25 — 发布执行中
+## MR-PUBLISH-STATE25 — 发布成功，已归档
 
-用户明确授权“发布上传”。任务卡tasks/MR-PUBLISH-STATE25.md；上传现有已验收2.5与精修成果，补版本介绍，发布到既有Sites项目。以下未上传/未部署是开发阶段历史状态，以本发布任务最终记录为准。不改变受众、访问码或生产环境配置。
+用户明确授权“发布上传”。已将2.5及精修源码31a11d2上传GitHub，并发布为Sites v23，平台succeeded、环境revision3。产品标签radar-v2.5、发布标签sites-v23对应同一源码；报告tasks/archive/MR-PUBLISH-STATE25.md。已补README/CHANGELOG/版本索引；以下未上传/未部署是开发阶段历史状态。受众、访问码及生产环境配置保持不变。
 
 ## MR-STATE25-REFINE — 约定本地范围验证完成，已归档
 
