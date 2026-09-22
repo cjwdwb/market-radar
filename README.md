@@ -6,7 +6,7 @@
 
 ## 功能
 
-2.6 State Intelligence II 已完成本地验收，正在发布；当前生产为2.5 / Sites v23。[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site)。选中资产可在 Classic 与 Radar 查看同一份可解释状态：短窗、中窗、连续相对表现，以及历史相邻窗口比较。它描述已发生的数据，不预测价格，也不提供买卖评分。
+2.6 State Intelligence II 已上线（Sites v24）。[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site)。选中资产可在 Classic 与 Radar 查看同一份可解释状态：短窗、中窗、连续相对表现，以及历史相邻窗口比较。它描述已发生的数据，不预测价格，也不提供买卖评分。
 
 当前发布进展见 [版本索引](docs/VERSIONS.md)。2.6领域阶段218项Node通过；最终局部精修的构建、类型检查、五视口专项和相关回归通过，独立审计及复核完成。[2.6验收](tasks/archive/MR-STATE-INTELLIGENCE-26.md)与[精修报告](tasks/archive/MR-STATE26-REFINE.md)区分测试版本与范围。新版本真机及生产登录后路径未全面验证，旧反馈不替代新版本验收。
 

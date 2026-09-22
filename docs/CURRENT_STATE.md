@@ -1,4 +1,6 @@
 # 当前状态
+当前生产：Market Radar 2.6已于2026-09-22发布为Sites v24，源码`8641d8193e5e2c27fb316bcaed9b977d63e1d119`，平台succeeded、环境revision3。包含双窗口、连续相对表现、Alignment、历史比较及逐项展开/底部返回精修。GitHub产品/发布标签radar-v2.6、sites-v24标记部署源码；后续文档提交不重新部署。正式网址https://market-radar-rex.swt-aether.chatgpt.site ，访问设置/密钥保持原状。发布记录tasks/archive/MR-PUBLISH-STATE26.md。以下“未提交/未部署”是此前开发验收的历史状态，不代表当前生产。线上登录后/真机未复测。
+
 本地2.6精修：MR-STATE26-REFINE完成历史比较逐项展开、详情底部返回当前图表、关系缺失原因标注维度。相同fixture/操作，390px比较总览高度2368.5→475.75px；完整数值/窗口/来源保留。新build/typecheck、6项专项、10状态回归、9精修回归及320定点补证通过。独立审计无产品finding，1 LOW截图证据修复并VERIFY。未改领域规则/数据请求；分支codex/mr-state26-refine、未提交/上传/部署。报告tasks/archive/MR-STATE26-REFINE.md。
 
 最新本地：2.6 State Intelligence II 约定P0/P1验证完成，未提交/上传/部署。分支codex/mr-state-intelligence-26，起点09338aa。选中资产双窗口90/180m方向与RMS、90m连续相对表现、Alignment及历史相邻窗口比较；不增加数据请求、symbol或timer。218 Node、build/typecheck、72项综合浏览器、9项精修专项及10项2.6定点复测通过；独立领域/集成审计无confirmed findings。五视口为本地Edge fixture，新UI真机与生产NOT RUN。契约docs/STATE_INTELLIGENCE.md；报告tasks/archive/MR-STATE-INTELLIGENCE-26.md。旧QA事实保留，不再作为Gate。

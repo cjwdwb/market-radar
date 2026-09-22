@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-PUBLISH-STATE26 — 上传与发布中
+## MR-PUBLISH-STATE26 — 发布成功，已归档
 
-用户明确授权“上传部署吧”；任务tasks/MR-PUBLISH-STATE26.md。提交2.6+精修并发布原Sites项目，保留网址/访问设置。核对最终候选hash及远端，补README/CHANGELOG/版本标签，不新增产品功能。
+用户明确授权“上传部署吧”；报告tasks/archive/MR-PUBLISH-STATE26.md。2.6+精修源码8641d81已上传GitHub并发布Sites v24，平台succeeded、环境revision3。radar-v2.6/sites-v24标记同一源码；说明文档随后单独提交，不重新部署。网址/访问设置保持不变，以下未上传/未部署为此前开发历史。
 
 ## MR-STATE26-REFINE — 本地精修完成，已归档
 

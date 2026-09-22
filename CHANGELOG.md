@@ -9,7 +9,7 @@
 - Classic/Radar同源，逐维度失效；保留旧Signal、Confidence、Clustering、Ranking和v1完整输出，81份固定旧版oracle等价。零新增provider symbol/请求/timer/依赖。
 - 历史比较逐项展开、失效原因明确标注维度、详情底部返回当前图表并保留手动周期。390px同fixture默认总览2368.5→475.75px，完整数值证据保留。
 - 领域实施218 Node通过；最终精修build/typecheck、6专项/10状态/9精度回归与320补证1项通过。独立领域/集成审计完成，精修1 LOW截图证据问题修复并VERIFY。生产与真机范围另行记录，不把历史测试写成本轮重跑。
-- 本次已获上传部署授权，发布结果以版本索引与MR-PUBLISH-STATE26归档为准。
+- 已发布为Sites v24，源码`8641d81`，平台确认succeeded。GitHub产品标签`radar-v2.6`和发布标签`sites-v24`标记同一源码；发布记录见`tasks/archive/MR-PUBLISH-STATE26.md`。后续说明文档提交不代表重新部署。
 
 ## Radar 2.5 — Market State Intelligence — 2026-09-22
 

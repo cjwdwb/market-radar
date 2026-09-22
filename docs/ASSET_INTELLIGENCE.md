@@ -1,6 +1,6 @@
 # Asset Intelligence — Context / selected State
 
-2.6 本地候选将选中资产状态升级为 Short90m / Medium180m、Short Relative、Alignment 与历史前后窗口比较。当前方法与降级契约见 [STATE_INTELLIGENCE.md](STATE_INTELLIGENCE.md)。以下 2.4/2.5 内容保留各阶段语义；现有生产为2.5/Sites v23，2.6本轮未部署。
+2.6 将选中资产状态升级为 Short90m / Medium180m、Short Relative、Alignment 与历史前后窗口比较。当前方法与降级契约见 [STATE_INTELLIGENCE.md](STATE_INTELLIGENCE.md)。以下 2.4/2.5 内容保留各阶段语义；现有生产为2.6/Sites v24，源码8641d81，发布记录见tasks/archive/MR-PUBLISH-STATE26.md。
 
 2.4 已于 2026-09-18 发布为 Sites v21；发布证据见 tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md。2.4 不生成 Market State 或交易判断。
 

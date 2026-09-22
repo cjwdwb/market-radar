@@ -60,4 +60,4 @@ Direction/Short Relative 步长 H，当前 (T−H,T]、前窗 (T−2H,T−H]；�
 
 新增 provider symbols、Quote/History/benchmark/API、timer、依赖均为0。共享 `prepareStateInput` 和参数化数学；原 detector 的 Map+flatMap 仅提取为 `pairPreparedInputs`，不改变原 readiness/Signal 规则。81份固定2.5全对象 oracle 专门验证原 State/Engine/coverage/intelligence 等价。
 
-Deferred：Medium Relative、更多 Horizon、全资产状态、新映射/数据请求、逐 bar session 日历、持久历史、AI/预测/评分。实施与实际验收见 `tasks/archive/MR-STATE-INTELLIGENCE-26.md`。现有生产2.5/Sites v23；2.6本轮未部署。
+Deferred：Medium Relative、更多 Horizon、全资产状态、新映射/数据请求、逐 bar session 日历、持久历史、AI/预测/评分。实施与实际验收见 `tasks/archive/MR-STATE-INTELLIGENCE-26.md`。2.6及详情精修已发布为Sites v24，源码8641d81；发布记录见`tasks/archive/MR-PUBLISH-STATE26.md`，不把发布成功等同生产登录后或真机验收。
