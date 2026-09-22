@@ -1,9 +1,15 @@
-# 当前任务
+# MR-245-POST-RELEASE-QA
 
-无进行中的任务。
+状态：本轮可执行验收与独立审计已结束；整体结论为证据不足，尚有两项待补，不能标记全面验收通过。
 
-最近完成：MR-PUBLISH-VISUAL-245，2026-09-22。用户授权后，Market Radar 2.45 已发布为 Sites v22，平台确认 succeeded，环境 revision 3。
+现有生产为 Market Radar 2.45 / Sites v22，源码6804b41。当前QA分支 codex/mr-245-post-release-qa，基线fc36ac7；产品代码与生产一致，本轮零产品改动。验收完成后用户另行授权上传发布，本次将已审计QA报告/脚本提交上传GitHub；网站复用现有成功部署，不新增版本或标签。
 
-部署源码 6804b41f5c6763cc631c9919e24e93fd6a076bbc 已上传 GitHub main 和 Sites 源码库；radar-v2.45 与 sites-v22 标记该源码。后续发布文档提交不重新部署。访问策略和密钥未修改。
+本轮新测：本地Edge五视口48项浏览器 + 6项补证 + 3项动效Node测试通过；修复测试脚本漏检查pageerror并独立复核。83/83全量测试与typecheck/build仅复用历史证据，本轮未重跑。
 
-发布记录见 tasks/archive/MR-PUBLISH-VISUAL-245.md；开发、DS 分工和 83/83 tests、五视口 48 项浏览器验收见 tasks/archive/MR-VISUAL-245.md。
+生产：访问码页实际可达，但15分钟未观察到授权工作台，临时浏览器已关闭；登录后路径BLOCKED。真机：用户报告iPhone16 Pro/iOS26.2的第1/2/3/4/6步通过，第5步Radar往返与周期保留NOT RUN。
+
+待补：用户在新的独立测试浏览器安全登录后完成生产只读路径；iPhone补第5步。不要把本地fixture或其余真机反馈替代这两项。重开浏览器继续时沿用原授权范围，不索要明文凭据。
+
+可复查报告、历史/新测划分、命令、脚本修正和限制见 tasks/archive/MR-245-POST-RELEASE-QA.md。现有2.45已上线，本轮未重新发布；无产品修复候选，不自动开始2.5。
+
+上传任务 MR-SYNC-245-QA：依据2026-09-22用户“上传发布吧，我准备开始2.5了”的授权。范围为已有QA脚本/报告、ACTIVE、CURRENT_STATE、README中的验收索引；不改产品或生产配置。核验GitHub main仍为fc36ac7、Sites v22仍succeeded；复用独立审计和同脚本验证，执行语法/diff检查、普通fast-forward推送并读回远端SHA。未启动2.5 Planner；两项证据缺口延续，不默认视为用户接受风险或全面封版。

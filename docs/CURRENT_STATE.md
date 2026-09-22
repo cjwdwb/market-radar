@@ -1,4 +1,6 @@
 # 当前状态
+最新验收：MR-245-POST-RELEASE-QA 已完成可执行验证及独立审计；本轮新测48项本地浏览器、6项专项和3项动效测试通过，产品零改动。用户报告iPhone16 Pro/iOS26.2五步通过，但Radar往返第5步未测；生产登录后路径因未取得授权工作台而BLOCKED。整体结论仍为证据不足，不宣称全面封版。报告见 `tasks/archive/MR-245-POST-RELEASE-QA.md`。用户后续授权上传QA成果；未开始2.5，网站复用现有v22。
+
 当前生产：Market Radar 2.45 已于 2026-09-22 发布为 Sites v22，源码 `6804b41f5c6763cc631c9919e24e93fd6a076bbc`，平台确认 succeeded，环境 revision 3。GitHub main 已上传产品源码与介绍，产品标签 `radar-v2.45`、发布标签 `sites-v22` 标记部署源码。正式地址 https://market-radar-rex.swt-aether.chatgpt.site ，访问策略及密钥保持不变。记录见 `tasks/archive/MR-PUBLISH-VISUAL-245.md`。以下本地/未部署描述为此前阶段记录。
 
 本地最新：2.45 Visual Experience & Motion Control 已于 2026-09-22 完成开发、浏览器验证和独立审计，分支 `codex/mr-visual-245`，尚未提交、推送或部署。统一面板/控件/数字层级，资产详情主事件优先，新增跟随系统/标准/减少动效偏好。83/83 Node tests、typecheck、build、五视口 48 项浏览器检查通过；独立审计未发现可证实的 BLOCKER/HIGH/MEDIUM。生产仍为 2.4 / Sites v21。详情与限制见 `tasks/archive/MR-VISUAL-245.md`。

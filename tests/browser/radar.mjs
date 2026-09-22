@@ -7,13 +7,16 @@ import {createRequire} from 'node:module';
 const loadPlaywright=createRequire(import.meta.url);
 const {chromium}=loadPlaywright(process.env.PLAYWRIGHT_MODULE||'playwright');
 const base=process.env.RADAR_PREVIEW_URL||'http://localhost:5173';
-const stamp=1789372800000,output='outputs/radar';fs.mkdirSync(output,{recursive:true});
+// This harness creates signed test cookies, simulated data and test storage. Never target production.
+const testUrl=new URL(base);
+if(!['127.0.0.1','localhost','[::1]'].includes(testUrl.hostname)||!['http:','https:'].includes(testUrl.protocol))throw Error('Radar fixture requires a loopback preview URL.');
+const stamp=1789372800000,output=process.env.RADAR_OUTPUT_DIR||'outputs/radar';fs.mkdirSync(output,{recursive:true});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 function series(symbol,mode){
   const interval=(symbol.endsWith('-USDT')?15:5)*60000;
  return Array.from({length:70},(_,i)=>{const unusual=['normal','partial'].includes(mode);const close=i===69&&unusual?103:100+(i%2)*.02;return {time:stamp-(70-i)*interval,close,open:close,high:close+.02,low:close-.02,volume:i===69&&unusual?500:100,confirmed:true};});
 }
-async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,motionPreference,os='no-preference',probe=false}={}){
+async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,motionPreference,os='no-preference',probe=false,revealProbe=false}={}){
  const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:os});
  const vars=Object.fromEntries(fs.readFileSync('.dev.vars','utf8').trim().split(/\r?\n/).filter(line=>line.includes('=')).map(line=>{const i=line.indexOf('=');return [line.slice(0,i),line.slice(i+1)]}));
  const payload=`${Math.floor(Date.now()/1000)+3600}.${crypto.randomBytes(16).toString('hex')}`;
@@ -35,6 +38,14 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,
   new PerformanceObserver(list=>{for(const entry of list.getEntries())if(!entry.hadRecentInput)window.__motionProbe.cls+=entry.value;}).observe({type:'layout-shift',buffered:true});
  });
  if(!intro)await page.addInitScript(()=>sessionStorage.setItem('radar-brand-seen','1'));
+ if(revealProbe)await page.addInitScript(()=>{
+  window.__revealProbe=[];const animate=Element.prototype.animate;
+  Element.prototype.animate=function(frames,options){
+   const reveal=this.matches('.watch-panel .panel-heading,.right-column .panel,.footnote');
+   const animation=animate.call(this,frames,reveal?{...options,duration:20000}:options);
+   if(reveal)window.__revealProbe.push(animation);return animation;
+  };
+ });
  if(storage)await page.addInitScript(()=>{Storage.prototype.getItem=()=>{throw Error('Storage unavailable')};Storage.prototype.setItem=()=>{throw Error('Storage unavailable')};});
  const errors=[],requests=[],priceOffset={value:0};page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('/api/'))requests.push(r.url())});
  await page.route('**/api/quotes?**',async route=>{
@@ -222,7 +233,7 @@ async function motionChecks(browser,report){
   const radio=p.locator('input[name=motion-preference][value=reduced]');await radio.check();
   const bounds=await p.locator('[role=dialog]').boundingBox();assert.ok(bounds.x>=0&&bounds.y>=0&&bounds.x+bounds.width<=width+1&&bounds.y+bounds.height<=height+1,name+' dialog bounds');
   assert.ok(await radio.locator('..').evaluate(el=>el.getBoundingClientRect().height)>=44);
-  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:`outputs/visual245/${name}-settings-verified.png`});
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:`${output}/${name}-settings-verified.png`});
   await p.keyboard.press('Escape');await p.locator('.candle-canvas').waitFor();await p.locator('.candle-canvas').scrollIntoViewIfNeeded();
   const canvas=p.locator('.candle-canvas');await canvas.focus();await p.keyboard.press('ArrowLeft');await p.keyboard.press('+');await p.keyboard.press('Home');
   report.checks.push(`2.45 ${name}: motion Settings containment, 44px choice, no overflow, chart keyboard`);report.errors.push(...test.errors);await test.context.close();
@@ -231,8 +242,59 @@ async function motionChecks(browser,report){
  const noHydration=await fixture(browser,{intro:true});await noHydration.page.route('**/*',route=>route.request().resourceType()==='script'?route.abort():route.fallback());await noHydration.page.goto(base,{waitUntil:'domcontentloaded'});await noHydration.page.clock.runFor(2500);assert.equal(await noHydration.page.evaluate(()=>document.documentElement.dataset.intro),undefined);assert.ok(await noHydration.page.locator('h1').isVisible());await noHydration.context.close();report.checks.push('2.45 hydration failure leaves opening fail-open and server content visible');
 }
 
+async function postReleaseChecks(browser,report){
+ const opening=await fixture(browser,{intro:true,probe:true});
+ // Hold only the fixture's safety timer, then pause actual running CSS animations
+ // so a live OS change can deterministically be observed before natural completion.
+ await opening.page.addInitScript(()=>{const schedule=window.setTimeout;window.setTimeout=(fn,ms,...args)=>schedule(fn,[1100,1600].includes(ms)?10000:ms,...args);});
+ await opening.page.goto(base,{waitUntil:'domcontentloaded'});
+ const runningOpening=await opening.page.evaluate(()=>{
+  const animations=document.querySelector('.brand-opening').getAnimations({subtree:true}).filter(a=>a.playState==='running');
+  window.__openingProbe=animations;animations.forEach(a=>a.pause());return animations.length;
+ });
+ assert.ok(runningOpening>0,'opening CSS animation must actually be running before cancellation test');
+ await opening.page.waitForFunction(()=>window.__motionProbe.listeners===1);
+ await opening.page.emulateMedia({reducedMotion:'reduce'});
+ await opening.page.waitForFunction(()=>document.documentElement.dataset.motion==='reduced'&&!document.documentElement.dataset.intro);
+ assert.equal(await opening.page.evaluate(()=>getComputedStyle(document.querySelector('.brand-opening')).display),'none');
+ assert.equal(await opening.page.evaluate(()=>window.__openingProbe.some(a=>a.playState==='running'||a.playState==='paused')),false);
+ await opening.page.emulateMedia({reducedMotion:'no-preference'});await opening.page.waitForFunction(()=>document.documentElement.dataset.motion==='normal');
+ assert.equal(await opening.page.evaluate(()=>document.documentElement.dataset.intro),undefined);
+ assert.deepEqual(opening.errors,[]);report.checks.push('post-release observed opening CSS animations end on live OS reduction and do not replay on restore (fixture timing held)');await opening.context.close();
+ for(const [label,raw] of [['old','{}'],['invalid','{"motionPreference":"invalid"}'],['malformed','not-json']]){
+  const app=await fixture(browser,{os:'reduce'}),p=app.page;
+  await p.addInitScript(value=>localStorage.setItem('market-radar-preferences-v1',value),raw);
+  await p.goto(base+'/#overview',{waitUntil:'networkidle'});
+  await p.locator('.settings-trigger').click();
+  assert.equal(await p.locator('input[name=motion-preference][value=system]').isChecked(),true);
+  assert.equal(await p.evaluate(()=>document.documentElement.dataset.motion),'reduced');
+  assert.deepEqual(app.errors,[]);report.checks.push(`post-release ${label} settings fall back to system in hydrated browser`);await app.context.close();
+ }
+ const app=await fixture(browser,{revealProbe:true}),p=app.page;
+ await p.goto(base+'/#overview',{waitUntil:'networkidle'});
+ const cta=p.locator('[data-magnetic]');await cta.scrollIntoViewIfNeeded();
+ const box=await cta.boundingBox();await p.mouse.move(box.x+box.width-3,box.y+box.height/2);
+ await p.waitForFunction(()=>document.querySelector('[data-magnetic]').style.translate!=='');
+ await p.evaluate(()=>document.querySelector('.watch-panel .panel-heading').scrollIntoView());
+ await p.waitForFunction(()=>window.__revealProbe.some(a=>a.playState==='running'));
+ const running=await p.evaluate(()=>window.__revealProbe.filter(a=>a.playState==='running').length);
+ // Live OS change reaches the actual shared controller; no direct preference event injection.
+ await p.emulateMedia({reducedMotion:'reduce'});await p.waitForFunction(()=>document.documentElement.dataset.motion==='reduced');
+ assert.equal(await p.evaluate(()=>window.__revealProbe.some(a=>a.playState==='running')),false);
+ assert.equal(await cta.evaluate(el=>el.style.translate),'');
+ await p.emulateMedia({reducedMotion:'no-preference'});await p.waitForFunction(()=>document.documentElement.dataset.motion==='normal');
+ assert.equal(await p.evaluate(()=>document.documentElement.dataset.intro),undefined);
+ assert.deepEqual(app.errors,[]);report.checks.push(`post-release live OS reduced cancels ${running} running reveal(s) and magnetic offset; restore does not replay intro`);await app.context.close();
+ const fail=await fixture(browser,{storage:true,os:'reduce'});await fail.page.goto(base+'/#overview',{waitUntil:'domcontentloaded'});
+ await fail.page.getByText('浏览器未允许保存设置，关闭后本次更改可能丢失。',{exact:true}).waitFor();
+ await fail.page.locator('.settings-trigger').click();await fail.page.locator('input[name=motion-preference][value=normal]').check();
+ assert.equal(await fail.page.evaluate(()=>document.documentElement.dataset.motion),'normal');
+ assert.deepEqual(fail.errors,[]);report.errors.push(...fail.errors);
+ report.checks.push('post-release storage write failure explicitly warns that changes may be lost');await fail.context.close();
+}
+
 async function visualCapture(browser, phase) {
- const folder=`outputs/visual245/${phase}`;fs.mkdirSync(folder,{recursive:true});
+ const folder=process.env.RADAR_VISUAL_OUTPUT_DIR||`outputs/visual245/${phase}`;fs.mkdirSync(folder,{recursive:true});
  const measures=[];
  for(const [name,width,height] of [['desktop',1440,1000],['mobile',390,844]]){
   const app=await fixture(browser),{page}=app;await page.setViewportSize({width,height});
@@ -254,6 +316,7 @@ async function visualCapture(browser, phase) {
  const report={viewports:[],checks:[],errors:[]};let page;
  try{
   if(process.env.RADAR_VISUAL_PHASE){await visualCapture(browser,process.env.RADAR_VISUAL_PHASE);return;}
+  if(process.env.RADAR_POST_RELEASE==='1'){await postReleaseChecks(browser,report);fs.writeFileSync(`${output}/post-release-extra.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_MOTION==='1')await motionChecks(browser,report);
   if(process.env.RADAR_INTEGRATION==='1'){await integrationChecks(browser,report);await assetIntelligenceChecks(browser,report);}
   const app=await fixture(browser);page=app.page;
