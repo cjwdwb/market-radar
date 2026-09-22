@@ -1,8 +1,8 @@
 # 版本与回退索引
 
-本地待发布：2.45 Visual Experience & Motion Control（分支 `codex/mr-visual-245`）。没有创建 release tag 或部署；生产仍为下面记录的 2.4。开发验收见 `tasks/archive/MR-VISUAL-245.md`。
+当前生产：Radar 2.45 Visual Experience & Motion Control，2026-09-22 发布为 Sites v22，源码 `6804b41f5c6763cc631c9919e24e93fd6a076bbc`，平台终态 succeeded。产品标签 `radar-v2.45`、发布标签 `sites-v22` 均对应此部署源码；后续发布文档提交不代表重新部署。开发验收见 `tasks/archive/MR-VISUAL-245.md`，发布记录见 `tasks/archive/MR-PUBLISH-VISUAL-245.md`。
 
-当前生产：Radar 2.4（Asset Intelligence Foundation），2026-09-18 发布为 Sites v21，部署源码 `c618b41`，平台确认 succeeded。产品实现与验收见 `tasks/archive/MR-ASSET-INTELLIGENCE.md`，发布证据见 `tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md`。
+上一生产：Radar 2.4（Asset Intelligence Foundation），2026-09-18 发布为 Sites v21，部署源码 `c618b41`，平台确认 succeeded。产品实现与验收见 `tasks/archive/MR-ASSET-INTELLIGENCE.md`，发布证据见 `tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md`。
 
 此索引把可确认的 Sites 发布号映射到 Git 提交。标签采用 `sites-vNN`，避免与未来语义化版本混淆。标签只标识源码回退点；生产环境的密钥、数据库和访问策略不包含在 Git 中。
 

@@ -9,6 +9,7 @@
 - 保留品牌、低饱和涨跌、行情/提醒及所有金融算法；新增依赖、行情请求和 timer 均为 0。
 - 83/83 Node tests、类型检查、构建及五视口 48 项浏览器检查通过，独立审计未发现可证实的 BLOCKER/HIGH/MEDIUM。主 client chunk 增加 1,406 bytes；仍有既有大包告警，未声称真实设备 FPS 提升。
 - 开发验收见 tasks/archive/MR-VISUAL-245.md；本次发布结果以版本索引和独立发布记录为准。
+- 已发布为 Sites v22，源码 `6804b41`，平台确认 succeeded；GitHub 的 `radar-v2.45`、`sites-v22` 标记部署源码。
 
 ## Radar 2.4 — Asset Intelligence Foundation — 2026-09-18
 

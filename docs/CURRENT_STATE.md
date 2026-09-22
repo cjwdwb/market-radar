@@ -1,4 +1,6 @@
 # 当前状态
+当前生产：Market Radar 2.45 已于 2026-09-22 发布为 Sites v22，源码 `6804b41f5c6763cc631c9919e24e93fd6a076bbc`，平台确认 succeeded，环境 revision 3。GitHub main 已上传产品源码与介绍，产品标签 `radar-v2.45`、发布标签 `sites-v22` 标记部署源码。正式地址 https://market-radar-rex.swt-aether.chatgpt.site ，访问策略及密钥保持不变。记录见 `tasks/archive/MR-PUBLISH-VISUAL-245.md`。以下本地/未部署描述为此前阶段记录。
+
 本地最新：2.45 Visual Experience & Motion Control 已于 2026-09-22 完成开发、浏览器验证和独立审计，分支 `codex/mr-visual-245`，尚未提交、推送或部署。统一面板/控件/数字层级，资产详情主事件优先，新增跟随系统/标准/减少动效偏好。83/83 Node tests、typecheck、build、五视口 48 项浏览器检查通过；独立审计未发现可证实的 BLOCKER/HIGH/MEDIUM。生产仍为 2.4 / Sites v21。详情与限制见 `tasks/archive/MR-VISUAL-245.md`。
 
 Market Radar 2.4 已于 2026-09-18 发布为 Sites v21，部署源码 c618b41c1ef3ee9c3f79b8496a3bbd24462ae5f7；平台确认 succeeded，环境 revision 3。GitHub main 与 Sites 源码已上传，原网址及访问码策略保留。发布记录见 tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md。以下“本地/未部署”描述为此前开发阶段记录。
