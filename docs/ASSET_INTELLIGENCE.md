@@ -1,4 +1,6 @@
-# Asset Intelligence — 2.4 Context / 2.5 selected State
+# Asset Intelligence — Context / selected State
+
+2.6 本地候选将选中资产状态升级为 Short90m / Medium180m、Short Relative、Alignment 与历史前后窗口比较。当前方法与降级契约见 [STATE_INTELLIGENCE.md](STATE_INTELLIGENCE.md)。以下 2.4/2.5 内容保留各阶段语义；现有生产为2.5/Sites v23，2.6本轮未部署。
 
 2.4 已于 2026-09-18 发布为 Sites v21；发布证据见 tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md。2.4 不生成 Market State 或交易判断。
 
@@ -64,7 +66,7 @@ Radar 同资产 feed 的 current events 使用 Context 引用，历史仍由现�
 
 上述为 2.4 契约与历史验证；2.5 的本地扩展见下。评分、confidence 分布、全资产聚合视图、持久历史和 AI 继续 Deferred。
 
-## 2.5 selected-asset State（本地候选，未发布）
+## 2.5 selected-asset State（已发布基线）
 
 `lib/radar/market-input.ts` 机械共享原 Engine 的有效性准备、simple returns 与 RMS；Engine 薄适配保留原原因文案、顺序、Signal/coverage/lifecycle。`lib/radar/asset-state.ts` 是纯派生层，显式接收 selected snapshot、symbol、now、enabled/online；不读事件、自选、提醒、图表 range 或内部实时钟。父组件只派生当前资产一次，Classic 轻摘要和 Radar 默认折叠详情消费同一结果；不建立全资产 map 或持久状态。
 
@@ -84,7 +86,7 @@ State 保留原报价/来源/币种/session/freshness gate：获取年龄≤2分
 
 输出分别保留收盘跨度起止、首根开盘、完整K线截止、样本数、interval、source/currency、quoteAt、quoteFetchedAt、historyFetchedAt、calculatedAt。事件 `latestEvidenceAt` 不用于 State freshness，新报价不能刷新旧历史证据。
 
-零新增 symbols / Quote / History / benchmark / API / timer / dependency。本地验证、同机 bundle/计算测量、QA-A缺口授权与独立审计见 `tasks/archive/MR-MARKET-STATE-25.md`。现有生产仍为2.45/Sites v22；本地候选不代表生产或真机已通过。
+零新增 symbols / Quote / History / benchmark / API / timer / dependency。当时本地验证、同机 bundle/计算测量、QA-A缺口授权与独立审计见 `tasks/archive/MR-MARKET-STATE-25.md`；其后精修与发布见 `tasks/archive/MR-STATE25-REFINE.md`、`tasks/archive/MR-PUBLISH-STATE25.md`。发布记录不代表生产登录后或真机完整验收。
 
 ### 本地精修（MR-STATE25-REFINE）
 

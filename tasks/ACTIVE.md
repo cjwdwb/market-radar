@@ -1,5 +1,17 @@
 # 当前任务索引
 
+## MR-PUBLISH-STATE26 — 上传与发布中
+
+用户明确授权“上传部署吧”；任务tasks/MR-PUBLISH-STATE26.md。提交2.6+精修并发布原Sites项目，保留网址/访问设置。核对最终候选hash及远端，补README/CHANGELOG/版本标签，不新增产品功能。
+
+## MR-STATE26-REFINE — 本地精修完成，已归档
+
+报告tasks/archive/MR-STATE26-REFINE.md；保留2.6未提交成果，分支codex/mr-state26-refine。历史比较按项展开、详情末尾返回、缺失维度标签完成；390px默认比较高度2368.5→475.75px，保留全部原数字证据。本轮新build/typecheck、6专项/10状态回归/9精修回归及320截图补证通过。独立审计1 LOW截图证据问题修复并VERIFY，无产品finding。领域/数据请求未改；本轮未提交/上传/部署。
+
+## MR-STATE-INTELLIGENCE-26 — 约定本地范围验证完成，已归档
+
+报告tasks/archive/MR-STATE-INTELLIGENCE-26.md，契约docs/STATE_INTELLIGENCE.md。基线09338aa，分支codex/mr-state-intelligence-26，成果保留为本地未提交diff。当前资产Short90m/Medium180m、Short连续Relative、Alignment及历史窗口Transition均完成。218 Node、build/typecheck、五视口72综合+9精修通过，2.6额外10项定点复测通过；独立领域/集成审计无confirmed findings。零新增symbol/请求/timer；真机与生产2.6路径NOT RUN。现有生产仍2.5/Sites v23，本轮不上传/部署，不恢复旧QA Gate。
+
 ## MR-PUBLISH-STATE25 — 发布成功，已归档
 
 用户明确授权“发布上传”。已将2.5及精修源码31a11d2上传GitHub，并发布为Sites v23，平台succeeded、环境revision3。产品标签radar-v2.5、发布标签sites-v23对应同一源码；报告tasks/archive/MR-PUBLISH-STATE25.md。已补README/CHANGELOG/版本索引；以下未上传/未部署是开发阶段历史状态。受众、访问码及生产环境配置保持不变。

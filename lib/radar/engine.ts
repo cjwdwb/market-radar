@@ -1,6 +1,6 @@
 import { assetFor, percent } from "../market";
 import type { RadarCoverage, RadarSignal, RadarSignalEvidence, RadarSignalType, RadarSnapshot, RadarStore } from "./types";
-import { MINUTE, mean, rms, simpleReturns, prepareMarketInput, type PreparedMarketInput as Prepared } from "./market-input";
+import { MINUTE, mean, rms, simpleReturns, prepareMarketInput, pairPreparedInputs, type PreparedMarketInput as Prepared } from "./market-input";
 
 const COOLDOWN = 30 * MINUTE;
 const LIFETIME = 45 * MINUTE;
@@ -126,8 +126,7 @@ function evaluate(snapshot: RadarSnapshot, now: number): Evaluation[] {
     if (benchmarkSymbol) {
       const benchmark = prepare(snapshot, benchmarkSymbol, now);
       if (typeof benchmark !== "string" && benchmark.quote.session === quote.session && benchmark.history.source === history.source && benchmark.history.currency === history.currency && benchmark.history.intervalMs === history.intervalMs && Math.abs(benchmark.quote.timestamp - quote.timestamp) <= history.intervalMs) {
-        const byTime = new Map(benchmark.bars.map(point => [point.time, point]));
-        const pairs = bars.flatMap(point => { const reference = byTime.get(point.time); return reference ? [{ time: point.time, asset: point.close, benchmark: reference.close }] : []; });
+        const pairs = pairPreparedInputs(data, benchmark);
         const steps = market === "crypto" ? 1 : 3;
         const minimum = 12;
         const latestPair = pairs.at(-1);

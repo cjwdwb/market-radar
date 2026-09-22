@@ -2,6 +2,15 @@
 
 本文件记录 Market Radar 的可识别产品里程碑。完整发布来源、验证范围和回退注意事项见 [docs/VERSIONS.md](docs/VERSIONS.md)。
 
+## Radar 2.6 — State Intelligence II — 2026-09-22
+
+- 当前资产新增90/180分钟方向结构与RMS窗口；连续Short Relative复用显式基准，严格校验来源/币种/session/周期与完整配对，无基准不补中性。
+- 增加可解释的Alignment关系及相邻历史窗口Transition；共享数据不重复投票，RMS不参与方向判断，历史重算不等于实时事件或预测。
+- Classic/Radar同源，逐维度失效；保留旧Signal、Confidence、Clustering、Ranking和v1完整输出，81份固定旧版oracle等价。零新增provider symbol/请求/timer/依赖。
+- 历史比较逐项展开、失效原因明确标注维度、详情底部返回当前图表并保留手动周期。390px同fixture默认总览2368.5→475.75px，完整数值证据保留。
+- 领域实施218 Node通过；最终精修build/typecheck、6专项/10状态/9精度回归与320补证1项通过。独立领域/集成审计完成，精修1 LOW截图证据问题修复并VERIFY。生产与真机范围另行记录，不把历史测试写成本轮重跑。
+- 本次已获上传部署授权，发布结果以版本索引与MR-PUBLISH-STATE26归档为准。
+
 ## Radar 2.5 — Market State Intelligence — 2026-09-22
 
 - 当前选中资产新增确定性的方向结构与RMS波动对比，Classic摘要与Radar详情共享结果；无异常事件也可判断，状态不依赖事件数量、自选或提醒。

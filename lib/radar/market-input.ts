@@ -6,6 +6,12 @@ export const FETCH_MAX_AGE = 2 * MINUTE;
 export const QUOTE_MAX_AGE = 3 * MINUTE;
 export const CANDLE_LAG_ALLOWANCE = MINUTE;
 export type PreparedMarketInput = { quote: Quote; history: RadarHistory; bars: Point[] };
+export type PreparedPair = { time: number; asset: number; benchmark: number };
+/** Exact legacy join only; callers own compatibility, tail, sample and window rules. */
+export function pairPreparedInputs(asset: PreparedMarketInput, benchmark: PreparedMarketInput): PreparedPair[] {
+  const byTime = new Map(benchmark.bars.map(point => [point.time, point]));
+  return asset.bars.flatMap(point => { const reference = byTime.get(point.time); return reference ? [{ time: point.time, asset: point.close, benchmark: reference.close }] : []; });
+}
 export type InputReason = "awaiting_quote" | "quote_failed" | "invalid_quote" | "stale_quote" | "session_unavailable" | "awaiting_history" | "source_currency_mismatch" | "stale_history" | "unsupported_interval" | "insufficient_contiguous_bars" | "invalid_history" | "stale_evidence";
 type RejectedInput = { reason: InputReason; message: string };
 export type MarketInputResult = { ok: true; data: PreparedMarketInput } | { ok: false; failure: RejectedInput };

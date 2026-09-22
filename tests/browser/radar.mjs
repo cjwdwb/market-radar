@@ -15,6 +15,10 @@ const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const observedWarnings=[];
 function series(symbol,mode){
   const interval=(symbol.endsWith('-USDT')?15:5)*60000;
+  if(mode.startsWith('state26-')){
+   const count=mode==='state26-short'?24:80;
+   return Array.from({length:count},(_,i)=>{const reference=['QQQ','000300.SS','^HSI'].includes(symbol);const close=mode==='state26-mixed'&&symbol==='NVDA'?(i<62?100+i*.2:112.4-(i-62)*.04):100+i*(reference?.002:symbol.endsWith('-USDT')?.06:.02);return {time:stamp-(count-i)*interval-(mode==='state26-lag'&&symbol==='QQQ'?interval:0),close,open:close,high:close+.02,low:close-.02,volume:100,confirmed:true};});
+  }
  return Array.from({length:70},(_,i)=>{const unusual=['normal','partial','tiny'].includes(mode),scale=mode==='tiny'?1e-10:mode==='large'?10000:1;const raw=mode==='large'?100+i*.0004:mode==='gentle'?100+i*.04:mode==='flat'?100:i===69&&unusual?103:100+(i%2)*.02;const close=raw*scale;return {time:stamp-(70-i)*interval,close,open:close,high:(raw+.02)*scale,low:(raw-.02)*scale,volume:i===69&&unusual?500:100,confirmed:true};});
 }
 async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,motionPreference,os='no-preference',probe=false,revealProbe=false}={}){
@@ -108,7 +112,7 @@ async function assetStateChecks(browser,report){
  const stateIn=page=>page.locator('.classic-experience .asset-state-summary');
  const facts=locator=>locator.locator('dl').innerText();
  for(const [name,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
-  const app=await fixture(browser,{mode:'gentle',os:'reduce'}),p=app.page;await p.setViewportSize({width,height});
+  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce'}),p=app.page;await p.setViewportSize({width,height});
   await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.candle-canvas').waitFor();
   await p.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension="direction"]')?.dataset.availability==='available');
   const classic=stateIn(p),original=await facts(classic);assert.match(original,/窗口偏上/);
@@ -118,13 +122,13 @@ async function assetStateChecks(browser,report){
   const open=classic.locator('button');assert.ok((await open.boundingBox()).height>=44);await p.keyboard.press('Tab');await open.focus();assert.notEqual(await open.evaluate(el=>getComputedStyle(el).outlineStyle),'none');await p.keyboard.press('Enter');
   const context=p.locator('.radar-asset-context'),summary=context.locator('.asset-state-summary'),details=context.locator('.asset-intelligence-details');await context.waitFor();
   assert.equal(await facts(summary),original);assert.equal(await p.locator('.radar-feed .radar-signal').count(),0);assert.equal(await details.getAttribute('open'),null);
-  await details.locator(':scope > summary').focus();await p.keyboard.press('Enter');await details.locator('.state-method-details > summary').click();assert.match(await details.innerText(),/21 个收盘价 \/ 20 个收益率/);assert.match(await details.innerText(),/不是标准差|不是.*年化/);assert.match(await details.innerText(),/报价获取/);
+  await details.locator(':scope > summary').focus();await p.keyboard.press('Enter');await details.locator('.state-method-details > summary').click();assert.match(await details.innerText(),/7 个收盘价 \/ 6 个收益率/);assert.match(await details.innerText(),/13 个收盘价 \/ 12 个收益率/);assert.match(await details.innerText(),/不是标准差|不是.*年化/);assert.match(await details.innerText(),/报价获取/);
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await context.scrollIntoViewIfNeeded();await p.screenshot({path:`${output}/state25-${name}-details.png`,fullPage:true});
   await context.getByRole('button',{name:'返回图表',exact:true}).click();await p.locator('.price-chart').waitFor();
   assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await facts(classic),original);
   assert.equal(await classic.getAttribute('data-symbol'),'BTC-USDT');
-  report.checks.push(`2.5 ${name}: no-event direction, shared facts, fixed window, keyboard/44px detail, manual range return, reduced motion, no overflow`);
+  report.checks.push(`2.6 ${name}: no-event direction, shared facts, 90/180m windows, keyboard/44px detail, manual range return, reduced motion, no overflow`);
   report.errors.push(...app.errors);await app.context.close();
  }
  const app=await fixture(browser),p=app.page;await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.candle-canvas').waitFor();
@@ -152,6 +156,86 @@ async function assetStateChecks(browser,report){
   report.checks.push(`2.5 ${mode}: dimension availability ${expected}, explicit limits`);report.errors.push(...sample.errors);await sample.context.close();
  }
  const slow=await fixture(browser,{delay:2500}),page=slow.page;await page.goto(base+'/#price-chart',{waitUntil:'domcontentloaded'});await stateIn(page).waitFor();await page.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension="direction"]')?.dataset.availability==='waiting');await page.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension="direction"]')?.dataset.availability==='available');report.checks.push('2.5 slow request shows waiting before real fixture completion');report.errors.push(...slow.errors);await slow.context.close();
+}
+
+async function state26RefinementChecks(browser,report,phase){
+ const after=phase==='after',viewportFilter=process.env.RADAR_REFINEMENT_VIEWPORT,folder=`${output}/${phase}${viewportFilter?`-${viewportFilter}`:''}`;fs.mkdirSync(folder,{recursive:true});report.refinement=[];
+ const baseline=after?JSON.parse(fs.readFileSync(`${output}/before/verification.json`,'utf8')):null;
+ for(const [name,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
+  if(viewportFilter&&name!==viewportFilter)continue;
+  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce'}),p=app.page;await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});
+  await p.locator('.symbol-rail button').filter({hasText:'NVDA'}).click();await p.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension=relative]')?.dataset.availability==='available');
+  await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
+  await p.locator('.classic-experience .state-detail-link').click();const context=p.locator('.radar-asset-context'),outer=context.locator('.asset-intelligence-details'),transition=context.locator('.state-transition-details');
+  assert.equal(await outer.getAttribute('open'),null);await outer.locator(':scope > summary').click();assert.equal(await transition.getAttribute('open'),null);await transition.locator(':scope > summary').click();
+  const items=transition.locator('[data-transition]');assert.equal(await items.count(),5);
+  const row={name,width,height,transitionHeight:await transition.evaluate(el=>el.getBoundingClientRect().height),contextHeight:await context.evaluate(el=>el.getBoundingClientRect().height),facts:await items.evaluateAll(nodes=>nodes.map(el=>({id:el.dataset.transition,numbers:el.textContent.match(/[−+-]?\d+(?:\.\d+)?/g)})))};
+  // Let the existing hash-navigation frames settle before capturing this deeper section.
+  await p.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))));
+  await transition.evaluate(el=>el.scrollIntoView({block:'start',behavior:'instant'}));await pause(200);
+  const summaryBox=await transition.locator(':scope > summary').boundingBox();assert.ok(summaryBox.y>=40&&summaryBox.y+summaryBox.height<height-64,'Comparison heading must be in the captured viewport');
+  await p.screenshot({path:`${folder}/${name}-comparison.png`});
+  if(after){
+   assert.deepEqual(row.facts,baseline.refinement.find(item=>item.name===name).facts,'All original numerical evidence retained');
+   assert.ok(row.transitionHeight<baseline.refinement.find(item=>item.name===name).transitionHeight*.6,'One-action overview is materially shorter');
+   for(let i=0;i<5;i++){const disclosure=items.nth(i).locator(':scope > details'),summary=disclosure.locator(':scope > summary');assert.equal(await disclosure.getAttribute('open'),null);assert.ok((await summary.boundingBox()).height>=44);await p.keyboard.press('Tab');await summary.focus();assert.notEqual(await summary.evaluate(el=>getComputedStyle(el).outlineStyle),'none');await p.keyboard.press('Enter');assert.equal(await disclosure.getAttribute('open'),'');assert.match(await disclosure.innerText(),/前一窗口/);assert.match(await disclosure.innerText(),/当前窗口/);assert.match(await disclosure.innerText(),/Yahoo Finance/);}
+   assert.equal(await items.locator(':scope > details[open]').count(),5,'Opening one does not close another');
+   await items.first().locator('summary').focus();await p.keyboard.press('Enter');assert.equal(await items.first().locator('details').getAttribute('open'),null);
+   const bottom=context.getByRole('button',{name:'返回 NVDA 图表',exact:true});await bottom.scrollIntoViewIfNeeded();await pause(150);const box=await bottom.boundingBox();assert.ok(box.height>=44);assert.ok(box.y>=0&&box.y+box.height<=height);row.bottomReturnVisible=true;
+   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:`${folder}/${name}-return.png`});await bottom.focus();await p.keyboard.press('Enter');await p.locator('.price-chart .recharts-area-curve').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await p.locator('.classic-experience .asset-state-summary').getAttribute('data-symbol'),'NVDA');
+  }else row.bottomReturnVisible=await context.getByRole('button',{name:'返回 NVDA 图表',exact:true}).count()>0;
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);report.refinement.push(row);report.checks.push(`${phase} ${name}: transition overview / preserved evidence / keyboard / bottom return`);await app.context.close();
+ }
+ if(after&&!viewportFilter){
+  const app=await fixture(browser,{mode:'state26-short',os:'reduce'}),p=app.page;await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.symbol-rail button').filter({hasText:'NVDA'}).click();await p.locator('.classic-experience .state-detail-link').click();await p.locator('.asset-intelligence-details > summary').click();await p.locator('.state-transition-details > summary').click();
+  const unavailable=p.locator('[data-transition="short.direction"]');assert.equal(await unavailable.locator('details').getAttribute('open'),null);assert.match(await unavailable.innerText(),/前窗暂无法比较/);
+  await app.context.setOffline(true);await p.waitForFunction(()=>document.querySelector('.radar-asset-context [data-dimension=direction]')?.dataset.availability==='offline');const missing=p.locator('.state-missing-reasons');assert.equal(await missing.locator('li').count(),3);assert.match(await missing.innerText(),/短窗方向/);assert.match(await missing.innerText(),/中窗方向/);assert.match(await missing.innerText(),/短窗相对表现/);assert.match(await missing.innerText(),/网络已断开/);assert.match(await unavailable.innerText(),/网络已断开/);
+  report.checks.push('after partial/offline: unavailable reason visible with item collapsed; missing participant labels explicit');assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);await app.context.close();
+ }
+ fs.writeFileSync(`${folder}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));
+}
+
+async function state26Checks(browser,report){
+ report.state26=[];
+ for(const [name,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
+  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce'}),p=app.page;await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});
+  await p.locator('.symbol-rail button').filter({hasText:'NVDA'}).click();const classic=p.locator('.classic-experience .asset-state-summary');
+  await p.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension="relative"]')?.dataset.availability==='available');
+  assert.equal(await classic.getAttribute('data-symbol'),'NVDA');assert.equal(await classic.getAttribute('data-rule'),'asset-state-v2');assert.equal(await classic.locator('[data-dimension=relative]').getAttribute('data-benchmark'),'QQQ');
+  assert.equal(await classic.locator('[data-dimension=medium-direction]').getAttribute('data-availability'),'available');assert.equal(await classic.locator('[data-alignment]').getAttribute('data-alignment'),'aligned');assert.match(await classic.innerText(),/百分点/);
+  const summaryHeight=await classic.evaluate(el=>el.getBoundingClientRect().height);const facts=await classic.locator('dl').innerText();await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();await classic.scrollIntoViewIfNeeded();await pause(200);await p.screenshot({path:`${output}/state26-${name}-classic.png`});
+  await classic.locator('button').click();const context=p.locator('.radar-asset-context'),details=context.locator('.asset-intelligence-details');assert.equal(await context.locator('.asset-state-summary dl').innerText(),facts);assert.equal(await p.locator('.radar-feed .radar-signal').count(),0);
+  assert.equal(await details.getAttribute('open'),null);await details.locator(':scope > summary').click();const method=details.locator('.state-method-details'),transition=details.locator('.state-transition-details');assert.equal(await method.getAttribute('open'),null);assert.equal(await transition.getAttribute('open'),null);
+  assert.match(await details.innerText(),/相对差/);assert.match(await details.innerText(),/较低波动不等于低风险/);await context.scrollIntoViewIfNeeded();await pause(200);await p.screenshot({path:`${output}/state26-${name}-context.png`});
+  await details.locator('.asset-state-evidence').evaluate(el=>el.scrollIntoView({block:'start'}));await pause(150);await p.screenshot({path:`${output}/state26-${name}-readout.png`});
+  await method.locator('summary').focus();await p.keyboard.press('Enter');assert.match(await method.innerText(),/19 个收盘价 \/ 18 个收益率/);assert.match(await method.innerText(),/37 个收盘价 \/ 36 个收益率/);assert.match(await method.innerText(),/19 个配对点 \/ 18 段收益/);assert.match(await method.innerText(),/QQQ/);assert.match(await method.innerText(),/报价获取/);assert.match(await method.innerText(),/门槛/);
+  await transition.locator(':scope > summary').focus();await p.keyboard.press('Enter');assert.equal(await transition.locator('[data-status=unavailable]').count(),0);assert.equal(await transition.locator('[data-transition]').count(),5);for(const item of await transition.locator('.state-transition-item').all()){assert.equal(await item.getAttribute('open'),null);await item.locator(':scope > summary').click();}assert.match(await transition.innerText(),/前一窗口/);assert.match(await transition.innerText(),/回看重算/);assert.match(await transition.innerText(),/参考/);
+  for(const selector of [method,transition])assert.ok((await selector.locator(':scope > summary').boundingBox()).height>=44);
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));report.state26.push({name,width,height,expandedHeight:await context.evaluate(el=>el.getBoundingClientRect().height),summaryHeight});
+  await transition.scrollIntoViewIfNeeded();await pause(150);await p.screenshot({path:`${output}/state26-${name}-transition.png`});
+  await context.getByRole('button',{name:'返回图表',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await classic.locator('dl').innerText(),facts);
+  if(name==='desktop'){
+   // Existing polling is suspended only in this isolated fixture measurement, after explicit symbol/range loads.
+   await p.clock.pauseAt(stamp+600000);await p.clock.setFixedTime(stamp);await p.clock.runFor(10000);await pause(500);const start=app.requests.length;
+   for(let i=0;i<2;i++){await classic.locator('button').click();await p.clock.runFor(48);await transition.locator(':scope > summary').click();await p.clock.runFor(48);await context.getByRole('button',{name:'返回图表',exact:true}).click();await p.clock.runFor(48);}
+   report.state26NavigationRequests=app.requests.slice(start);assert.deepEqual(report.state26NavigationRequests,[]);await p.clock.resume();
+  }
+  assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);await app.context.close();report.checks.push(`2.6 ${name}: real horizon endpoints, no-event relative/alignment, complete expandable methods/transition, keyboard, range return, no overflow`);
+ }
+ for(const [mode,relative,medium,alignment] of [['state26-short','available','insufficient','insufficient'],['state26-lag','insufficient','available','insufficient'],['benchmark-error','waiting','available','insufficient'],['state26-mixed','available','available','mixed']]){
+  const app=await fixture(browser,{mode,os:'reduce'}),p=app.page;await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.symbol-rail button').filter({hasText:'NVDA'}).click();const summary=p.locator('.classic-experience .asset-state-summary');
+  await p.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension=direction]')?.dataset.availability==='available');await p.waitForFunction(expected=>document.querySelector('.classic-experience [data-dimension=relative]')?.dataset.availability===expected,relative);
+  assert.equal(await summary.locator('[data-dimension=medium-direction]').getAttribute('data-availability'),medium);assert.equal(await summary.locator('[data-alignment]').getAttribute('data-alignment'),alignment);
+  await summary.locator('button').click();await p.locator('.asset-intelligence-details > summary').click();await p.locator('.state-transition-details > summary').click();const transitions=p.locator('.state-transition-details');
+  if(mode==='state26-short')assert.equal(await transitions.locator('[data-transition="short.direction"]').getAttribute('data-status'),'unavailable');
+  if(mode==='state26-lag'||mode==='benchmark-error'){assert.equal(await transitions.locator('[data-transition="short.relative"]').getAttribute('data-status'),'unavailable');assert.notEqual(await transitions.locator('[data-transition="short.direction"]').getAttribute('data-status'),'unavailable');}
+  assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);await app.context.close();report.checks.push(`2.6 ${mode}: local failure / mixed relation and independent transition`);
+ }
+ const app=await fixture(browser,{mode:'state26-gentle'}),p=app.page;await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.symbol-rail button').filter({hasText:'NVDA'}).click();await p.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension=relative]')?.dataset.availability==='available');
+ // Freeze scheduling, advance only explicit wall time and the existing clock; no new quotes can renew old data.
+ await p.clock.pauseAt(stamp+1000);await p.clock.setFixedTime(stamp+180001);await p.clock.runFor(10000);await p.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension=relative]')?.dataset.availability==='stale');assert.equal(await p.locator('.classic-experience [data-dimension=direction]').getAttribute('data-availability'),'stale');
+ report.checks.push('2.6 explicit clock ages asset and benchmark without new quotes');report.errors.push(...app.errors);await app.context.close();
+ report.state26SizeWarnings=observedWarnings.filter(item=>/width\(|height\(/.test(item.text));assert.deepEqual(report.state26SizeWarnings,[]);
 }
 
 async function integrationChecks(browser,report){
@@ -405,11 +489,14 @@ async function visualCapture(browser, phase) {
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={browser:browser.version(),viewports:[],checks:[],errors:[],warnings:observedWarnings};let page;
  try{
+  if(process.env.RADAR_STATE26_REFINEMENT_PHASE){await state26RefinementChecks(browser,report,process.env.RADAR_STATE26_REFINEMENT_PHASE);return;}
   if(process.env.RADAR_REFINEMENT_PHASE){await refinementChecks(browser,report,process.env.RADAR_REFINEMENT_PHASE);return;}
   if(process.env.RADAR_VISUAL_PHASE){await visualCapture(browser,process.env.RADAR_VISUAL_PHASE);return;}
   if(process.env.RADAR_POST_RELEASE==='1'){await postReleaseChecks(browser,report);fs.writeFileSync(`${output}/post-release-extra.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
+  if(process.env.RADAR_STATE26_ONLY==='1'){await state26Checks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_MOTION==='1')await motionChecks(browser,report);
   if(process.env.RADAR_STATE==='1')await assetStateChecks(browser,report);
+  if(process.env.RADAR_STATE26==='1')await state26Checks(browser,report);
   if(process.env.RADAR_INTEGRATION==='1'){await integrationChecks(browser,report);await assetIntelligenceChecks(browser,report);}
   const app=await fixture(browser);page=app.page;
   await page.goto(base,{waitUntil:'networkidle'});await page.locator('.candle-canvas').waitFor();

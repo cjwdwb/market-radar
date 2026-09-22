@@ -1,0 +1,336 @@
+{
+  "baseline": "09338aa6b03affcb01262ad571212797b0590c09",
+  "algorithm": "SHA-256 over UTF-8 JSON.stringify(recursively key-sorted full exported outputs); array order preserved",
+  "exports": [
+    "buildAssetState",
+    "radarCoverage",
+    "scanRadar (initial, repeated, expired)",
+    "buildRadarIntelligence"
+  ],
+  "cases": [
+    {
+      "name": "default-20-4-16",
+      "sha256": "5382a07611c179d2d5a288873b97d0fbed1b50463c135c9ab25d0ec73149eb64"
+    },
+    {
+      "name": "stock-20-4-16",
+      "sha256": "9d85d31cde84436bc3fc99501be1f4fe349b7cf76c3c03529baec8222673ad21"
+    },
+    {
+      "name": "count-0",
+      "sha256": "62a3f407ecb77eaa35ed2a715d4100651a639ff902105cb296e70b712d2b797d"
+    },
+    {
+      "name": "count-1",
+      "sha256": "62a3f407ecb77eaa35ed2a715d4100651a639ff902105cb296e70b712d2b797d"
+    },
+    {
+      "name": "count-20",
+      "sha256": "62a3f407ecb77eaa35ed2a715d4100651a639ff902105cb296e70b712d2b797d"
+    },
+    {
+      "name": "count-21",
+      "sha256": "62a3f407ecb77eaa35ed2a715d4100651a639ff902105cb296e70b712d2b797d"
+    },
+    {
+      "name": "count-22",
+      "sha256": "5382a07611c179d2d5a288873b97d0fbed1b50463c135c9ab25d0ec73149eb64"
+    },
+    {
+      "name": "count-23",
+      "sha256": "1b5cf942355f0873877633d996fc8bab8e4bd51b460c32ba8ad88bfb1b76aae5"
+    },
+    {
+      "name": "count-80",
+      "sha256": "68454e25c8e173769e622681632d261672884f9259ff30240505b537a58abbb7"
+    },
+    {
+      "name": "count-81",
+      "sha256": "f13a52d7ee07f12686b4b7bbff66eaecdc2f24b159c1c3d8f8fefd63a99901df"
+    },
+    {
+      "name": "count-96",
+      "sha256": "0a2ffb97ef9b08ab906546734e14db81028bd65741a811a13327717b20be039a"
+    },
+    {
+      "name": "net-BTC-USDT--1--1e-7",
+      "sha256": "05935851de411a14b825bfdb51363a55fe8471751f0d63b11cdf164a6956ae47"
+    },
+    {
+      "name": "net-BTC-USDT--1-0",
+      "sha256": "2aeb459aac61b659f569527dac2975142b14946318eb9d430fd8c382db38ac44"
+    },
+    {
+      "name": "net-BTC-USDT--1-1e-7",
+      "sha256": "1db24bfe1ee8250c38cf7305b2ba48e1c16e764510c6a209453b97d00f37edff"
+    },
+    {
+      "name": "net-BTC-USDT-1--1e-7",
+      "sha256": "2dd9849bb8e7b8414fd352e8e021c175a88491395b29de12c5d2ed158d0f8dc4"
+    },
+    {
+      "name": "net-BTC-USDT-1-0",
+      "sha256": "95a6fa86cfb7db6a870276b305f6a7680c692329b8f623f45bdc972127b05cd6"
+    },
+    {
+      "name": "net-BTC-USDT-1-1e-7",
+      "sha256": "1a1d074ac3721f6f41ba11aca6018d5215a6132ac7240062fd3ddfcad95f2abd"
+    },
+    {
+      "name": "net-NVDA--1--1e-7",
+      "sha256": "ce95080f1a6f7150cc757e79d1a5075bf7e567fddb6be6e2fa192b799e5cc696"
+    },
+    {
+      "name": "net-NVDA--1-0",
+      "sha256": "ef3bcca17cc1ca1a1de6696057a883307254d0313b08d7d0477a2b3e2686e6d9"
+    },
+    {
+      "name": "net-NVDA--1-1e-7",
+      "sha256": "d58b918bd4119cdfac926c85a2e3e48cc2c2b44374de4ac3749a09ec06bbd58e"
+    },
+    {
+      "name": "net-NVDA-1--1e-7",
+      "sha256": "62872eb30ebdec7b14636d094dbac0dc44be381bc7871bfdea37c011af941902"
+    },
+    {
+      "name": "net-NVDA-1-0",
+      "sha256": "24ee259e0977bb05a7ffe42d92a97b7cd5ae8b9b2ad284d583bb23d5c3a3b8cd"
+    },
+    {
+      "name": "net-NVDA-1-1e-7",
+      "sha256": "8aa31ec08a1bef0e3012821fc4c271d349f46f2418ea9df3fa9e0db61e1f3922"
+    },
+    {
+      "name": "efficiency-0.999999",
+      "sha256": "7bac76866e753855153e1a07549338efc5d5eae85e3594523de7734782ae9b51"
+    },
+    {
+      "name": "efficiency-1",
+      "sha256": "ad329eca8cf5620a89bac96ea38a5dbe76cfb8afbc6ec7a9aa3dfaee8c0820e4"
+    },
+    {
+      "name": "efficiency-1.000001",
+      "sha256": "182b939066f01a2f3c322924bf2485c67dca20f1d44e9405a25a17900126a6d3"
+    },
+    {
+      "name": "rms-100-150",
+      "sha256": "8b278a3e2988931422a65f9617cfb549a8ebc209f1073af5e949be444b8a36fa"
+    },
+    {
+      "name": "rms-150-100",
+      "sha256": "1b4d1928942c5d9f1588e74c10d910d1ae68d0fbadb9688e1a3c94befd7e3f98"
+    },
+    {
+      "name": "rms-100-100",
+      "sha256": "04fa2f07fe5599c8592c11767118386b5d282d36c14ab4145772055a732d9d2a"
+    },
+    {
+      "name": "rms-100-0",
+      "sha256": "0108daf5f8a4d9f9e823b870cefb3c94aa455a979146c0de9b19b9d1e27289a0"
+    },
+    {
+      "name": "rms-100-149.9999",
+      "sha256": "ddf40be392596d8dd1ff98556e35d9cc74fdbcc834d186b23dc79425f79b1eaa"
+    },
+    {
+      "name": "rms-100-150.0001",
+      "sha256": "45808a94d565360309da76b14ee7fd8a234acd125ab0b1b6cadf13f33bbc2865"
+    },
+    {
+      "name": "rms-100-66.6666",
+      "sha256": "33452f28be48be42caa72fe830cffc3d3622fd91d367a5fe5a44d8d169b243f1"
+    },
+    {
+      "name": "rms-100-66.6667",
+      "sha256": "449d60a3c35ba21be617a865d5040ca7c8f9048bb9a783ed814963b2a236459e"
+    },
+    {
+      "name": "rms-1e-7-0.3",
+      "sha256": "2ea84d42b4b86bdaddc5f1752d3e4baca966d9aa58f4556336f6b160ff5fa920"
+    },
+    {
+      "name": "rms-0-0",
+      "sha256": "71c7662f2c002ef387a63e8fe890ce19406aaf5f24db77c060c763d8d39c2b50"
+    },
+    {
+      "name": "offline-precedes-paused-clock-input",
+      "sha256": "c1064d0285a3cd98d22eb13a62a0c7d9f409ac5ef09623d0b6e3020e84f53b82"
+    },
+    {
+      "name": "paused-precedes-clock-input",
+      "sha256": "6bb1df8f9f36629fcc416e78a82919593b9fc61e95566108d6f90fbc8732fc21"
+    },
+    {
+      "name": "clock-precedes-input",
+      "sha256": "caaf00e947e0c476724a6e0e9aeab3ea6253ffbf4a72ef7c38aee858d7f1361a"
+    },
+    {
+      "name": "awaiting_quote",
+      "sha256": "0846487be7c4588e41971fdd2f4b526c2e177c1e57c7d3d5caf493434b198ae6"
+    },
+    {
+      "name": "quote_failed-before-invalid-stale",
+      "sha256": "1b87f25d9fe7654e55f2dd989b9a9ba88abe79e5226c673c7cd22e11005ae869"
+    },
+    {
+      "name": "invalid_quote-before-stale",
+      "sha256": "904d326df4b8f135bc46aaf22df016e5a66dcbcded45421cac61b86523c42d81"
+    },
+    {
+      "name": "stale_quote-before-history",
+      "sha256": "4ff956f6dfdf2aadb8ffc092446e8ec1b860c35b938c164f602cfd4063ffcd1c"
+    },
+    {
+      "name": "quote-fetch-120000",
+      "sha256": "ad53eb0898142e4c09b47f4010912e86b3e07ff11e8ec999d1af6d5e4389968b"
+    },
+    {
+      "name": "quote-fetch-120001",
+      "sha256": "4ff956f6dfdf2aadb8ffc092446e8ec1b860c35b938c164f602cfd4063ffcd1c"
+    },
+    {
+      "name": "quote-timestamp-180000",
+      "sha256": "62a3f407ecb77eaa35ed2a715d4100651a639ff902105cb296e70b712d2b797d"
+    },
+    {
+      "name": "quote-timestamp-180001",
+      "sha256": "4ff956f6dfdf2aadb8ffc092446e8ec1b860c35b938c164f602cfd4063ffcd1c"
+    },
+    {
+      "name": "awaiting_history",
+      "sha256": "6c31ad172a581dc7dd6e9d4503a943730f1bf48ac480d2ae86b13bf80371f8d5"
+    },
+    {
+      "name": "source-before-stale-history",
+      "sha256": "47efd76703eb0fed0a5aa2d413a743beda4dece10f339c744f87da9c16889382"
+    },
+    {
+      "name": "currency-mismatch",
+      "sha256": "47efd76703eb0fed0a5aa2d413a743beda4dece10f339c744f87da9c16889382"
+    },
+    {
+      "name": "stale-before-interval",
+      "sha256": "396d18ac22f41ffa0605c214e5475615126f59bed73c1fd7f0c4c4678b00c20f"
+    },
+    {
+      "name": "interval-before-points",
+      "sha256": "ea6c43a11a60121b8a52cb6a3b73cd587433f16fa84e8c05a08d7a45cef8bff6"
+    },
+    {
+      "name": "insufficient-before-invalid-close",
+      "sha256": "62a3f407ecb77eaa35ed2a715d4100651a639ff902105cb296e70b712d2b797d"
+    },
+    {
+      "name": "invalid-close",
+      "sha256": "865dcff6233ff48c485cbe031337fbfe3c7293f72542eae1193c234225c8cd1f"
+    },
+    {
+      "name": "infinite-close",
+      "sha256": "865dcff6233ff48c485cbe031337fbfe3c7293f72542eae1193c234225c8cd1f"
+    },
+    {
+      "name": "unconfirmed",
+      "sha256": "62a3f407ecb77eaa35ed2a715d4100651a639ff902105cb296e70b712d2b797d"
+    },
+    {
+      "name": "future-filtered",
+      "sha256": "5382a07611c179d2d5a288873b97d0fbed1b50463c135c9ab25d0ec73149eb64"
+    },
+    {
+      "name": "tail-duplicate",
+      "sha256": "62a3f407ecb77eaa35ed2a715d4100651a639ff902105cb296e70b712d2b797d"
+    },
+    {
+      "name": "tail-gap",
+      "sha256": "62a3f407ecb77eaa35ed2a715d4100651a639ff902105cb296e70b712d2b797d"
+    },
+    {
+      "name": "state-future-engine-legacy",
+      "sha256": "da9a9261820aab6fbd0856e4d8987b3495bdf3c1e1b0f77e2b0099de7e20c5ea"
+    },
+    {
+      "name": "stale-evidence-equal",
+      "sha256": "686c990f8089ddbaa78230c6ae64fe83921c67bab8ccc1d3b6dee715a445683c"
+    },
+    {
+      "name": "stale-evidence-over",
+      "sha256": "c4cb1ae5bc198d0b6c2a01ad5b36af1534812bfa36e9117ca87d70a5b447dc18"
+    },
+    {
+      "name": "numeric-overflow",
+      "sha256": "0b66e031a0b8ddfb346ba82dcff9839e5c1968c3e33def90de5743b1c93d56a0"
+    },
+    {
+      "name": "session-closed",
+      "sha256": "625f774c3d7ad32ebd93b31556e17191a621d4e10f4fa1127c141294c2caed47"
+    },
+    {
+      "name": "session-unknown",
+      "sha256": "625f774c3d7ad32ebd93b31556e17191a621d4e10f4fa1127c141294c2caed47"
+    },
+    {
+      "name": "relative-NVDA--4",
+      "sha256": "c5b4e4c01e9e77385d9dacb18d7aa7a29bee3398c0d9ea877cf49e402da7bc05"
+    },
+    {
+      "name": "relative-NVDA-4",
+      "sha256": "06f18ec73c20dcf611ca9e16d2d3cb500cb406b4aae212c9eb932940832c6bb8"
+    },
+    {
+      "name": "relative-ETH-USDT--4",
+      "sha256": "2f62d0b04d5d310ce7060a430a4b20942fb24f6b854cfa332f1cea8ebf3c0e8c"
+    },
+    {
+      "name": "relative-ETH-USDT-4",
+      "sha256": "8d1fe6c7db3ef357388fdcc54fa2731b05ac9f756bfbf4653f867af040933116"
+    },
+    {
+      "name": "relative-600519.SS--4",
+      "sha256": "0e29ba4b632a25bf77294d6d5dda3ab1cf9f3c87d801e53318dd45c65ffe2e1e"
+    },
+    {
+      "name": "relative-600519.SS-4",
+      "sha256": "9649bafe2c576da31a0e7af713b3e8e0dc8314ebaca393aa5e4393cd9ccfd753"
+    },
+    {
+      "name": "relative-0700.HK--4",
+      "sha256": "7328a28a9be466c0706ee3abab70ff80b67e8a4139f7f5f17a23b84dfd6eb82b"
+    },
+    {
+      "name": "relative-0700.HK-4",
+      "sha256": "b0481a24e46ea7f7d3c6d774708547665fe283978702cbea541f5a13c7e310dc"
+    },
+    {
+      "name": "relative-missing",
+      "sha256": "0f4f97c2e8486840d4fa0f00098555f277462a5c34d148244defa31207f84708"
+    },
+    {
+      "name": "relative-stale",
+      "sha256": "0f761a042384851dbfa422d38b9e010599b2b698f4d5e896b805c0c77ad59750"
+    },
+    {
+      "name": "relative-session",
+      "sha256": "b547b2322ea64e97b11bbf3df69a77c10f079e29c47cd0cc7de784558e6dd085"
+    },
+    {
+      "name": "relative-source",
+      "sha256": "690c7d92f4ab79a26a9676d3ce59e2d20eac047c92e636b504d298b841240403"
+    },
+    {
+      "name": "relative-currency",
+      "sha256": "a7633a3e210a366b8ca0713ee981d799b27c49150e3fa6a728869ba58ea037bb"
+    },
+    {
+      "name": "relative-phase",
+      "sha256": "9959558d915cd43e0ab487b7dc0457fa102994bd983ac4e6714c1613f09a79c3"
+    },
+    {
+      "name": "relative-one-tail-lag",
+      "sha256": "2e36b92991e950111d7ff16fd694afaec7376b25314ee7ce57f1467865c32ce9"
+    },
+    {
+      "name": "relative-detector-older-paired-tail",
+      "sha256": "6d00f143fcef72c4269ef2de6eaec10be5dba7de51c3d89f09feed8b3837bfec"
+    }
+  ]
+}

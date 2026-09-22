@@ -1,4 +1,8 @@
 # 当前状态
+本地2.6精修：MR-STATE26-REFINE完成历史比较逐项展开、详情底部返回当前图表、关系缺失原因标注维度。相同fixture/操作，390px比较总览高度2368.5→475.75px；完整数值/窗口/来源保留。新build/typecheck、6项专项、10状态回归、9精修回归及320定点补证通过。独立审计无产品finding，1 LOW截图证据修复并VERIFY。未改领域规则/数据请求；分支codex/mr-state26-refine、未提交/上传/部署。报告tasks/archive/MR-STATE26-REFINE.md。
+
+最新本地：2.6 State Intelligence II 约定P0/P1验证完成，未提交/上传/部署。分支codex/mr-state-intelligence-26，起点09338aa。选中资产双窗口90/180m方向与RMS、90m连续相对表现、Alignment及历史相邻窗口比较；不增加数据请求、symbol或timer。218 Node、build/typecheck、72项综合浏览器、9项精修专项及10项2.6定点复测通过；独立领域/集成审计无confirmed findings。五视口为本地Edge fixture，新UI真机与生产NOT RUN。契约docs/STATE_INTELLIGENCE.md；报告tasks/archive/MR-STATE-INTELLIGENCE-26.md。旧QA事实保留，不再作为Gate。
+
 当前生产：Market Radar 2.5 已于2026-09-22发布为Sites v23，源码`31a11d2d5006e10edeb4907fe8a7cafb22ca6960`，平台确认succeeded，环境revision3。GitHub main已上传产品源码，`radar-v2.5`、`sites-v23`标记部署源码；后续介绍/发布记录提交不重新部署。正式网址https://market-radar-rex.swt-aether.chatgpt.site ，既有访问码和受众保持不变。发布记录见`tasks/archive/MR-PUBLISH-STATE25.md`。以下未发布/未上传文字为开发与QA阶段历史记录，不代表当前生产状态。
 
 最新本地精修：MR-STATE25-REFINE 在2.5未提交成果上修复极小价格折线刻度归零、隐藏/恢复图表尺寸警告、初始加载误标暂停，并分层展示详情方法/来源。独立审计发现1 LOW大额窄区间刻度精度问题，已修复并VERIFY；最终99 Node、build/typecheck和9项专项通过，62项综合浏览器在该LOW修复前通过。报告见 `tasks/archive/MR-STATE25-REFINE.md`。用户明确旧未验证事项本轮不用跟进，QA-A保留历史BLOCKED事实但不阻塞推进。当前分支codex/mr-state25-refine；本轮未上传或发布，生产仍2.45/v22。

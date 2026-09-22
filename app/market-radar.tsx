@@ -23,10 +23,10 @@ import { canMonitor } from "@/lib/monitoring";
 import { retryDelay, reusePoints } from "@/lib/refresh-policy";
 import { RadarFeed } from "@/components/radar/radar-feed";
 import { AssetRadarAwareness, AssetStateSummary, RadarOriginContext } from "@/components/radar/asset-context";
-import { buildAssetState } from "@/lib/radar/asset-state";
+import { buildAssetStateV2 } from "@/lib/radar/asset-state-v2";
 import { useRadar } from "@/components/radar/use-radar";
 import { experienceForHash } from "@/lib/radar/navigation";
-import { benchmarkSymbols } from "@/lib/radar/engine";
+import { benchmarkFor, benchmarkSymbols } from "@/lib/radar/engine";
 import { buildAssetIntelligenceContext, chartRangeForEvent, enabledPriceAlertCounts, resolveRadarEvent, type RadarEventReference } from "@/lib/radar/workflow";
 import type { MarketMode, RadarHistory, RadarIntelligenceEvent } from "@/lib/radar/types";
 
@@ -172,8 +172,9 @@ export default function MarketRadar(){
   const radarContext=resolveRadarEvent(radar.intelligence.events,radarOrigin,selected);
   const priceAlertCounts=useMemo(()=>enabledPriceAlertCounts(alerts),[alerts]);
   const selectedRadar=useMemo(()=>buildAssetIntelligenceContext({events:radar.intelligence.events,coverage:radar.coverage,symbol:selected,now,enabled:hydrated&&mayRun,online,isWatched:watchlist.includes(selected),enabledAlertCount:priceAlertCounts.get(selected)??0}),[radar.intelligence.events,radar.coverage,selected,now,hydrated,mayRun,online,watchlist,priceAlertCounts]);
-  const stateQuote=quotes[selected],stateHistory=trends[selected];
-  const selectedState=useMemo(()=>buildAssetState({snapshot:{quotes:stateQuote?{[selected]:stateQuote}:{},histories:stateHistory?{[selected]:stateHistory}:{},symbols:[selected]},symbol:selected,now,enabled:!hydrated||mayRun,online}),[stateQuote,stateHistory,selected,now,hydrated,mayRun,online]);
+  const stateQuote=quotes[selected],stateHistory=trends[selected],stateBenchmark=benchmarkFor(selected);
+  const stateBenchmarkQuote=stateBenchmark?quotes[stateBenchmark]:undefined,stateBenchmarkHistory=stateBenchmark?trends[stateBenchmark]:undefined;
+  const selectedState=useMemo(()=>buildAssetStateV2({snapshot:{quotes:{...(stateQuote?{[selected]:stateQuote}:{}),...(stateBenchmark&&stateBenchmarkQuote?{[stateBenchmark]:stateBenchmarkQuote}:{})},histories:{...(stateHistory?{[selected]:stateHistory}:{}),...(stateBenchmark&&stateBenchmarkHistory?{[stateBenchmark]:stateBenchmarkHistory}:{})},symbols:[selected]},symbol:selected,now,enabled:!hydrated||mayRun,online}),[stateQuote,stateHistory,stateBenchmark,stateBenchmarkQuote,stateBenchmarkHistory,selected,now,hydrated,mayRun,online]);
   function openRelatedRadar(){setRadarAssetFocus(true);setRadarOrigin(null);setMarketMode("radar");setSection("#radar");location.hash="radar";}
   function returnToRadar(){setRadarOrigin(null);setMarketMode("radar");setSection("#radar");location.hash="radar";}
   function openRadarAlert(symbol:string){
