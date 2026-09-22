@@ -36,4 +36,6 @@ test("renders the market monitoring workspace with its product title", async () 
   assert.match(html, /市场总览/);
   assert.match(html, /我的自选/);
   assert.doesNotMatch(html, /Starter Project/);
+  assert.match(html, /data-dimension="direction" data-availability="waiting"/);
+  assert.doesNotMatch(html, /监控已暂停，状态不作为当前结论/);
 });

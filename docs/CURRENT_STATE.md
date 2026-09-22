@@ -1,5 +1,9 @@
 # 当前状态
-最新验收：MR-245-POST-RELEASE-QA 已完成可执行验证及独立审计；本轮新测48项本地浏览器、6项专项和3项动效测试通过，产品零改动。用户报告iPhone16 Pro/iOS26.2五步通过，但Radar往返第5步未测；生产登录后路径因未取得授权工作台而BLOCKED。整体结论仍为证据不足，不宣称全面封版。报告见 `tasks/archive/MR-245-POST-RELEASE-QA.md`。用户后续授权上传QA成果；未开始2.5，网站复用现有v22。
+最新本地精修：MR-STATE25-REFINE 在2.5未提交成果上修复极小价格折线刻度归零、隐藏/恢复图表尺寸警告、初始加载误标暂停，并分层展示详情方法/来源。独立审计发现1 LOW大额窄区间刻度精度问题，已修复并VERIFY；最终99 Node、build/typecheck和9项专项通过，62项综合浏览器在该LOW修复前通过。报告见 `tasks/archive/MR-STATE25-REFINE.md`。用户明确旧未验证事项本轮不用跟进，QA-A保留历史BLOCKED事实但不阻塞推进。当前分支codex/mr-state25-refine；本轮未上传或发布，生产仍2.45/v22。
+
+本地2.5：MR-MARKET-STATE-25 已按明确的“带QA-A缺口隔离实现”授权完成选中资产方向结构与RMS波动对比。分支 `codex/mr-market-state-25-builder`，基线8a79166、未提交diff。新测98/98 Node、build/typecheck、五视口62项浏览器通过，独立GPT两项LOW修复及复核通过；完整证据见 `tasks/archive/MR-MARKET-STATE-25.md`。连续相对状态Deferred，零新增请求/timer/依赖。候选本地验证不等于生产/真机通过；未push/merge/tag/deploy，现有生产仍为下述2.45/v22。
+
+2.45 QA补证：2026-09-22用户明确报告iPhone16 Pro/iOS26.2正式网站第5步四项正常（用户反馈PASS），原其他五步通过记录保留；生产登录后QA-A仍BLOCKED。新独立Edge到门禁后，用户当前无法登录，未取得工作台会话，不绕过门禁。原整体证据不足结论保留。`tasks/archive/MR-245-POST-RELEASE-QA.md` 的48项本地浏览器、6项专项和3项动效测试是历史结果，不与2.5新测混淆。
 
 当前生产：Market Radar 2.45 已于 2026-09-22 发布为 Sites v22，源码 `6804b41f5c6763cc631c9919e24e93fd6a076bbc`，平台确认 succeeded，环境 revision 3。GitHub main 已上传产品源码与介绍，产品标签 `radar-v2.45`、发布标签 `sites-v22` 标记部署源码。正式地址 https://market-radar-rex.swt-aether.chatgpt.site ，访问策略及密钥保持不变。记录见 `tasks/archive/MR-PUBLISH-VISUAL-245.md`。以下本地/未部署描述为此前阶段记录。
 

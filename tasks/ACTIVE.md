@@ -1,15 +1,25 @@
-# MR-245-POST-RELEASE-QA
+# 当前任务索引
 
-状态：本轮可执行验收与独立审计已结束；整体结论为证据不足，尚有两项待补，不能标记全面验收通过。
+## MR-PUBLISH-STATE25 — 发布执行中
 
-现有生产为 Market Radar 2.45 / Sites v22，源码6804b41。当前QA分支 codex/mr-245-post-release-qa，基线fc36ac7；产品代码与生产一致，本轮零产品改动。验收完成后用户另行授权上传发布，本次将已审计QA报告/脚本提交上传GitHub；网站复用现有成功部署，不新增版本或标签。
+用户明确授权“发布上传”。任务卡tasks/MR-PUBLISH-STATE25.md；上传现有已验收2.5与精修成果，补版本介绍，发布到既有Sites项目。以下未上传/未部署是开发阶段历史状态，以本发布任务最终记录为准。不改变受众、访问码或生产环境配置。
 
-本轮新测：本地Edge五视口48项浏览器 + 6项补证 + 3项动效Node测试通过；修复测试脚本漏检查pageerror并独立复核。83/83全量测试与typecheck/build仅复用历史证据，本轮未重跑。
+## MR-STATE25-REFINE — 约定本地范围验证完成，已归档
 
-生产：访问码页实际可达，但15分钟未观察到授权工作台，临时浏览器已关闭；登录后路径BLOCKED。真机：用户报告iPhone16 Pro/iOS26.2的第1/2/3/4/6步通过，第5步Radar往返与周期保留NOT RUN。
+报告 tasks/archive/MR-STATE25-REFINE.md。用户要求主动检查优化，并明确旧未验证项本轮不用跟进。已保留2.5未提交成果，分支codex/mr-state25-refine；完成价格刻度、图表尺寸、详情层级及首屏加载修复。最终99 Node、build/typecheck及9项专项通过；62项综合回归在最后刻度LOW修复前通过。独立GPT审计1 LOW已修复并VERIFY，无未解决confirmed findings。本地成果未上传/发布。
 
-待补：用户在新的独立测试浏览器安全登录后完成生产只读路径；iPhone补第5步。不要把本地fixture或其余真机反馈替代这两项。重开浏览器继续时沿用原授权范围，不索要明文凭据。
+## MR-245-POST-RELEASE-QA — 历史缺口保留，本轮不阻塞
 
-可复查报告、历史/新测划分、命令、脚本修正和限制见 tasks/archive/MR-245-POST-RELEASE-QA.md。现有2.45已上线，本轮未重新发布；无产品修复候选，不自动开始2.5。
+整体结论仍为证据不足。生产2.45 / Sites v22，源码6804b41。
+最新用户决定：旧未验证项本轮不用跟进，不再作为本轮本地推进Gate；没有把BLOCKED改为PASS，也不绕过认证。
+QA-A生产登录后路径：BLOCKED；上轮已重开独立Edge到门禁，用户说明当前无法使用Edge后停止，未取得授权会话、不绕过门禁。本轮按用户决定不再跟进。
+QA-B iPhone第5步：PASS（2026-09-22用户明确确认已实测四项正常；iPhone16 Pro/iOS26.2、现有正式2.45）。其余五步历史用户PASS保留；不冒称代理真机实测或未来2.5验收。
+原报告 tasks/archive/MR-245-POST-RELEASE-QA.md 保留历史结论；本轮补证更新及责任/下一步见 tasks/archive/MR-MARKET-STATE-25.md。
 
-上传任务 MR-SYNC-245-QA：依据2026-09-22用户“上传发布吧，我准备开始2.5了”的授权。范围为已有QA脚本/报告、ACTIVE、CURRENT_STATE、README中的验收索引；不改产品或生产配置。核验GitHub main仍为fc36ac7、Sites v22仍succeeded；复用独立审计和同脚本验证，执行语法/diff检查、普通fast-forward推送并读回远端SHA。未启动2.5 Planner；两项证据缺口延续，不默认视为用户接受风险或全面封版。
+## MR-MARKET-STATE-25 — 约定本地范围验证完成，已归档
+
+基线：8a79166512d26d958c5ad380b2e3977cb2265d1f，本地/GitHub起点已核验；原实施分支codex/mr-market-state-25-builder，成果已保留到上述精修分支。本任务开始时无遗留用户改动，本任务diff未提交。
+契约与范围见 tasks/archive/MR-MARKET-STATE-25.md：方向结构+RMS波动对比，连续相对表现Deferred，零新增请求/timer。
+Gate：用户明确答复“允许带 QA-A 缺口进行上述隔离实现”。进入独立分支codex/mr-market-state-25-builder，仅本地实现/测试/审计。QA-A仍BLOCKED，不改成PASS，不授权merge/push/tag/deploy。
+本轮禁止push/merge/tag/deploy/改密钥；现有2.45已上线，本轮2.5未部署。历史测试不是本轮新测。
+本轮新测98 Node /62浏览器（14 State+48原矩阵）、build/typecheck通过；GPT独立审计两项LOW已修复复核，最终报告定点VERIFY通过。2.5新增UI真机NOT RUN。

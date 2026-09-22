@@ -17,7 +17,7 @@
 | CN | A 股个股 | 000300.SS |
 | HK | 港股个股 | ^HSI |
 
-BTC、QQQ、SPY、主要指数本身不递归生成 relative signal。自定义代码按市场映射，但 source/currency/session/interval 任一不匹配即拒绝。
+BTC、QQQ、SPY、主要指数本身不递归生成 relative signal。基准适用映射以 `benchmarkFor` 的显式目录为准；未知自定义资产不自动按市场猜测基准。已配置映射仍须通过 source/currency/session/interval 校验。此处纠正旧文档描述，2.5 未改变映射实现。
 
 资产和 benchmark 使用同步完成的 K 线。窗口统一为 15 分钟：股票为 3×5m，crypto 为 1×15m。`relative delta = asset return - benchmark return`。至少需要 12 个历史对齐 relative 窗口；阈值为历史绝对 relative delta 中位数的 3 倍，并设股票 0.35%、crypto 0.60% 的噪声下限。报价时间差或最新完整 K 线差超过一个 interval、历史 gap、过期、休市、来源/币种/周期不一致都不生成。
 

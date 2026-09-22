@@ -12,9 +12,10 @@ const testUrl=new URL(base);
 if(!['127.0.0.1','localhost','[::1]'].includes(testUrl.hostname)||!['http:','https:'].includes(testUrl.protocol))throw Error('Radar fixture requires a loopback preview URL.');
 const stamp=1789372800000,output=process.env.RADAR_OUTPUT_DIR||'outputs/radar';fs.mkdirSync(output,{recursive:true});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+const observedWarnings=[];
 function series(symbol,mode){
   const interval=(symbol.endsWith('-USDT')?15:5)*60000;
- return Array.from({length:70},(_,i)=>{const unusual=['normal','partial'].includes(mode);const close=i===69&&unusual?103:100+(i%2)*.02;return {time:stamp-(70-i)*interval,close,open:close,high:close+.02,low:close-.02,volume:i===69&&unusual?500:100,confirmed:true};});
+ return Array.from({length:70},(_,i)=>{const unusual=['normal','partial','tiny'].includes(mode),scale=mode==='tiny'?1e-10:mode==='large'?10000:1;const raw=mode==='large'?100+i*.0004:mode==='gentle'?100+i*.04:mode==='flat'?100:i===69&&unusual?103:100+(i%2)*.02;const close=raw*scale;return {time:stamp-(70-i)*interval,close,open:close,high:(raw+.02)*scale,low:(raw-.02)*scale,volume:i===69&&unusual?500:100,confirmed:true};});
 }
 async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,motionPreference,os='no-preference',probe=false,revealProbe=false}={}){
  const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:os});
@@ -48,22 +49,109 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,
  });
  if(storage)await page.addInitScript(()=>{Storage.prototype.getItem=()=>{throw Error('Storage unavailable')};Storage.prototype.setItem=()=>{throw Error('Storage unavailable')};});
  const errors=[],requests=[],priceOffset={value:0};page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(r.url().includes('/api/'))requests.push(r.url())});
+ page.on('console',message=>{if(['warning','error'].includes(message.type()))observedWarnings.push({mode,type:message.type(),text:message.text().slice(0,500)});});
  await page.route('**/api/quotes?**',async route=>{
   if(delay)await pause(delay);
   const symbols=new URL(route.request().url()).searchParams.get('symbols').split(',');
   await route.fulfill({json:{results:symbols.map(symbol=>{
    if(mode==='error'||mode==='partial'&&symbol==='NVDA'||mode==='benchmark-error'&&['QQQ','000300.SS','^HSI'].includes(symbol))return {symbol,error:'测试：该标的请求失败'};
-   const okx=symbol.endsWith('-USDT'),points=series(symbol,mode);
-   return {symbol,quote:{symbol,name:symbol,currency:okx?'USDT':symbol.endsWith('.HK')||symbol==='^HSI'?'HKD':symbol.endsWith('.SS')?'CNY':'USD',source:okx?'OKX 欧易':'Yahoo Finance',price:points.at(-1).close+priceOffset.value,change:3,changePercent:3,previousClose:100,high:103.02,low:99.98,volume:1000000,timestamp:mode==='stale'?stamp-3600000:stamp,fetchedAt:stamp,session:'open',delayMinutes:0,points:okx?[]:points}};
+   const okx=symbol.endsWith('-USDT'),points=series(symbol,mode),scale=mode==='tiny'?1e-10:mode==='large'?10000:1;
+   return {symbol,quote:{symbol,name:symbol,currency:okx?'USDT':symbol.endsWith('.HK')||symbol==='^HSI'?'HKD':symbol.endsWith('.SS')?'CNY':'USD',source:okx?'OKX 欧易':'Yahoo Finance',price:points.at(-1).close+priceOffset.value,change:3*scale,changePercent:3,previousClose:100*scale,high:103.02*scale,low:99.98*scale,volume:1000000,timestamp:mode==='stale'?stamp-3600000:stamp,fetchedAt:stamp,session:'open',delayMinutes:0,points:okx?[]:points}};
   }),fetchedAt:stamp}});
  });
  await page.route('**/api/history?**',async route=>{
   if(delay)await pause(delay);
   const symbol=new URL(route.request().url()).searchParams.get('symbol');
-  await route.fulfill({status:mode==='error'?503:200,json:{symbol,points:mode==='empty'?[]:series(symbol,mode),currency:symbol.endsWith('-USDT')?'USDT':'USD',source:symbol.endsWith('-USDT')?'OKX 欧易':'Yahoo Finance',fetchedAt:stamp,timezone:'UTC'}});
+  await route.fulfill({status:mode==='error'?503:200,json:{symbol,points:mode==='empty'?[]:series(symbol,mode),currency:symbol.endsWith('-USDT')?'USDT':'USD',source:symbol.endsWith('-USDT')?'OKX 欧易':'Yahoo Finance',fetchedAt:mode==='history-stale'?stamp-180000:stamp,timezone:'UTC'}});
  });
  await page.route('**/api/monitor**',route=>route.fulfill({status:401,json:{error:'仅站主管理'}}));
  return {context,page,errors,requests,priceOffset};
+}
+
+async function refinementChecks(browser,report,phase){
+ const after=phase==='after',folder=`${output}/${phase}`;fs.mkdirSync(folder,{recursive:true});
+ report.refinement=[];
+ for(const [name,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
+  const app=await fixture(browser,{os:'reduce'}),p=app.page;await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.candle-canvas').waitFor();await p.waitForFunction(()=>document.querySelector('.asset-radar-awareness')?.textContent.includes('活跃事件'));
+  await p.locator('.asset-radar-awareness').click();const outer=p.locator('.asset-intelligence-details');await outer.locator(':scope > summary').click();
+  assert.match(await outer.innerText(),/主事件/);assert.match(await outer.innerText(),/净变化/);assert.match(await outer.innerText(),/RMS/);
+  if(after){const method=p.locator('.state-method-details');assert.equal(await method.getAttribute('open'),null);assert.match(await outer.innerText(),/较低.*不等于低风险/);assert.match(await outer.innerText(),/检测覆盖/);}
+  const context=p.locator('.radar-asset-context');await context.scrollIntoViewIfNeeded();await p.screenshot({path:`${folder}/${name}-context.png`});
+  report.refinement.push({name,width,height,contextHeight:await context.evaluate(el=>el.getBoundingClientRect().height)});
+  if(after){const method=p.locator('.state-method-details');await p.keyboard.press('Tab');await method.locator('summary').focus();await p.keyboard.press('Enter');assert.equal(await method.getAttribute('open'),'');assert.match(await method.innerText(),/报价获取/);assert.match(await method.innerText(),/门槛/);assert.ok((await method.locator('summary').boundingBox()).height>=44);await method.locator('summary').click();}
+  await p.getByRole('button',{name:'返回图表',exact:true}).click();await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
+  const area=p.locator('.price-chart .recharts-surface');assert.ok((await area.boundingBox()).width>100);
+  for(let i=0;i<2;i++){await p.locator('.asset-radar-awareness').click();await p.getByRole('button',{name:'返回图表',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');}
+  await p.setViewportSize({width:width+20,height});await p.locator('.price-chart .recharts-area-curve').waitFor();await p.setViewportSize({width,height});
+  await p.locator('.price-chart').scrollIntoViewIfNeeded();await area.focus();await p.keyboard.press('ArrowRight');await p.locator('.chart-tooltip').waitFor();assert.match(await p.locator('.chart-tooltip').innerText(),/USDT/);
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:`${folder}/${name}-chart.png`});
+  assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);report.checks.push(`${phase} ${name}: hierarchy/limits, week chart resize/return/keyboard tooltip, no overflow`);await app.context.close();
+ }
+ const tiny=await fixture(browser,{mode:'tiny'}),p=tiny.page;await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
+ report.tinyAxis=await p.locator('.recharts-yAxis-tick-labels text').allTextContents();
+ if(after){assert.ok(report.tinyAxis.length>=2);assert.ok(report.tinyAxis.every(text=>Number(text.replaceAll(',',''))>0));assert.ok(new Set(report.tinyAxis).size>=2);}
+  await p.screenshot({path:`${folder}/tiny-price.png`});report.errors.push(...tiny.errors);await tiny.context.close();report.checks.push(`${phase} tiny price axis captured${after?' and remains nonzero/distinct':''}`);
+ if(after){
+  const large=await fixture(browser,{mode:'large'}),page=large.page;await page.setViewportSize({width:320,height:740});await page.goto(base+'/#price-chart',{waitUntil:'networkidle'});await page.getByRole('tab',{name:'1 周',exact:true}).click();await page.locator('.price-chart .recharts-area-curve').waitFor();
+  const ticks=page.locator('.recharts-yAxis-tick-labels text');report.largeAxis=await ticks.allTextContents();assert.ok(report.largeAxis.length>=2);assert.equal(new Set(report.largeAxis).size,report.largeAxis.length);
+  assert.ok(await ticks.evaluateAll(nodes=>nodes.every(node=>{const b=node.getBoundingClientRect();return b.left>=0&&b.right<=innerWidth;})));assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.locator('.price-chart').scrollIntoViewIfNeeded();await page.screenshot({path:`${folder}/large-price-narrow.png`});report.errors.push(...large.errors);await large.context.close();report.checks.push('large narrow-range prices have distinct ticks within 320px viewport');
+ }
+ const noHydration=await fixture(browser);await noHydration.page.route('**/*',route=>route.request().resourceType()==='script'?route.abort():route.fallback());await noHydration.page.goto(base,{waitUntil:'domcontentloaded'});
+ report.initialState=await noHydration.page.locator('.classic-experience [data-dimension=direction]').getAttribute('data-availability');if(after)assert.equal(report.initialState,'waiting');await noHydration.context.close();report.checks.push(`${phase} server loading state: ${report.initialState}`);
+ if(after){const paused=await fixture(browser);await paused.page.addInitScript(()=>localStorage.setItem('market-radar-preferences-v1',JSON.stringify({auto:false})));await paused.page.goto(base,{waitUntil:'networkidle'});assert.equal(await paused.page.locator('.classic-experience [data-dimension=direction]').getAttribute('data-availability'),'paused');await paused.context.close();report.checks.push('saved user pause remains paused after hydration');}
+ report.chartSizeWarnings=observedWarnings.filter(item=>/width\(|height\(/.test(item.text));if(after)assert.equal(report.chartSizeWarnings.length,0);
+ fs.writeFileSync(`${folder}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify({checks:report.checks.length,errors:report.errors,tinyAxis:report.tinyAxis,initialState:report.initialState,chartSizeWarnings:report.chartSizeWarnings.length,measurements:report.refinement}));
+}
+
+async function assetStateChecks(browser,report){
+ const stateIn=page=>page.locator('.classic-experience .asset-state-summary');
+ const facts=locator=>locator.locator('dl').innerText();
+ for(const [name,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
+  const app=await fixture(browser,{mode:'gentle',os:'reduce'}),p=app.page;await p.setViewportSize({width,height});
+  await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.candle-canvas').waitFor();
+  await p.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension="direction"]')?.dataset.availability==='available');
+  const classic=stateIn(p),original=await facts(classic);assert.match(original,/窗口偏上/);
+  assert.doesNotMatch(await p.locator('.asset-radar-awareness').innerText(),/\d+ 个活跃事件/);
+  await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart').waitFor();assert.equal(await facts(classic),original);
+  await classic.scrollIntoViewIfNeeded();await p.screenshot({path:`${output}/state25-${name}-classic.png`});
+  const open=classic.locator('button');assert.ok((await open.boundingBox()).height>=44);await p.keyboard.press('Tab');await open.focus();assert.notEqual(await open.evaluate(el=>getComputedStyle(el).outlineStyle),'none');await p.keyboard.press('Enter');
+  const context=p.locator('.radar-asset-context'),summary=context.locator('.asset-state-summary'),details=context.locator('.asset-intelligence-details');await context.waitFor();
+  assert.equal(await facts(summary),original);assert.equal(await p.locator('.radar-feed .radar-signal').count(),0);assert.equal(await details.getAttribute('open'),null);
+  await details.locator(':scope > summary').focus();await p.keyboard.press('Enter');await details.locator('.state-method-details > summary').click();assert.match(await details.innerText(),/21 个收盘价 \/ 20 个收益率/);assert.match(await details.innerText(),/不是标准差|不是.*年化/);assert.match(await details.innerText(),/报价获取/);
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await context.scrollIntoViewIfNeeded();await p.screenshot({path:`${output}/state25-${name}-details.png`,fullPage:true});
+  await context.getByRole('button',{name:'返回图表',exact:true}).click();await p.locator('.price-chart').waitFor();
+  assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await facts(classic),original);
+  assert.equal(await classic.getAttribute('data-symbol'),'BTC-USDT');
+  report.checks.push(`2.5 ${name}: no-event direction, shared facts, fixed window, keyboard/44px detail, manual range return, reduced motion, no overflow`);
+  report.errors.push(...app.errors);await app.context.close();
+ }
+ const app=await fixture(browser),p=app.page;await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.candle-canvas').waitFor();
+ for(const [label,symbol] of [['NVDA','NVDA'],['0700','0700.HK'],['BTC','BTC-USDT']]){
+  await p.locator('.symbol-rail button').filter({hasText:label}).click();assert.equal(await stateIn(p).getAttribute('data-symbol'),symbol);await stateIn(p).locator('button').click();assert.equal(await p.locator('.radar-asset-context .asset-state-summary').getAttribute('data-symbol'),symbol);await p.getByRole('button',{name:'返回图表',exact:true}).click();
+ }
+ report.checks.push('2.5 quick symbol changes keep state identity across Classic/Radar');
+ // Isolated navigation measurement: fixed market clock, paused scheduled time; explicit range fetches complete before sampling.
+ await p.clock.pauseAt(stamp+600000);await p.clock.setFixedTime(stamp);await p.clock.runFor(10000);await pause(500);const start=app.requests.length;
+ for(let i=0;i<2;i++){await stateIn(p).locator('button').click();await p.clock.runFor(48);await p.locator('.asset-intelligence-details > summary').click();await p.clock.runFor(48);await p.getByRole('button',{name:'返回图表',exact:true}).click();await p.clock.runFor(48);}
+ report.stateNavigationRequests=app.requests.slice(start);assert.equal(report.stateNavigationRequests.length,0);await p.clock.resume();
+ const beforeWatch=await facts(stateIn(p));await p.locator('.asset-radar-awareness').click();const event=p.locator('.radar-signal[data-context-event]');await event.locator('.signal-context summary').click();await event.getByRole('button',{name:'移出自选',exact:true}).click();assert.equal(await facts(p.locator('.radar-asset-context .asset-state-summary')),beforeWatch);
+ await event.getByRole('button',{name:'设置价格提醒',exact:true}).click();await p.locator('#alert-price').fill('200');await p.getByRole('button',{name:'创建提醒',exact:true}).click();assert.equal(await facts(p.locator('.radar-asset-context .asset-state-summary')),beforeWatch);
+ await p.getByRole('button',{name:'返回图表',exact:true}).click();
+ await app.context.setOffline(true);await p.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension="direction"]')?.dataset.availability==='offline');assert.match(await stateIn(p).innerText(),/网络已断开/);
+ await app.context.setOffline(false);await p.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension="direction"]')?.dataset.availability==='available');
+ await p.locator('.settings-trigger').click();await p.getByRole('switch',{name:'开启自动监控',exact:true}).click();await p.keyboard.press('Escape');await p.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension="direction"]')?.dataset.availability==='paused');
+ report.checks.push('2.5 zero isolated navigation/disclosure requests; Watch/Alert do not change facts; offline/recovery/pause invalidate current state');report.errors.push(...app.errors);await app.context.close();
+ for(const [mode,expected] of [['flat','available'],['stale','stale'],['history-stale','stale'],['empty','insufficient'],['error','waiting'],['benchmark-error','available']]){
+  const sample=await fixture(browser,{mode}),page=sample.page;await page.goto(base+'/#price-chart',{waitUntil:'networkidle'});
+  if(mode==='benchmark-error')await page.locator('.symbol-rail button').filter({hasText:'NVDA'}).click();
+  await page.waitForFunction(value=>document.querySelector('.classic-experience [data-dimension="direction"]')?.dataset.availability===value,expected);
+  if(mode==='flat'){assert.equal(await stateIn(page).locator('[data-dimension="volatility"]').getAttribute('data-availability'),'insufficient');assert.match(await stateIn(page).innerText(),/基线为零或过小/);}
+  if(mode!=='flat'&&mode!=='benchmark-error')assert.match(await stateIn(page).innerText(),/暂不可判断/);
+  report.checks.push(`2.5 ${mode}: dimension availability ${expected}, explicit limits`);report.errors.push(...sample.errors);await sample.context.close();
+ }
+ const slow=await fixture(browser,{delay:2500}),page=slow.page;await page.goto(base+'/#price-chart',{waitUntil:'domcontentloaded'});await stateIn(page).waitFor();await page.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension="direction"]')?.dataset.availability==='waiting');await page.waitForFunction(()=>document.querySelector('.classic-experience [data-dimension="direction"]')?.dataset.availability==='available');report.checks.push('2.5 slow request shows waiting before real fixture completion');report.errors.push(...slow.errors);await slow.context.close();
 }
 
 async function integrationChecks(browser,report){
@@ -129,12 +217,12 @@ async function integrationChecks(browser,report){
   await indicator.click();await p.locator('.radar-asset-context').waitFor();await p.locator('.radar-asset-context').scrollIntoViewIfNeeded();
   const assetDetails=p.locator('.asset-intelligence-details');
   assert.equal(await assetDetails.getAttribute('open'),null);
-  await assetDetails.locator('summary').click();assert.match(await assetDetails.innerText(),/部分覆盖/);
+  await assetDetails.locator(':scope > summary').click();assert.match(await assetDetails.innerText(),/部分覆盖/);
   assert.match(await assetDetails.innerText(),/事件关系/);
-  assert.ok((await assetDetails.locator('summary').boundingBox()).height>=44);
+  assert.ok((await assetDetails.locator(':scope > summary').boundingBox()).height>=44);
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   await p.screenshot({path:`${output}/asset-intelligence-${name}.png`});
-  await assetDetails.locator('summary').click();
+  await assetDetails.locator(':scope > summary').click();
   await p.screenshot({path:`${output}/integration-${name}-radar.png`});
   const event=p.locator('.radar-signal[data-context-event]');await event.locator('.signal-context > summary').click();
   await event.getByRole('button',{name:'查看图表',exact:true}).click();await p.locator('.radar-context-banner').waitFor();
@@ -166,14 +254,14 @@ async function assetIntelligenceChecks(browser,report){
   const context=p.locator('.radar-asset-context');assert.equal(await context.getAttribute('data-symbol'),symbol);
   assert.equal(await context.getAttribute('data-freshness'),freshness);
   assert.equal(await context.locator('div > p').first().innerText(),summary);
-  await context.locator('summary').focus();await p.keyboard.press('Enter');
-  assert.equal(await context.locator('details').getAttribute('open'),'');
+  await context.locator('.asset-intelligence-details > summary').focus();await p.keyboard.press('Enter');
+  assert.equal(await context.locator('.asset-intelligence-details').getAttribute('open'),'');
   assert.match(await context.innerText(),/0 条启用的价格提醒/);
-  await context.locator('summary').click();await p.getByRole('button',{name:'返回图表',exact:true}).click();
+  await context.locator('.asset-intelligence-details > summary').click();await p.getByRole('button',{name:'返回图表',exact:true}).click();
  }
  report.checks.push('2.4 fast symbol switching shares context, freshness and summary across Classic/Radar; keyboard details');
  await awareness.click();await p.clock.pauseAt(stamp+600000);await pause(300);const start=app.requests.length;
- for(let i=0;i<4;i++){await p.locator('.asset-intelligence-details summary').click();await p.clock.runFor(48);}
+ for(let i=0;i<4;i++){await p.locator('.asset-intelligence-details > summary').click();await p.clock.runFor(48);}
  assert.equal(app.requests.length-start,0);await p.clock.resume();
  report.checks.push('2.4 context disclosure adds zero requests');report.errors.push(...app.errors);await app.context.close();
  for(const [mode,expected] of [['quiet','current'],['stale','stale'],['empty','insufficient'],['benchmark-error','degraded']]){
@@ -305,19 +393,23 @@ async function visualCapture(browser, phase) {
   await page.locator('.radar-asset-context').scrollIntoViewIfNeeded();await page.screenshot({path:`${folder}/${name}-context.png`});
   measures.push({name,contextHeight:await page.locator('.radar-asset-context').evaluate(el=>el.getBoundingClientRect().height),contentWidth:await page.evaluate(()=>document.documentElement.scrollWidth),width});
   await page.getByRole('button',{name:'返回图表',exact:true}).click();
+  await page.getByRole('tab',{name:'1 周',exact:true}).click();await page.locator('.price-chart').waitFor();
+  await page.locator('.asset-radar-awareness').click();await page.getByRole('button',{name:'返回图表',exact:true}).click();await page.locator('.price-chart').waitFor();
   await page.locator('#watchlist').scrollIntoViewIfNeeded();await pause(350);await page.screenshot({path:`${folder}/${name}-watchlist.png`});
   await (width>900?page.locator('.settings-trigger'):page.locator('.mobile-dock button')).click();await pause(250);await page.screenshot({path:`${folder}/${name}-settings.png`});
   assert.deepEqual(app.errors,[]);await app.context.close();
  }
- fs.writeFileSync(`${folder}/measurements.json`,JSON.stringify(measures,null,2));console.log(JSON.stringify(measures));
+ fs.writeFileSync(`${folder}/measurements.json`,JSON.stringify(measures,null,2));fs.writeFileSync(`${folder}/console.json`,JSON.stringify({browser:browser.version(),warnings:observedWarnings},null,2));console.log(JSON.stringify(measures));
 }
 (async()=>{
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
- const report={viewports:[],checks:[],errors:[]};let page;
+ const report={browser:browser.version(),viewports:[],checks:[],errors:[],warnings:observedWarnings};let page;
  try{
+  if(process.env.RADAR_REFINEMENT_PHASE){await refinementChecks(browser,report,process.env.RADAR_REFINEMENT_PHASE);return;}
   if(process.env.RADAR_VISUAL_PHASE){await visualCapture(browser,process.env.RADAR_VISUAL_PHASE);return;}
   if(process.env.RADAR_POST_RELEASE==='1'){await postReleaseChecks(browser,report);fs.writeFileSync(`${output}/post-release-extra.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_MOTION==='1')await motionChecks(browser,report);
+  if(process.env.RADAR_STATE==='1')await assetStateChecks(browser,report);
   if(process.env.RADAR_INTEGRATION==='1'){await integrationChecks(browser,report);await assetIntelligenceChecks(browser,report);}
   const app=await fixture(browser);page=app.page;
   await page.goto(base,{waitUntil:'networkidle'});await page.locator('.candle-canvas').waitFor();

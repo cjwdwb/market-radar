@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseCandles, getOKXQuote, getOKXHistory } from '../lib/okx.ts';
-import { alertMatches, assetFor, price } from '../lib/market.ts';
+import { alertMatches, assetFor, price, chartPrice } from '../lib/market.ts';
 import { validConfig } from '../monitor/worker.mjs';
 
 test('candles sort oldest first, preserve OHLC and volume, distinguish the open candle',()=>{
@@ -10,6 +10,17 @@ test('candles sort oldest first, preserve OHLC and volume, distinguish the open 
 });
 test('USDT is explicit and legacy USD remains a separate symbol',()=>{
   assert.equal(assetFor('BTC-USDT').market,'crypto');assert.equal(assetFor('BTC-USD').market,'crypto');assert.equal(price(12,'USDT'),'12.00 USDT');
+});
+
+test('chart ticks preserve nonzero tiny prices, decimal quotes and compact large magnitudes',()=>{
+  assert.equal(chartPrice(1.03e-8),'1.03E-8');assert.equal(chartPrice(1.01e-8),'1.01E-8');
+  assert.equal(chartPrice(100.25),'100.25');assert.equal(chartPrice(.1234),'0.1234');
+  assert.equal(chartPrice(1e12),'1E12');assert.equal(chartPrice(-1.03e-8),'-1.03E-8');
+  const large=[1000000,1000100,1000200,1000300];
+  assert.equal(new Set(large.map(chartPrice)).size,large.length);
+  assert.deepEqual(large.map(value=>Number(chartPrice(value))),large);
+  assert.notEqual(chartPrice(1e12+100),chartPrice(1e12+200));
+  assert.equal(chartPrice(0),'0.00');assert.equal(chartPrice(NaN),'—');assert.equal(chartPrice(undefined),'—');
 });
 test('K-line requests fall back to the official historical endpoint when rate limited',async()=>{
   const original=fetch,paths=[];globalThis.fetch=async url=>{const path=new URL(url).pathname;paths.push(path);return path.endsWith('/history-candles')?Response.json({code:'0',data:[['2000','10','13','9','12','5','0','0','0'],['1000','11','12','8','10','3','0','0','1']]}):new Response('',{status:429});};

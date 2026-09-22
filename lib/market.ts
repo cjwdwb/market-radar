@@ -73,6 +73,12 @@ export function price(value:number|null|undefined,currency="USD",symbol=true) {
   return `${formatter.format(value)}${currency==="USDT"&&symbol?" USDT":""}`;
 }
 export function percent(value:number|null|undefined) {return value==null||!Number.isFinite(value)?"—":`${value>0?"+":""}${value.toFixed(2)}%`;}
+const axisScientificFormat=new Intl.NumberFormat("en-US",{notation:"scientific",maximumSignificantDigits:15});
+/** Keep the existing price precision, using compact scientific labels when the axis is narrow. */
+export function chartPrice(value:number|null|undefined) {
+  const formatted=price(value,"USD",false);
+  return formatted.length>11&&value!=null&&Number.isFinite(value)?axisScientificFormat.format(value):formatted;
+}
 export function compact(value:number|null|undefined) {return value==null?"—":compactFormat.format(value);}
 export function alertMatches(alert:PriceAlert,quote:Quote,now=Date.now()):boolean {
   if (!alert.enabled || alert.triggeredAt || quote.error || quote.symbol!==alert.symbol || !Number.isFinite(quote.price) || !Number.isFinite(alert.target) || alert.target<=0) return false;

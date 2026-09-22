@@ -1,15 +1,12 @@
-import { assetFor, percent, type Point, type Quote } from "../market";
-import type { RadarCoverage, RadarHistory, RadarSignal, RadarSignalEvidence, RadarSignalType, RadarSnapshot, RadarStore } from "./types";
+import { assetFor, percent } from "../market";
+import type { RadarCoverage, RadarSignal, RadarSignalEvidence, RadarSignalType, RadarSnapshot, RadarStore } from "./types";
+import { MINUTE, mean, rms, simpleReturns, prepareMarketInput, type PreparedMarketInput as Prepared } from "./market-input";
 
-const MINUTE = 60_000;
 const COOLDOWN = 30 * MINUTE;
 const LIFETIME = 45 * MINUTE;
 const MAX_SIGNALS = 120;
-const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
 const median = (values: number[]) => { const sorted = [...values].sort((a, b) => a - b); return sorted[Math.floor(sorted.length / 2)]; };
-const rms = (values: number[]) => Math.sqrt(mean(values.map(value => value * value)));
 type Evaluation = { signal: RadarSignal; strength: number };
-type Prepared = { quote: Quote; history: RadarHistory; bars: Point[] };
 
 const BENCHMARK_BY_SYMBOL: Record<string, string> = {
   "ETH-USDT": "BTC-USDT", "SOL-USDT": "BTC-USDT", "XRP-USDT": "BTC-USDT", "DOGE-USDT": "BTC-USDT", "LINK-USDT": "BTC-USDT", "ADA-USDT": "BTC-USDT", "AVAX-USDT": "BTC-USDT",
@@ -41,32 +38,8 @@ function relativeReadiness(snapshot: RadarSnapshot, symbol: string, asset: Prepa
 
 /** Validate data once for all detectors. No fetch, browser clock, or market-session inference. */
 function prepare(snapshot: RadarSnapshot, symbol: string, now: number): Prepared | string {
-  const quote = snapshot.quotes[symbol];
-  if (!quote) return "等待报价";
-  if (quote.symbol !== symbol || quote.error) return "报价更新失败";
-  if (!Number.isFinite(quote.price) || quote.price <= 0) return "报价无效";
-  if (![quote.timestamp, quote.fetchedAt].every(Number.isFinite) || quote.timestamp > now + MINUTE || quote.fetchedAt > now + MINUTE || now - quote.fetchedAt > 2 * MINUTE || now - quote.timestamp > 3 * MINUTE) return "报价过期或延迟";
-  const market = assetFor(symbol).market;
-  if (market !== "crypto" && (quote.session !== "open" || (quote.delayMinutes ?? 0) > 2)) return "休市或延迟行情";
-  const history = symbol.endsWith("-USDT") ? snapshot.histories[symbol] : { points: quote.points, intervalMs: 5 * MINUTE, source: quote.source, currency: quote.currency, fetchedAt: quote.fetchedAt };
-  if (!history || !Array.isArray(history.points)) return "等待历史基线";
-  if (history.source !== quote.source || history.currency !== quote.currency) return "历史来源或币种不匹配";
-  if (!Number.isFinite(history.fetchedAt) || now - history.fetchedAt > 2 * MINUTE || history.fetchedAt > now + MINUTE) return "历史数据过期";
-  if (history.intervalMs !== (symbol.endsWith("-USDT") ? 15 : 5) * MINUTE) return "历史周期不支持";
-  // Yahoo's shared confirmed field assumes 15m. Compute completion from the actual 5m period.
-  let bars = history.points.filter(point => point.time + history.intervalMs <= quote.timestamp && (!symbol.endsWith("-USDT") || point.confirmed === true)).slice(-80);
-  // Never compare across overnight, lunch breaks, or missing bars. Use only the latest continuous segment.
-  for (let i = bars.length - 1; i > 0; i--) {
-    if (bars[i].time - bars[i - 1].time !== history.intervalMs) { bars = bars.slice(i); break; }
-  }
-  if (bars.length < 22) return "历史基线不足（至少 22 根连续完整 K 线）";
-  for (let i = 0; i < bars.length; i++) {
-    const point = bars[i];
-    if (!Number.isFinite(point.time) || !Number.isFinite(point.close) || point.close <= 0) return "历史价格无效";
-    if (i && point.time - bars[i - 1].time !== history.intervalMs) return "历史不连续，等待同一交易时段基线";
-  }
-  if (quote.timestamp - (bars.at(-1)!.time + history.intervalMs) > history.intervalMs + MINUTE) return "最近完整 K 线缺失";
-  return { quote, history, bars };
+  const result = prepareMarketInput(snapshot, symbol, now);
+  return result.ok ? result.data : result.failure.message;
 }
 
 export function radarCoverage(snapshot: RadarSnapshot, now: number): RadarCoverage[] {
@@ -92,7 +65,7 @@ function evaluate(snapshot: RadarSnapshot, now: number): Evaluation[] {
     const { quote, history, bars } = data;
     const market = assetFor(symbol).market;
     const latest = bars.at(-1)!;
-    const returns = bars.slice(1).map((point, i) => (point.close / bars[i].close - 1) * 100);
+    const returns = simpleReturns(bars);
     const push = (type: RadarSignalType, window: string, strength: number, title: string, metric: string, description: string, direction: RadarSignal["direction"], metrics: RadarSignal["metrics"], evidence: Omit<RadarSignalEvidence, "strength" | "freshnessRatio"> & { freshnessRatio?: number }) => {
       if (!Number.isFinite(strength)) return;
       const relativeKey = typeof metrics.benchmarkSymbol === "string" ? `:${metrics.benchmarkSymbol}` : "";

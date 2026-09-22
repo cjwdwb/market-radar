@@ -2,6 +2,14 @@
 
 本文件记录 Market Radar 的可识别产品里程碑。完整发布来源、验证范围和回退注意事项见 [docs/VERSIONS.md](docs/VERSIONS.md)。
 
+## Radar 2.5 — Market State Intelligence — 2026-09-22
+
+- 当前选中资产新增确定性的方向结构与RMS波动对比，Classic摘要与Radar详情共享结果；无异常事件也可判断，状态不依赖事件数量、自选或提醒。
+- 基于已有完整连续K线，显示观测周期、指标/单位、方法、阈值、来源及证据时间；过期、缺失、暂停或离线时明确降级。没有预测、总评分、AI或新增行情请求/timer。
+- 详情保留主事件、净变化/RMS和限制，完整计算依据默认折叠；修复极小价格归零、大额相邻刻度重复、图表尺寸warning和初始加载误标暂停。
+- 连续相对表现Deferred；既有Signal/Confidence/Cluster/Ranking、相对事件和行情刷新语义不变。
+- 最终99 Node、build/typecheck、五视口9项专项通过；62项综合浏览器在最后刻度LOW修复前通过。独立GPT审计修复并VERIFY，无未解决confirmed findings。证据见MR-MARKET-STATE-25和MR-STATE25-REFINE归档；本轮发布状态以版本索引为准。
+
 ## Radar 2.45 — Visual Experience & Motion Control — 2026-09-22
 
 - 统一黑白面板层次、导航/图表控件、自选行和 Radar 事件卡；资产详情主事件前置，手机返回操作位于展开详情之前。

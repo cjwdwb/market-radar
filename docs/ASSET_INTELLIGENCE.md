@@ -1,4 +1,4 @@
-# Asset Intelligence Context — 2.4
+# Asset Intelligence — 2.4 Context / 2.5 selected State
 
 2.4 已于 2026-09-18 发布为 Sites v21；发布证据见 tasks/archive/MR-PUBLISH-ASSET-INTELLIGENCE.md。2.4 不生成 Market State 或交易判断。
 
@@ -62,4 +62,32 @@ Radar 同资产 feed 的 current events 使用 Context 引用，历史仍由现�
 
 新增 provider symbols / quote / history / benchmark / API / timer / dependency 均为 0。只派生 selected asset，输入最多现有 120 条 raw history 对应事件，无全市场 Context map。主包和本机计算测量及最终测试/审计结果写入 `tasks/archive/MR-ASSET-INTELLIGENCE.md`，不能据此推断设备 FPS。
 
-Deferred：Market State、评分、confidence 分布、全资产聚合视图、持久历史、AI、2.5/2.8/3.0。开发阶段保留本地；后续经用户明确授权发布。
+上述为 2.4 契约与历史验证；2.5 的本地扩展见下。评分、confidence 分布、全资产聚合视图、持久历史和 AI 继续 Deferred。
+
+## 2.5 selected-asset State（本地候选，未发布）
+
+`lib/radar/market-input.ts` 机械共享原 Engine 的有效性准备、simple returns 与 RMS；Engine 薄适配保留原原因文案、顺序、Signal/coverage/lifecycle。`lib/radar/asset-state.ts` 是纯派生层，显式接收 selected snapshot、symbol、now、enabled/online；不读事件、自选、提醒、图表 range 或内部实时钟。父组件只派生当前资产一次，Classic 轻摘要和 Radar 默认折叠详情消费同一结果；不建立全资产 map 或持久状态。
+
+规则版本 `asset-state-v1`；维度分别有 `direction-v1` / `rms-v1`。available 分支必须有 classification/metrics、reason=null；失败分支 classification=null，有枚举 reason 与说明。基线为零可以保留有限 RMS 值，但 ratio=null。不生成总评分、资产 Confidence、趋势预测或风险标签。
+
+| 维度 | 固定输入和方法 | 分类 / 限制 |
+| --- | --- | --- |
+| 方向结构 | 末21个收盘价 / 20段；净变化%=100×(P20/P0−1)，路径效率=绝对净变化/逐段绝对路径 | 绝对净变化≥crypto 0.60%、其他0.30%，且效率≥0.60：窗口偏上/偏下；否则无明显单向结构。平价效率0，不称震荡。 |
+| RMS 波动对比 | 简单收益率%；当前末4段与此前不重叠16段分别 sqrt(mean(r²)) | 基线>0.000001%才比较：当前/基线≥1.5较高、≤2/3较低、其间接近。零/近零基线不可判断；不是标准差/年化，较低不代表低风险。 |
+| 连续相对表现 | 首版未接入 | Deferred。现有 relative Event 继续独立展示；不同输入门槛/对齐窗口须后续规划，不把旧事件证据当连续基准。 |
+
+门槛为可解释的描述规则，未经预测准确率校准。有限数值检查优先于零基线判断；单维度数值失败不使另一有效维度失效。运算按 JavaScript number 的完整精度，展示舍入不改变判定。
+
+观测数据为已有 Radar 基线：USDT 实际15m（20段300分钟；RMS当前60/参考240分钟），Yahoo 实际5m（100分钟；20/80分钟）。图表15m/1d/1w/1m/3m不是本层窗口控制。prepare 保留至少22根最新连续完整K线、最多80根后缀；乱序/重复/缺口截到最新连续段，不插值跨时段。有效后缀之前的旧点不参与。
+
+State 保留原报价/来源/币种/session/freshness gate：获取年龄≤2分钟、报价年龄≤3分钟；非crypto需open且延迟≤2分钟。额外要求接受的历史time>0、所有barEnd≤显式now、now−latestEnd≤实际interval+60秒。quoteAt−latestEnd也须通过原约束。没有新报价时沿用父组件10秒时钟、可见性/报价事件复核；非毫秒级失效保证，不使用45分钟Signal生命周期。离线/暂停清空当前分类；恢复后重算。
+
+输出分别保留收盘跨度起止、首根开盘、完整K线截止、样本数、interval、source/currency、quoteAt、quoteFetchedAt、historyFetchedAt、calculatedAt。事件 `latestEvidenceAt` 不用于 State freshness，新报价不能刷新旧历史证据。
+
+零新增 symbols / Quote / History / benchmark / API / timer / dependency。本地验证、同机 bundle/计算测量、QA-A缺口授权与独立审计见 `tasks/archive/MR-MARKET-STATE-25.md`。现有生产仍为2.45/Sites v22；本地候选不代表生产或真机已通过。
+
+### 本地精修（MR-STATE25-REFINE）
+
+方向/RMS规则不变。资产详情第一层保留主事件、状态分类、净变化/路径效率、当前与参考RMS、不可判断原因、风险说明与事件覆盖；完整方法/阈值/样本/时间/来源移入原生“计算方法、窗口与来源”，默认折叠，键盘可展开。外层资产详情仍默认折叠。新标签不是Signal或价格提醒。
+
+SSR尚未hydration时传入等待时钟的State，不误称用户暂停；读取用户关闭监控偏好后仍返回paused。折线图采用当前Recharts的原生responsive能力，刻度复用price精度并为长标签使用科学计数，轴宽按实际标签适配；K线交互和行情刷新均未改。验证结果见 `tasks/archive/MR-STATE25-REFINE.md`；旧生产QA缺口按用户最新决定本轮不跟进、不阻塞，不代表补测通过。
