@@ -1,5 +1,13 @@
 # 当前任务索引
 
+## MR-PUBLISH-PERFORMANCE275 — 上传与发布中
+
+用户授权上传部署2.75已审计局部成果；范围及发布检查见tasks/MR-PUBLISH-PERFORMANCE275.md。不启用采集/迁移，不改变访问设置；下列开发阶段未发布描述保留原时点事实。
+
+## MR-PERFORMANCE-275 — 本地测量与可靠性修复已验证，性能验收限制保留
+
+独立分支codex/mr-performance-275，基线f037f2b；生产仍2.7 Foundation/Sites v25。真实时间production-build基线/候选各十轮，26项比较门槛通过；已修复失败导入清空旧归档。269Node、build/typecheck/受影响lint、89项浏览器检查记录通过（含五视口）。独立GPT审计两项测量finding修复并VERIFY；无产品严重finding。没有可宣称的帧率提速，真机/真实后台等限制保留，不声称完整2.75性能验收。不改刷新/动效/金融语义，未提交/上传/发布。任务卡tasks/MR-PERFORMANCE-275.md，证据docs/PERFORMANCE_275.md；完整2.7任务入口和未完项保留。
+
 ## MR-PUBLISH-FOUNDATION27 — 发布成功，已归档
 
 用户本轮授权上传部署；源码`5d759a19946310deb1afefc12db5a490f4b12af0`已上传GitHub main并发布Sites v25，平台succeeded/env revision3。2.7 Foundation阶段成果，radar-v2.7-foundation/sites-v25标记同一源码。记录tasks/archive/MR-PUBLISH-FOUNDATION27.md；完整2.7下列任务仍开放。未启用云采集/迁移，未改访问策略/密钥。原未部署记录属于开发阶段历史，发布说明随后单独文档提交。

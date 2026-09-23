@@ -9,11 +9,12 @@ export function MacroTimeline(){
   const [error,setError]=useState(''),[loading,setLoading]=useState(false);
   const generation=useRef(0);
   async function load(file:File|undefined){
-    if(!file)return;const version=++generation.current;setLoading(true);setError('');setView(null);setPage(0);
+    if(!file)return;const version=++generation.current;setLoading(true);setError('');
     try{
       if(file.size>VIEW_LIMIT)throw Error('归档文件不能超过 1 MiB。');
       const next=await parseFedView(await file.text(),Date.now());if(version!==generation.current)return;
-      setView(next);setFrom(day(next.range.from));setTo(day(next.range.cutoff-1));
+      // Keep the accepted view/query until the newest file has fully validated.
+      setView(next);setFrom(day(next.range.from));setTo(day(next.range.cutoff-1));setPage(0);
     }catch(e){if(version===generation.current)setError(e instanceof Error?e.message:'无法读取归档。');}
     finally{if(version===generation.current)setLoading(false);}
   }
@@ -26,7 +27,7 @@ export function MacroTimeline(){
   return <details className="panel macro-timeline"><summary>官方宏观资料 <span>本地归档</span></summary>
     <p>{view?'已载入本地归档 · 文件仅在本页读取':'导入公开视图文件后查看，不上传、不启动采集。'}</p>
     <input type="file" accept=".json,application/json" aria-label="导入官方宏观归档" onChange={event=>{void load(event.target.files?.[0]);event.target.value='';}}/>
-    {loading&&<p role="status">正在检查归档…</p>}{error&&<p role="alert" className="error-text">{error}</p>}
+    {loading&&<p role="status">正在检查归档…</p>}{error&&<p role="alert" className="error-text">{error}{view?' 已保留上一份归档与当前查询。':''}</p>}
     {view&&<div className="macro-view" data-view-id={view.viewId}>
       <p className="macro-notice">一般宏观资料 · 未在线重新核验。不关联个股，不解释价格原因。</p>
       <details className="macro-provenance"><summary>归档来源与时间说明</summary>

@@ -1,0 +1,9 @@
+// Matched archive/viewport/error-state visual evidence. Not performance measurement.
+import fs from 'node:fs';
+import {chromium,fixture,archive,pause} from './fixture.mjs';
+const before=process.env.RADAR_BEFORE_URL||'http://127.0.0.1:5290',after=process.env.RADAR_PERF_URL||'http://127.0.0.1:5291';
+const browser=await chromium.launch({channel:'msedge',headless:true}),accepted=await archive(7,false,'Matched fixture');const out='outputs/perf275/matched';fs.mkdirSync(out,{recursive:true});const report=[];
+const deadline=setTimeout(()=>void browser.close(),120000);
+try{for(const width of [1440,390])for(const [label,base]of [['before',before],['after',after]]){
+ const app=await fixture(browser,base,{width,height:width===390?844:1000,watchlist:[],intro:false,probe:false});try{const p=app.page;await p.goto(base+'/#radar',{waitUntil:'networkidle'});const panel=p.locator('.macro-timeline');await panel.locator(':scope > summary').click();await panel.locator('input[type=file]').setInputFiles(accepted.file);await panel.locator('.macro-view').waitFor();await panel.getByRole('button',{name:'下一页',exact:true}).click();await panel.locator('input[type=file]').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{}')});await panel.locator('[role=alert]').waitFor();await panel.evaluate(el=>{el.scrollIntoView({block:'start',behavior:'instant'});window.scrollBy(0,-88);});await pause(300);await p.screenshot({path:`${out}/${label}-${width}.png`});report.push({label,width,viewId:accepted.view.viewId,actualView:await panel.evaluate(el=>el.querySelector('.macro-view')?.getAttribute('data-view-id')??null),error:await panel.locator('[role=alert]').innerText(),rows:await panel.locator('.macro-records li').count(),errors:app.errors});}finally{await app.context.close();}
+}}finally{clearTimeout(deadline);await browser.close();fs.writeFileSync(`${out}/evidence.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));}

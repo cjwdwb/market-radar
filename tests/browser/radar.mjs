@@ -24,7 +24,8 @@ function series(symbol,mode){
 }
 async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,motionPreference,os='no-preference',probe=false,revealProbe=false,watchlist}={}){
  const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:os});
- const vars=Object.fromEntries(fs.readFileSync('.dev.vars','utf8').trim().split(/\r?\n/).filter(line=>line.includes('=')).map(line=>{const i=line.indexOf('=');return [line.slice(0,i),line.slice(i+1)]}));
+ // Explicit synthetic credentials for the isolated performance Worker; never read private env in this mode.
+ const vars=process.env.RADAR_SYNTHETIC_AUTH==='1'?{ACCESS_CODE_HASH:crypto.createHash('sha256').update('PERFFIXTUREONLY').digest('hex'),ACCESS_SESSION_SECRET:'perf-fixture-only-not-a-production-secret-275'}:Object.fromEntries(fs.readFileSync('.dev.vars','utf8').trim().split(/\r?\n/).filter(line=>line.includes('=')).map(line=>{const i=line.indexOf('=');return [line.slice(0,i),line.slice(i+1)]}));
  const payload=`${Math.floor(Date.now()/1000)+3600}.${crypto.randomBytes(16).toString('hex')}`;
  const sig=crypto.createHmac('sha256',vars.ACCESS_SESSION_SECRET).update(`radar-v1:${vars.ACCESS_CODE_HASH}:${payload}`).digest('hex');
  await context.addCookies([{name:'__Host-radar_access',value:`${payload}.${sig}`,url:base.replace('http:','https:'),secure:true,httpOnly:true,sameSite:'Lax'}]);
@@ -214,7 +215,8 @@ async function fed27Checks(browser,report){
   if(name==='desktop'){
    await p.clock.pauseAt(stamp+1000);await p.clock.setFixedTime(stamp);await pause(300);const start=app.requests.length;
    await panel.getByRole('button',{name:'下一页',exact:true}).click();await dates.nth(0).fill('2026-09-02');await panel.locator('input[type=file]').setInputFiles(file);await p.clock.runFor(48);await panel.locator('.macro-records li').first().waitFor();assert.deepEqual(app.requests.slice(start),[]);report.fedQueryApiRequests=[];await p.clock.resume();
-   const invalid=structuredClone(body);invalid.records[0].url='javascript:alert(1)';await panel.locator('input[type=file]').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...invalid,viewId:await viewDigest(invalid)}))});await panel.locator('[role=alert]').waitFor();assert.equal(await panel.locator('.macro-records li').count(),0);
+   const acceptedId=await panel.locator('.macro-view').getAttribute('data-view-id'),acceptedRows=await panel.locator('.macro-records a').allTextContents();
+   const invalid=structuredClone(body);invalid.records[0].url='javascript:alert(1)';await panel.locator('input[type=file]').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify({...invalid,viewId:await viewDigest(invalid)}))});await panel.locator('[role=alert]').waitFor();assert.equal(await panel.locator('.macro-view').getAttribute('data-view-id'),acceptedId);assert.deepEqual(await panel.locator('.macro-records a').allTextContents(),acceptedRows);assert.match(await panel.locator('[role=alert]').innerText(),/已保留上一份归档/);
    await panel.locator('input[type=file]').setInputFiles({name:'oversized.json',mimeType:'application/json',buffer:Buffer.alloc(1048577)});assert.match(await panel.locator('[role=alert]').innerText(),/1 MiB/);
    await panel.locator('input[type=file]').setInputFiles(file);await panel.locator('.macro-records li').first().waitFor();await p.reload({waitUntil:'networkidle'});assert.equal(await p.locator('.macro-records li').count(),0);
   }
