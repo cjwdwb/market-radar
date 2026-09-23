@@ -1,5 +1,7 @@
 # 当前状态
 
+当前生产（2026-09-23 CST）：2.7 Foundation阶段成果已发布为Sites v25，实际源码`5d759a19946310deb1afefc12db5a490f4b12af0`，平台succeeded、env revision3；GitHub产品标签radar-v2.7-foundation/发布标签sites-v25对应此源码。网址与访问设置不变。自选同源状态、本机名单导出、显式宏观归档导入上线；本地采集器未变成云服务，真实DB/样例未上传。完整2.7的owner/价格历史/研究/长期存储待补。报告tasks/archive/MR-PUBLISH-FOUNDATION27.md。以下开发阶段“未发布”和旧生产条目保留历史事实，后续文档提交不代表重新部署。
+
 最新本地2.7（2026-09-23 CST）：B0/C0基础上，B1/C1已打通美联储官方宏观元数据→本地SQLite→版本查询/导出恢复→Radar显式文件导入。真实2条九月记录；4次低频请求含2次解析失败，重跑新增0条。不是全月完整覆盖/个股资讯/历史价格回补；真实owner清单、价格来源权利、研究链路及云端保管仍待补。269Node、build/typecheck及新增五视口专项通过；最终回归/审计见docs/HISTORY_FOUNDATION.md。分支codex/mr-watchlist-information-history-27，HEAD00d7ef4，成果未提交/上传/部署，生产仍下述2.6/v24。旧QA不重开Gate。
 当前生产：Market Radar 2.6已于2026-09-22发布为Sites v24，源码`8641d8193e5e2c27fb316bcaed9b977d63e1d119`，平台succeeded、环境revision3。包含双窗口、连续相对表现、Alignment、历史比较及逐项展开/底部返回精修。GitHub产品/发布标签radar-v2.6、sites-v24标记部署源码；后续文档提交不重新部署。正式网址https://market-radar-rex.swt-aether.chatgpt.site ，访问设置/密钥保持原状。发布记录tasks/archive/MR-PUBLISH-STATE26.md。以下“未提交/未部署”是此前开发验收的历史状态，不代表当前生产。线上登录后/真机未复测。
 

@@ -154,3 +154,7 @@ IndependentA2MEDIUMfixedbeforeBuilder;B3MEDIUMfixedverified;datefixand2LOWproven
 Final independent GPT B/C1 audits VERIFY PASS on26-file candidate, manifestSHA2567ab9d03bcb2964ee3b5ddc5afbc6037deef43c99fe5a6f5fc5333e98325f194a. Both readonly; original/restore/backup SQL/view + liveproductdiff/screenshots/evidence independently checked, noopenconfirmedfinding. No auditor rerun fullNode/browserclaim. Subsequent report/index edits are documentonly; finalhash/readback separate. Remainingfour-trackgatesnotclosed; no2.7releaseclaim.
 
 Final document-only readback matched26files/269Node/44targeted/33browser/4requests/2facts. Auditor LOW screenshot wording corrected: first viewport shows generalmacro/unverifiednotice; completeness remains belowrecordlist, not claimed in firstscreen. No product/testchange.
+
+## Later authorized milestone publication — 2026-09-23 CST
+
+User subsequently requested上传部署吧. Reviewed B0/C0/B1/C1 source5d759a19946310deb1afefc12db5a490f4b12af0 published as2.7Foundation/Sitesv25, native succeeded/envrevision3;GitHub uploaded. Recordtasks/archive/MR-PUBLISH-FOUNDATION27.md. This supersedes development-only deployment status, not the incomplete four-track DoD. Actualowner, licensedpricehistory/replay/research/longtermstorage remainopen; localSQLite/rawRSS/samplefiles notdeployed, no cloudcollector. No newproductionlogin/iPhonetestingclaim.

@@ -6,7 +6,7 @@
 
 ## 功能
 
-2.7 Foundation（阶段成果）正在发布，现有生产仍为2.6/Sites v24；实际发布结果见版本索引。[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site)。选中资产可在 Classic 与 Radar 查看同一份可解释状态：短窗、中窗、连续相对表现，以及历史相邻窗口比较。它描述已发生的数据，不预测价格，也不提供买卖评分。
+2.7 Foundation（阶段成果）已上线为Sites v25。[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site)。选中资产可在 Classic 与 Radar 查看同一份可解释状态：短窗、中窗、连续相对表现，以及历史相邻窗口比较。它描述已发生的数据，不预测价格，也不提供买卖评分。
 
 本次2.7阶段成果：自选总览与单资产详情共享原2.6状态，逐资产显示方向/RMS/Relative/Alignment/历史比较的可用性；支持用户点击导出本机自选名单。Radar新增默认折叠的官方宏观资料区，可显式导入本地公开视图文件，按UTC日期筛选、分页并查来源与时间。文件不上传，刷新后需重新导入。
 

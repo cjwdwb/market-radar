@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-PUBLISH-FOUNDATION27 — 上传发布中
+## MR-PUBLISH-FOUNDATION27 — 发布成功，已归档
 
-用户本轮明确授权上传部署。将已验收B0/C0/B1/C1作为2.7阶段成果发布；完整2.7任务保留开放。发布卡tasks/MR-PUBLISH-FOUNDATION27.md；不启用云采集/迁移或修改访问设置。
+用户本轮授权上传部署；源码`5d759a19946310deb1afefc12db5a490f4b12af0`已上传GitHub main并发布Sites v25，平台succeeded/env revision3。2.7 Foundation阶段成果，radar-v2.7-foundation/sites-v25标记同一源码。记录tasks/archive/MR-PUBLISH-FOUNDATION27.md；完整2.7下列任务仍开放。未启用云采集/迁移，未改访问策略/密钥。原未部署记录属于开发阶段历史，发布说明随后单独文档提交。
 
 ## MR-WATCHLIST-INFORMATION-HISTORY-27 — B0/C0 + B1/C1 本地交付，完整2.7仍开放
 
@@ -10,7 +10,7 @@
 
 本轮269Node、最终44存储专项、build/typecheck/受影响lint通过；9宏观+14自选+10旧2.6浏览器检查通过，五视口为桌面模拟。主app既有lint3error/6warning保留。独立GPT A/B finding已修并复核，稳定候选B/C1独立VERIFY PASS，无未解决confirmed finding。DS实际0。任务卡 tasks/MR-WATCHLIST-INFORMATION-HISTORY-27.md；契约/证据/运行手册 docs/HISTORY_FOUNDATION.md。
 
-实际owner清单、价格历史许可/来源、长期保管与研究D仍待补；四条主线未删减，不宣称完整2.7完成。分支codex/mr-watchlist-information-history-27，HEAD00d7ef4，保留前轮B0/C0；未提交/上传/发布/开启云采集。当前生产2.6/Sitesv24不变，旧QA不重开Gate。
+实际owner清单、价格历史许可/来源、长期保管与研究D仍待补；四条主线未删减，不宣称完整2.7完成。开发基线00d7ef4；已按后续授权将B0/C0/B1/C1阶段成果提交为5d759a1、上传并发布2.7 Foundation/Sites v25，未开启云采集。分支codex/mr-watchlist-information-history-27；旧QA不重开Gate。
 
 ## MR-PUBLISH-STATE26 — 发布成功，已归档
 

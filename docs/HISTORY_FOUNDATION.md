@@ -1,6 +1,6 @@
 # 2.7 information / history contracts — local foundation
 
-Contract `history-foundation-v1`, reviewed 2026-09-22. Status: B0/C0 and B1/C1 local Board macro archive + UI verified; actual owner universe / price archive / research gates remain open. See latest B1/C1 report below; this is not completed2.7. Active card: MR-WATCHLIST-INFORMATION-HISTORY-27. Production remains2.6/Sitesv24.
+Contract `history-foundation-v1`, reviewed 2026-09-22. Status: B0/C0 and B1/C1 local Board macro archive + UI verified; actual owner universe / price archive / research gates remain open. See latest B1/C1 report below; this is not completed2.7. Active card: MR-WATCHLIST-INFORMATION-HISTORY-27. Subsequent authorized release:2.7Foundation/Sitesv25/source5d759a1 on2026-09-23CST; local collectors/data were not deployed as a cloudservice. See tasks/archive/MR-PUBLISH-FOUNDATION27.md; earlier development NOT DEPLOYED remains historical.
 
 ## Source and universe contract
 
