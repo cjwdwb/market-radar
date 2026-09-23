@@ -54,3 +54,5 @@ FinalAuditor added1LOW: initialchartreport'ssame-bar wording lackedtimestamp evi
 
 FinalVERIFYreceived: independentAuditorreadbackconfirmedlastLOWclosedforthisactualrun; no remainingconfirmedfinding. All3auditfindingsclosed (1MEDIUM/2LOW), earlier2measurement-preflightissuesalsocorrectedbeforevalidbaseline. Localpreviewports5290/5291closed. No commit/push/deployment; finalbounded-localstatusanduncoveredscenariosremainasreport, notuniversal2.75completion.
 
+
+后续发布（独立授权）：2.75已上传并部署为Sites v26，源码`0a86366`。本报告的未提交/未发布描述属于开发阶段；测试范围与限制未因此改变。记录tasks/archive/MR-PUBLISH-PERFORMANCE275.md。

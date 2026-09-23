@@ -1,4 +1,4 @@
-# MR-PUBLISH-PERFORMANCE275 — 发布准备
+# MR-PUBLISH-PERFORMANCE275 — 发布成功
 
 2026-09-23 CST。用户明确授权“上传然后部署吧”。发布2.75局部可靠性修复与性能基线，不宣称全面性能验收或完整2.7完成。
 
@@ -11,3 +11,13 @@ Allowed paths：既有components/radar/macro-timeline.tsx、tests/browser/radar.
 Workflow：market-planner → market-builder发布整理 → 已有固定候选独立GPT审计证据核对 → Git正常推送 → Sites原生保存/发布/终态检查 → 发布记录归档。产品SHA256 ac96dca5c100fe24f42a14512e60c99e1b02b9b0af61774f1bb799603efc6d22 与候选一致。复用本轮前阶段269 Node、build/typecheck、受影响lint、89浏览器检查记录、26比较门槛及独立审计VERIFY；发布整理不冒称重新执行产品全套测试。DS调用0，无新Optimizer。
 
 Acceptance：暂存仅允许文件、无敏感/原始产物；GitHub未意外推进；源提交与Sites保存源码一致，平台终态succeeded及原生URL；产品标签radar-v2.75与实际sites-vNN标记发布源码。后续文档提交另记，不重新部署。真机、后台、长时间性能及生产登录后未全面验证；原有2.7待办保持开放。
+
+## 发布结果
+
+源码 0a863666c5b04c376738edee7443dafa223a3e50；GitHub main正常推送与radar-v2.75远端回读一致。17文件允许清单核对、产品hash与已审计候选一致，outputs继续ignored。复用之前已完成的独立GPT产品/测量审计；本发布阶段为协调者核对，没有另称新独立审计或重跑全套测试。暂存diff检查另有两处文件末尾空行提示（任务卡、测试server），无产品影响，未借发布改写已验证脚本。
+
+Sites官方workflow成功打开既有checkout并推送准确源码，Windows Bash打包器无法启动，按native save工具支持改用云端构建。save响应传输中断后读取版本确认已保存v26，复用该版本，未重复保存。
+
+版本appgprj_6a9b9dc23584819190a31ae417863e7a~appgver_5ddde34dd5808191a2f85c8f1594f754；部署appgdep_6ab3bb2822948191986fd105cfd40abb；2026-09-23T11:46:39.193938+00:00原生终态succeeded，env_set_revision3；URL https://market-radar-rex.swt-aether.chatgpt.site 。保留public与原应用门禁，无secret/access/schema/collection修改。
+
+发布标签sites-v26指向同一源码；后续说明文档单独提交，不再次部署。原生终态是平台发布验证，不代表生产登录后、真机或全场景性能验收。DS实际0；完整2.7保持开放。无open_in_codex工具，因此直接交付原生URL。

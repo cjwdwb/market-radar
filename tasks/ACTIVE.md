@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-PUBLISH-PERFORMANCE275 — 上传与发布中
+## MR-PUBLISH-PERFORMANCE275 — 发布成功，已归档
 
-用户授权上传部署2.75已审计局部成果；范围及发布检查见tasks/MR-PUBLISH-PERFORMANCE275.md。不启用采集/迁移，不改变访问设置；下列开发阶段未发布描述保留原时点事实。
+当前生产：Market Radar 2.75 / Sites v26，2026-09-23 CST发布，源码`0a863666c5b04c376738edee7443dafa223a3e50`，平台succeeded、环境revision3。产品标签radar-v2.75与发布标签sites-v26对应同一源码。归档导入失败保留原数据与查询；包含本地性能验证工具和报告，没有宣称帧率提速。完整2.7与真机/后台/长期性能待办保留。发布记录见tasks/archive/MR-PUBLISH-PERFORMANCE275.md；后续文档提交不重新部署。 下列开发阶段未发布描述保留原时点事实。
 
 ## MR-PERFORMANCE-275 — 本地测量与可靠性修复已验证，性能验收限制保留
 

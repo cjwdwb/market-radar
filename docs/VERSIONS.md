@@ -1,5 +1,9 @@
 # 版本与回退索引
 
+当前生产：Market Radar 2.75 / Sites v26，2026-09-23 CST发布，源码`0a863666c5b04c376738edee7443dafa223a3e50`，平台succeeded、环境revision3。产品标签radar-v2.75与发布标签sites-v26对应同一源码。归档导入失败保留原数据与查询；包含本地性能验证工具和报告，没有宣称帧率提速。完整2.7与真机/后台/长期性能待办保留。发布记录见tasks/archive/MR-PUBLISH-PERFORMANCE275.md；后续文档提交不重新部署。
+
+以下为此前阶段记录：
+
 当前生产：Radar 2.7 Foundation（B0/C0/B1/C1阶段成果），2026-09-23 CST发布Sites v25，源码`5d759a19946310deb1afefc12db5a490f4b12af0`，平台succeeded。标签`radar-v2.7-foundation`与`sites-v25`指向同一源码；后续文档提交不重新部署。上线自选状态/本机导出/离线宏观时间线，仓库附本地归档工具。完整2.7、价格回补、研究和云采集仍未完成。发布记录tasks/archive/MR-PUBLISH-FOUNDATION27.md。
 
 上一生产：Radar 2.6 State Intelligence II，2026-09-22发布为Sites v24，源码`8641d8193e5e2c27fb316bcaed9b977d63e1d119`，平台终态succeeded。产品标签`radar-v2.6`和发布标签`sites-v24`对应同一源码；后续说明文档提交不代表重新部署。包含双窗口、连续Short Relative、Alignment、历史窗口比较及详情精修。产品验收见 `tasks/archive/MR-STATE-INTELLIGENCE-26.md`、`tasks/archive/MR-STATE26-REFINE.md`；发布记录见`tasks/archive/MR-PUBLISH-STATE26.md`。
@@ -30,10 +34,12 @@
 | Radar 2.45 | `radar-v2.45` | `6804b41` | 视觉层级与跟随系统/标准/减少动效偏好 | Sites v22 已发布 |
 | Radar 2.5 | `radar-v2.5` | `31a11d2` | 当前资产方向结构/RMS状态、证据与失效解释；图表/详情精修 | Sites v23 已发布 |
 | Radar 2.6 | `radar-v2.6` | `8641d81` | 双窗口、同步Relative、Alignment、历史比较与详情精修 | Sites v24 已发布 |
+| Radar 2.75 | `radar-v2.75` | `0a86366` | 归档导入可靠性与性能基线；保留验收限制 | Sites v26 已发布 |
 | Radar 2.7 Foundation | `radar-v2.7-foundation` | `5d759a1` | 自选同源状态、离线宏观资料与本地归档基础；完整2.7待补 | Sites v25 已发布 |
 
 | Sites 版本 | Git 标签 | 源码提交 | 主要内容 | 证据 |
 | --- | --- | --- | --- | --- |
+| 26 | `sites-v26` | `0a86366` | Performance baseline + archive import reliability | MR-PUBLISH-PERFORMANCE275；平台 succeeded |
 | 25 | `sites-v25` | `5d759a1` | Watchlist + local history foundation | MR-PUBLISH-FOUNDATION27；平台 succeeded |
 | 24 | `sites-v24` | `8641d81` | State Intelligence II + detail refinement | MR-PUBLISH-STATE26；平台 succeeded |
 | 23 | `sites-v23` | `31a11d2` | Market State Intelligence | MR-PUBLISH-STATE25；平台 succeeded |
