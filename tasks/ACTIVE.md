@@ -1,5 +1,13 @@
 # 当前任务索引
 
+## MR-PUBLISH-PRE28-CLEANUP — 上传部署中
+
+用户另行授权发布已审计的有限清理，卡片tasks/MR-PUBLISH-PRE28-CLEANUP.md。不创建新产品版本；下列未发布描述为清理开发阶段事实，完整2.7/2.8待办保留。
+
+## MR-PRE28-BACKLOG-CLEANUP — 有限清理完成，已归档
+
+归档tasks/archive/MR-PRE28-BACKLOG-CLEANUP.md；基线e89d3ec，独立本地候选未提交/未发布。DS实际完成未用Cloud导入及三份文档历史说明，两任务/四次CLI（含各一次指定修正）；首轮工具失败与停止约定违反如实保留。新测lint3errors/5warnings（其余诊断不变）、build/typecheck、路径/diff检查通过；独立GPT审计VERIFY PASS，无未解决finding。剩余Hook/image lint、设备/数据条件及完整2.7/2.8保留，不冒称lint-clean或提帧。生产仍2.75/Sites v26。
+
 ## MR-PUBLISH-PERFORMANCE275 — 发布成功，已归档
 
 当前生产：Market Radar 2.75 / Sites v26，2026-09-23 CST发布，源码`0a863666c5b04c376738edee7443dafa223a3e50`，平台succeeded、环境revision3。产品标签radar-v2.75与发布标签sites-v26对应同一源码。归档导入失败保留原数据与查询；包含本地性能验证工具和报告，没有宣称帧率提速。完整2.7与真机/后台/长期性能待办保留。发布记录见tasks/archive/MR-PUBLISH-PERFORMANCE275.md；后续文档提交不重新部署。 下列开发阶段未发布描述保留原时点事实。

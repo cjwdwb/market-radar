@@ -66,6 +66,6 @@ CLI 模型目录刷新不能解析 DeepSeek `/models` 响应（缺少 models 字
 
 官方资料确认 Responses/function 和特定 apply_patch custom 格式；内置 Web、MCP、computer use 等被忽略，其他 custom 名称可能失败。官方能力声明与上表本机实测分开；不把兼容 OpenAI API 当完整 Codex 兼容。
 
-Production: NOT DEPLOYED（本开发工具任务未发布；网站仍为既有 2.3 / Sites v20）。
+2026-09-17工具集成记录：Production: NOT DEPLOYED（本开发工具任务未发布；网站仍为既有 2.3 / Sites v20）。详见 ../tasks/archive/MR-DEV-DEEPSEEK-PROVIDER.md；当前发布见 ../tasks/archive/MR-PUBLISH-PERFORMANCE275.md。
 
 本机回切验证：ChatGPT 登录有效；子进程不含 DeepSeek 密钥时，以 OpenAI provider / gpt-6-astra 返回 OPENAI_READY。受限沙箱最初的 Not logged in 不代表本机登录失效。
