@@ -4,9 +4,11 @@
 
 ![Market Radar 桌面界面](docs/screenshots/desktop-after.png)
 
+最新维护（2026-09-24）：删除一个未用图标导入、整理历史状态说明；build/typecheck与独立审计通过，既有3errors/5warnings及其他未验项目保留。不是2.8发布，不宣称提帧。[清理记录](tasks/archive/MR-PRE28-BACKLOG-CLEANUP.md)。
+
 ## 功能
 
-2.75已上线为Sites v26：[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site)。宏观归档导入失败时保留原资料、日期查询和分页；新增可重复的本地性能/请求/交互验证。已完成269项Node与89项浏览器检查记录及独立审计；测量没有证明帧率提升，真机与长时性能限制仍保留。[性能报告](docs/PERFORMANCE_275.md)记录范围、命令与结果。发布进展以[版本索引](docs/VERSIONS.md)为准。
+2.75维护成果已上线为Sites v27：[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site)。宏观归档导入失败时保留原资料、日期查询和分页；新增可重复的本地性能/请求/交互验证。已完成269项Node与89项浏览器检查记录及独立审计；测量没有证明帧率提升，真机与长时性能限制仍保留。[性能报告](docs/PERFORMANCE_275.md)记录范围、命令与结果。发布进展以[版本索引](docs/VERSIONS.md)为准。
 
 此前2.7 Foundation（阶段成果）发布为Sites v25，其功能已包含在当前版本。[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site)。选中资产可在 Classic 与 Radar 查看同一份可解释状态：短窗、中窗、连续相对表现，以及历史相邻窗口比较。它描述已发生的数据，不预测价格，也不提供买卖评分。
 

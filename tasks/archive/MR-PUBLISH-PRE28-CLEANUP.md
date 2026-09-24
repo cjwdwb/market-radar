@@ -1,4 +1,4 @@
-# MR-PUBLISH-PRE28-CLEANUP — 发布准备
+# MR-PUBLISH-PRE28-CLEANUP — 发布成功
 
 2026-09-24 CST。用户在有限清理完成后明确授权“上传部署”。沿用market-planner / builder与Sites hosting流程；只发布已独立审核的清理成果，不创建新产品版本，不改变radar-v2.75标签，不启动2.8。
 
@@ -11,3 +11,13 @@
 流程/验收：原生Sites打开→允许清单提交→GitHub main正常push→官方workflow推送准确源/打包→保存版本/部署→终态succeeded原生URL→实际sites-vNN标签和文档收口。只创建实际发布标签，不强推、不移动已有标签。保留受众与应用门禁。原生发布成功不等于生产登录后/真机QA通过。完整2.7和2.75性能缺口继续开放。
 
 启动记录：首次官方workflow启动因自动审批服务连接中断未执行；原请求重试审批通过后执行。不是安全拒绝，未更换通道绕过。
+
+## 结果
+
+源码4f84e5cb39abe48e81643a6364339a47a3701472，GitHub main正常推送并回读一致。官方Sites source workflow推送该源码；一次TLS握手失败后，仅当前进程设HTTP/1.1和TLS1.2重试，保留证书验证；Windows Bash打包器无法启动，原生工具明确支持的云端构建fallback完成。保存响应传输失败后读取版本确认并复用v27，无重复发布。
+
+保存版本appgprj_6a9b9dc23584819190a31ae417863e7a~appgver_eb146f24a9708191a5947b36a191a8db；deployment appgdep_6ab4ed3f09c88191b0daf4f993dd5528；2026-09-24T09:30:56.276360+00:00终态succeeded，env_set_revision3，URL https://market-radar-rex.swt-aether.chatgpt.site 。受众public和应用访问码保持原状；无env/secret/DB/采集变更。
+
+仅新增实际发布标签sites-v27，指向准确源码，不改radar-v2.75或创建产品版本。7文件源提交允许清单、diffcheck与已审计产品差异核对通过；ignored测试输出/真实数据未上传。复用清理阶段测试与独立审计，不冒称本轮重新全套测试。主协调者完成发布记录核对；发布阶段无DS新调用。
+
+README/CHANGELOG/VERSIONS/CURRENT_STATE/ACTIVE与归档随后文档提交，不再次部署。平台成功不代表生产登录后或真机验收；残余lint/性能/完整2.7需求继续开放。无open_in_codex工具，交付原生URL。文档收口脚本首次因CRLF段落匹配失败未写文件，统一读取换行后成功；未影响部署源码。

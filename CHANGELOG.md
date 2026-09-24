@@ -2,6 +2,12 @@
 
 本文件记录 Market Radar 的可识别产品里程碑。完整发布来源、验证范围和回退注意事项见 [docs/VERSIONS.md](docs/VERSIONS.md)。
 
+## Pre-2.8有限维护 — 2026-09-24
+
+- 删除未用Cloud导入，三份文档标明历史时期和原任务入口；DS实施，GPT接收与独立审计VERIFY。
+- lint仅减少一个警告，仍3errors/5warnings；本地build/typecheck通过，主客户端与原候选逐字节相同，不宣称性能提升。
+- 已发布Sites v27，源码`4f84e5c`，平台succeeded。产品仍2.75，不移动原产品标签；完整2.7/后续2.8和未验证限制保留。
+
 ## Radar 2.75 — Performance & Reliability — 2026-09-23
 
 - 修复宏观归档导入失败、超限或读取错误时清空原资料的问题；新文件完整验证后才替换，失败保留查询和分页，并明确提示。

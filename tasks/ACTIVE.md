@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-PUBLISH-PRE28-CLEANUP — 上传部署中
+## MR-PUBLISH-PRE28-CLEANUP — 发布成功，已归档
 
-用户另行授权发布已审计的有限清理，卡片tasks/MR-PUBLISH-PRE28-CLEANUP.md。不创建新产品版本；下列未发布描述为清理开发阶段事实，完整2.7/2.8待办保留。
+当前生产：Market Radar 2.75维护发布 / Sites v27，2026-09-24 CST，源码`4f84e5cb39abe48e81643a6364339a47a3701472`，平台succeeded、环境revision3。本次Pre-2.8有限清理只删除未用Cloud导入并整理历史说明，不创建新产品版本，不移动radar-v2.75。发布标签sites-v27对应源码；记录tasks/archive/MR-PUBLISH-PRE28-CLEANUP.md。此前v26/source0a86366的产品功能与性能限制保留，完整2.7/2.8仍未完成。后续文档提交不重新部署。 下列未发布描述为清理开发阶段事实。
 
 ## MR-PRE28-BACKLOG-CLEANUP — 有限清理完成，已归档
 
