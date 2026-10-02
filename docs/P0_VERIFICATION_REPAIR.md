@@ -38,7 +38,7 @@ Windows Node22 修复前56项定向回归53通过、3失败（FED幂等、同一
 
 冻结规则：CLI只接受 `work/state27` 内的可移植相对名称；允许合法混合分隔符和内部 `sub/../nested`。拒绝空/非字符串、根本身、逃逸/兄弟前缀、POSIX绝对、Windows盘符绝对/相对、UNC/设备路径、ADS冒号、控制/保留字符、设备名称、末尾点/空格。原有绝对路径未被放开。
 
-数据库/恢复输入/导出输出路径在mkdir/open前预校验；直接lstat检查断开的链接。实际Windows父级junction及dangling junction拒绝且无写入，已有数据库/备份/恢复目标不覆盖。Windows文件symlink创建返回EPERM，新用例明确SKIP（验收NOT RUN），未改变系统权限；Linux真实链接待测。检查不构成对恶意并发更换文件系统别名的无竞态保证；工具仍为可信本地操作者使用。
+数据库/恢复输入/导出输出路径在mkdir/open前预校验；直接lstat检查断开的链接。实际Windows父级junction及dangling junction拒绝且无写入，已有数据库/备份/恢复目标不覆盖。Windows文件symlink创建返回EPERM，新用例明确SKIP（验收NOT RUN），未改变系统权限；Linux对应目录、断链及文件链接用例已在run37002078172通过。检查不构成对恶意并发更换文件系统别名的无竞态保证；工具仍为可信本地操作者使用。
 
 ### 演示数值与 digest
 
