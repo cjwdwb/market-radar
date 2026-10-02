@@ -1,5 +1,9 @@
 # 版本与回退索引
 
+当前生产（2026-10-02）：**Market Radar 2.8 Foundation · P0维护 / Sites v29**，源码 `2ad04ee645ee588b16ede15c43fb093ed395419e`，平台succeeded，环境revision3。发布标签 `sites-v29` 指向该源码；保留原 `radar-v2.8-foundation` 与 `sites-v28`，不移动旧标签或新增产品版本号。修复归档SQLite生命周期、CLI路径与模拟生成差异；main CI 288/288、独立审计及复核完成。[发布记录](../tasks/archive/MR-PUBLISH-HISTORY28-P0.md)。后续发布说明提交不重新部署，完整真实数据/保管/研究边界保持。
+
+以下v28及更早记录为历史发布：
+
 当前生产（2026-10-02）：**Market Radar 2.8 Foundation / Sites v28**，源码 `75cfa0658caa6356c47e8d0c85461b3029d0fccd`，平台 succeeded，环境 revision3。产品标签 `radar-v2.8-foundation`、发布标签 `sites-v28` 对应同一源码。历史版本包/90与180分钟回放/固定协议模拟研究、可下载模拟示例与既有FED公开资料已上线；完整真实回补/正式保管/研究仍未完成。281Node、build/typecheck、19条相关浏览器检查及独立审计通过。记录 [MR-PUBLISH-HISTORY28-FOUNDATION](../tasks/archive/MR-PUBLISH-HISTORY28-FOUNDATION.md)；后续文档提交不重新部署，生产登录后/真机未复测。
 
 上一生产：Market Radar 2.75维护发布 / Sites v27，2026-09-24 CST，源码`4f84e5cb39abe48e81643a6364339a47a3701472`，平台succeeded、环境revision3。Pre-2.8有限清理只删除未用Cloud导入并整理历史说明，不创建新产品版本，不移动radar-v2.75。发布标签sites-v27对应源码；记录tasks/archive/MR-PUBLISH-PRE28-CLEANUP.md。此前v26/source0a86366的产品功能与性能限制保留。
@@ -42,6 +46,7 @@
 
 | Sites 版本 | Git 标签 | 源码提交 | 主要内容 | 证据 |
 | --- | --- | --- | --- | --- |
+| 29 | `sites-v29` | `2ad04ee` | P0 验证基线、归档生命周期与可移植路径修复 | MR-PUBLISH-HISTORY28-P0；平台 succeeded |
 | 28 | `sites-v28` | `75cfa06` | Historical Intelligence Foundation | MR-PUBLISH-HISTORY28-FOUNDATION；平台 succeeded |
 | 27 | `sites-v27` | `4f84e5c` | Pre-2.8有限维护，产品仍2.75 | MR-PUBLISH-PRE28-CLEANUP；平台 succeeded |
 | 26 | `sites-v26` | `0a86366` | Performance baseline + archive import reliability | MR-PUBLISH-PERFORMANCE275；平台 succeeded |

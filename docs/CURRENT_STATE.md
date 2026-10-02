@@ -1,5 +1,9 @@
 # 当前状态
 
+当前生产（2026-10-02）：**2.8 Foundation · P0维护 / Sites v29**，实际部署源码 `2ad04ee645ee588b16ede15c43fb093ed395419e`。用户明确授权上传部署后，PR #1正常合入main；该源码main CI run37003666727完整npm ci→npm test成功，288/288、0失败/跳过。Sites deployment appgdep_6abf9c2244988191abab6a6709a5ff03于11:59:09 UTC确认succeeded，环境revision3、public及应用访问码不变。发布记录tasks/archive/MR-PUBLISH-HISTORY28-P0.md；后续文档提交不重新部署。完整2.8真实价格/正式保管/研究未完成项继续开放，未新增真实采集/数据库/调度。本轮不重复生产登录后或真机验收。
+
+以下为P0开发/隔离与v28及更早阶段事实，不代表当前生产仍未发布：
+
 P0续跑完成（2026-10-02）：用户另行授权独立分支/draft PR验证；修复57b3d0f已上传codex/mr-28-p0-repair，PR #1/run37002078172在Ubuntu24.04.5/Node22.15/npm10.9.2完整npm ci→npm test成功（288/288、0fail/0skip），实际checkout与head7b37baf树一致。独立审计已VERIFY。归档tasks/archive/MR-28-P0-VERIFICATION-REPAIR.md；报告docs/P0_VERIFICATION_REPAIR.md。未合并main或部署，Windows文件symlink权限项仍未测。下段为首次隔离验证时的记录，不是当前进度。
 
 2026-10-02 首次隔离记录：GitHub main27b0bab对应run36999220149在Ubuntu24.04.5/Node22.15为281/278/3失败；原c978520对应run36995381868为281/276/5失败。下方原Windows发布验证保留为历史证据，不等于CI成功。隔离分支codex/mr-28-p0-repair已修SQLite statement生命周期、可移植CLI路径与模拟生成数值，Windows22/24各288项/287通过/1权限跳过，分项build/typecheck/lint与12条相关浏览器检查通过；独立GPT审计1项LOW已修并VERIFY。当时未提交/上传/部署、Linux/CI待补；后续已按上段完成续跑。

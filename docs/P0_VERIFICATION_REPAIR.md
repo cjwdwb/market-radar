@@ -2,6 +2,8 @@
 
 日期：2026-10-02。任务：[MR-28-P0-VERIFICATION-REPAIR](../tasks/archive/MR-28-P0-VERIFICATION-REPAIR.md)。
 
+后续发布：用户另行要求“上传部署”后，PR #1已合入main，维护版部署为Sites v29/source `2ad04ee645ee588b16ede15c43fb093ed395419e`，main CI 288/288，平台succeeded。见[发布记录](../tasks/archive/MR-PUBLISH-HISTORY28-P0.md)。下文草稿PR/不合并/不部署是P0首次任务与续跑交接时的授权边界及证据，不是当前发布状态。
+
 续跑状态：用户明确授权推送独立分支、建立草稿PR并完成CI。修复提交 `57b3d0f3d49383fab7a17872efb7a24c8794674f` 已上传，[草稿PR #1](https://github.com/cjwdwb/market-radar/pull/1) 的完整Ubuntu CI通过；代码与已审计8文件一致。仍不合并main、不部署、不采集真实数据。
 
 **P0修复候选验证完成，停在草稿PR交接点。** 本地Windows、必要浏览器、独立GPT审计及GitHub Ubuntu24.04.5/Node22.15完整 `npm ci → npm test` 均有实际证据。Windows文件symlink权限项仍未测，Linux对应项已通过；不把原main的失败改写成成功，也不称修复已进入生产。

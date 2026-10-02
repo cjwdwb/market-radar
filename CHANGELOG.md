@@ -2,6 +2,13 @@
 
 本文件记录 Market Radar 的可识别产品里程碑。完整发布来源、验证范围和回退注意事项见 [docs/VERSIONS.md](docs/VERSIONS.md)。
 
+## Radar 2.8 Foundation · P0维护 — Sites v29 已发布 — 2026-10-02
+
+- 修复Node22下SQLite临时statement提前失效，保留有界分页、身份检查、事务与导出限额。
+- CLI在文件操作前拒绝跨平台绝对路径、设备名和链接；模拟历史示例使用精确有理数生成，保持严格digest与旧合法包兼容。
+- PR #1已正常合并；部署源码 `2ad04ee645ee588b16ede15c43fb093ed395419e` 的main CI完整npm ci→npm test通过（288/288、0失败/跳过），独立审计及复核通过。
+- Sites平台确认succeeded，环境revision3，访问码/受众不变。没有新产品版本号或真实采集；Windows文件symlink权限项、生产登录后与真机本轮未测，详见[发布记录](tasks/archive/MR-PUBLISH-HISTORY28-P0.md)。
+
 ## Radar 2.8 Foundation — Sites v28 已发布 — 2026-10-02
 
 - 新增固定版本历史包、独立历史校验、90/180分钟方向/RMS回放及可解释相近样本研究，沿用原数学与10样本门槛。

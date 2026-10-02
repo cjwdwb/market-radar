@@ -1,14 +1,16 @@
 # 当前任务索引
 
-## MR-PUBLISH-HISTORY28-P0 — 已授权上传与发布
+## MR-PUBLISH-HISTORY28-P0 — 上传与发布成功，已归档
 
-用户2026-10-02明确要求“上传部署”。任务卡tasks/MR-PUBLISH-HISTORY28-P0.md；目标为PR #1已通过CI/独立审计的2.8维护修复，保持既有public与应用访问码。将正常合并main、执行Sites官方发布并记录准确源码/版本；不新增产品功能或启用真实采集。
+用户2026-10-02明确要求“上传部署”。PR #1已正常合并，部署源码2ad04ee645ee588b16ede15c43fb093ed395419e上传GitHub main并发布Sites v29；平台succeeded、环境revision3，public与应用访问码不变。main CI 288/288，原独立审计/复核同源沿用，无新增产品改动或真实采集。归档tasks/archive/MR-PUBLISH-HISTORY28-P0.md；发布标签sites-v29标部署源码，后续文档提交不重新部署。
 
-## MR-28-P0-VERIFICATION-REPAIR — 修复候选验证完成，草稿PR待交接
+## MR-28-P0-VERIFICATION-REPAIR — 验证完成，后续已授权发布
 
 用户另行授权上传独立分支与draft PR完成CI。修复57b3d0f，分支codex/mr-28-p0-repair，[PR #1](https://github.com/cjwdwb/market-radar/pull/1)；run37002078172在Ubuntu24.04.5/Node22.15/npm10.9.2完整npm ci→npm test成功，288/288、0失败/跳过，实际checkout与head7b37baf树一致。独立GPT审计LOW已修并VERIFY；本地Windows287/288另1权限跳过、build/typecheck/lint及12条浏览器检查保留。
 
 归档tasks/archive/MR-28-P0-VERIFICATION-REPAIR.md，报告docs/P0_VERIFICATION_REPAIR.md。Windows文件symlink权限项仍未测；未合并main、未部署、未进入P1–P3或真实采集。原main27b0bab失败记录不改写；现有生产仍2.8 Foundation / Sites v28。
+
+上一段为P0交接时的原始状态；用户随后授权合并与发布，当前生产见本页MR-PUBLISH-HISTORY28-P0/v29记录。旧main失败与新main288/288分别保留。
 
 ## MR-REPOSITORY-READABILITY — 仓库导航与中文注释已整理，已归档
 
