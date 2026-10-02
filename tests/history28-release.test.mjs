@@ -19,3 +19,14 @@ test('release28: existing FED public metadata keeps its source, receipt times, c
  assert.equal(/"(?:owner|token|cookie|authorization|alerts|settings|email|runId)"\s*:/i.test(text),false);
  assert.ok(p.records.every(r=>r.url.startsWith('https://www.federalreserve.gov/')));
 });
+
+test('release28: fixed-point demo generation repeats exactly and integrity rejection remains strict',async()=>{
+ const at=1790935326955,a=await createHistoryExample(at),b=await createHistoryExample(at);
+ assert.deepEqual(a,b);assert.equal(a.identity,'fixture');assert.equal(a.exportedAt,at);assert.equal(a.bars.length,302);
+ assert.equal(a.bars[0].close,100);assert.equal(a.bars[1].close,100.02);assert.equal(a.bars[2].close,100.040004);
+ assert.equal(a.bars[149].close,103.02453939);assert.equal(a.bars[176].close,103.58232078);
+ assert.ok(a.bars.every(bar=>bar.low<=bar.close&&bar.close<=bar.high&&bar.open===bar.close&&bar.receivedAt===at));
+ const changed=structuredClone(a);changed.bars[0].close+=.001;
+ await assert.rejects(()=>parseHistoryPackage(JSON.stringify(changed),at),/校验失败/);
+ for(const patch of [{identity:'observed_live'},{extra:true},{intervalMs:60000},{range:{from:a.range.from,cutoff:a.range.from}},{bars:[{...a.bars[0],close:null}]}])await assert.rejects(()=>parseHistoryPackage(JSON.stringify({...a,...patch}),at));
+});

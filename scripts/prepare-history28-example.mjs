@@ -7,8 +7,18 @@ import { packageDigest, parseHistoryPackage } from '../lib/history/package.ts';
 export async function createHistoryExample(generatedAt) {
   const from=Date.parse('2026-09-01T00:00:00Z'),intervalMs=300000,count=302,cutoff=from+count*intervalMs;
   if(!Number.isSafeInteger(generatedAt)||generatedAt<cutoff)throw Error('INVALID_GENERATION_TIME');
+  // 演示专用：精确有理数复利，USD按1e-8单位四舍五入（正数半数向上）。
+  // 避免不同V8的浮点幂运算末位漂移；真实报价、通用parser和研究数学不做round。
+  const scale=100000000n,spread=1000000n;
+  let numerator=100n*scale,denominator=1n;
+  const bars=Array.from({length:count},(_,i)=>{
+    const units=(2n*numerator+denominator)/(2n*denominator),close=Number(units)/Number(scale);
+    const bar={time:from+i*intervalMs,open:close,high:Number(units+spread)/Number(scale),low:Number(units-spread)/Number(scale),close,volume:null,version:1,receivedAt:generatedAt};
+    numerator*=10002n;denominator*=10000n;
+    return bar;
+  });
   const body={format:'history-package-v1',identity:'fixture',vintage:'current_vintage',source:'fixture:history28-example',asset:{id:'fixture:us:EXAMPLE:USD',market:'us',venue:'TEST',providerId:'fixture:EXAMPLE',currency:'USD',adjustment:'raw'},intervalMs,sessionEvidence:'fixture_only',readRevision:1,range:{from,cutoff},exportedAt:generatedAt,coverage:'not_verified',
-    bars:Array.from({length:count},(_,i)=>{const close=100*1.0002**i;return {time:from+i*intervalMs,open:close,high:close+.01,low:close-.01,close,volume:null,version:1,receivedAt:generatedAt};})};
+    bars};
   return parseHistoryPackage(JSON.stringify({...body,digest:await packageDigest(body)}),generatedAt);
 }
 if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url)){

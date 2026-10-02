@@ -90,9 +90,18 @@ export class ArchiveStore {
   }
   assertIdentity(config){
     const identity=a=>canonical(Object.fromEntries(Object.entries(a).filter(([k])=>k!=='role')));
-    for(const row of this.db.prepare('SELECT config FROM archive_runs WHERE owner=?').iterate(config.owner)){
-      const previous=JSON.parse(row.config);if(previous.source!==config.source)continue;
-      for(const asset of config.assets){const old=previous.assets.find(a=>a.id===asset.id);if(old&&identity(old)!==identity(asset))fail('ASSET_IDENTITY_CONFLICT');}
+    // Node22.15的临时statement迭代器可能在GC后失效；同步取有限页，不持有悬空iterator。
+    // owner/run_id主键支持稳定keyset遍历；每页最多100条，不一次加载全部历史配置。
+    const statement=this.db.prepare('SELECT run_id,config FROM archive_runs WHERE owner=? AND run_id>? ORDER BY run_id LIMIT 100');
+    let after='';
+    while(true){
+      const rows=statement.all(config.owner,after);
+      for(const row of rows){
+        const previous=JSON.parse(row.config);if(previous.source!==config.source)continue;
+        for(const asset of config.assets){const old=previous.assets.find(a=>a.id===asset.id);if(old&&identity(old)!==identity(asset))fail('ASSET_IDENTITY_CONFLICT');}
+      }
+      if(rows.length<100)break;
+      after=rows.at(-1).run_id;
     }
   }
   getRun(owner,runId){return runView(this.db.prepare('SELECT * FROM archive_runs WHERE owner=? AND run_id=?').get(owner,runId));}
@@ -224,8 +233,15 @@ export class ArchiveStore {
       let budget=0;
       for(const table of tables){
         const rows=[];
-        for(const row of this.db.prepare(`SELECT * FROM ${table} WHERE owner=? ORDER BY rowid`).iterate(owner)){
-          budget+=Buffer.byteLength(canonical(row));if(budget>EXPORT_LIMITS.bytes-4096)fail('EXPORT_BYTE_LIMIT');rows.push(row);
+        // Node 22 的临时 statement 迭代器可能提前失效；分页仍逐行执行原导出限额。
+        const statement=this.db.prepare(`SELECT rowid AS export_rowid,* FROM ${table} WHERE owner=? AND rowid>? ORDER BY rowid LIMIT 100`);
+        let after=0;
+        while(true){
+          const page=statement.all(owner,after);
+          for(const {export_rowid,...row} of page){
+            budget+=Buffer.byteLength(canonical(row));if(budget>EXPORT_LIMITS.bytes-4096)fail('EXPORT_BYTE_LIMIT');rows.push(row);after=export_rowid;
+          }
+          if(page.length<100)break;
         }data.tables[table]=rows;
       }
       if(real){

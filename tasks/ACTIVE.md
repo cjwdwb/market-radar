@@ -1,5 +1,11 @@
 # 当前任务索引
 
+## MR-28-P0-VERIFICATION-REPAIR — 本地修复与审计复核完成，Linux/CI门槛待补
+
+任务卡tasks/MR-28-P0-VERIFICATION-REPAIR.md，分支codex/mr-28-p0-repair、独立工作树market-radar-p0-repair，基线27b0bab。最新main CI仍281/278/3失败，旧c978520为281/276/5失败；本地历史通过不替代远端。仅修SQLite/路径/模拟生成验证，不push/deploy、不进入真实回补或P1–P3。
+
+本轮候选未提交；Windows Node22与24各288项/287通过/1文件symlink权限跳过，分项build/typecheck/lint及12条相关浏览器检查通过。docs/P0_VERIFICATION_REPAIR.md记录根因/新旧样例差异。独立GPT审计1项设备名LOW已修并VERIFY；原Linux完整npm test和修复源码CI未验证，P0不归档为全部通过。
+
 ## MR-REPOSITORY-READABILITY — 仓库导航与中文注释已整理，已归档
 
 任务卡tasks/archive/MR-REPOSITORY-READABILITY.md。基线c978520，分支codex/mr-repository-readability；精简README、补docs导航与项目/架构说明，五个关键源码文件增加中文注释。token/去注释编译结果及忽略模式一致，12项相关Node、受影响lint、65链接检查通过。主代理按auditor流程复核，无独立审计或新DS调用。保留2.8未完成项、历史证据及本地数据；本次仅文档/注释同步GitHub，不重新部署，生产仍2.8 Foundation/Sites v28。

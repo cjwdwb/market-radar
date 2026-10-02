@@ -255,6 +255,26 @@ async function history28Checks(browser,report){
    await panel.locator('input[type=file]').setInputFiles({...file(data),name:'slow.json'});await p.waitForFunction(()=>typeof window.releaseHistoryRead==='function');await panel.locator('input[type=file]').setInputFiles(file(next));await p.waitForFunction(id=>document.querySelector('.history-view')?.dataset.historyId===id,next.digest);await p.evaluate(()=>window.releaseHistoryRead());await pause(100);assert.equal(await panel.locator('.history-view').getAttribute('data-history-id'),next.digest);
    await panel.locator('input[type=file]').setInputFiles({name:'large.json',mimeType:'application/json',buffer:Buffer.alloc(2097153)});await panel.locator('[role=alert]').waitFor();assert.match(await panel.locator('[role=alert]').innerText(),/2 MiB/);assert.equal(await panel.locator('.history-view').getAttribute('data-history-id'),next.digest);
    const link=panel.getByRole('link',{name:'下载模拟历史示例'});assert.equal(await link.getAttribute('href'),'/examples/history28-fixture.json');const response=await p.evaluate(async path=>{const r=await fetch(path);return {status:r.status,type:r.headers.get('content-type'),text:await r.text()};},await link.getAttribute('href'));assert.equal(response.status,200);assert.match(response.type,/json/);const shipped=response.text,id=JSON.parse(shipped).digest;await p.clock.setFixedTime(Date.now());await panel.locator('input[type=file]').setInputFiles({name:'shipped-example.json',mimeType:'application/json',buffer:Buffer.from(shipped)});await p.waitForFunction(id=>document.querySelector('.history-view')?.dataset.historyId===id,id);assert.match(await panel.locator('h3').first().innerText(),/fixture:us:EXAMPLE:USD/);report.checks.push('history28 shipped example: local authenticated download and import, explicit synthetic identity');
+   // P0：实际下载的包与旧合法包都走现有 UI；损坏包不能替换有效查询。
+   const verifyExample=async(example,label)=>{
+    await panel.locator('input[type=file]').setInputFiles(file(example));
+    await p.waitForFunction(id=>document.querySelector('.history-view')?.dataset.historyId===id,example.digest);
+    await query.fill(new Date(example.range.cutoff).toISOString().slice(0,16));await panel.getByRole('button',{name:'查询历史',exact:true}).click();
+    assert.match(await panel.innerText(),/模拟历史 · 当前取得版本 · 非当时观察\/预测/);
+    assert.match(await panel.locator('.history-horizon').first().innerText(),/窗口偏上/);
+    const research=panel.locator('details').filter({has: p.getByText('样本研究详情',{exact:true})});
+    if(await research.getAttribute('open')===null)await research.locator(':scope > summary').click();
+    assert.match(await research.innerText(),/状态 样本可用/);assert.match(await research.innerText(),/保留：10/);
+    await research.locator(':scope > summary').click();
+    const selectedQuery=await query.inputValue(),previousResult=await panel.locator('.history-result').innerText();
+    const broken=structuredClone(example);broken.bars[0].close+=.001;
+    await panel.locator('input[type=file]').setInputFiles(file(broken));await panel.locator('[role=alert]').waitFor();
+    assert.match(await panel.locator('[role=alert]').innerText(),/校验失败/);assert.match(await panel.locator('[role=alert]').innerText(),/已保留上一份有效历史与查询/);
+    assert.equal(await panel.locator('.history-view').getAttribute('data-history-id'),example.digest);assert.equal(await query.inputValue(),selectedQuery);assert.equal(await panel.locator('.history-result').innerText(),previousResult);
+    report.checks.push(`history28 ${label}: import, replay, 10 research samples, fixture limitation, bad digest preserves accepted data and query`);
+   };
+   await verifyExample(JSON.parse(shipped),'fixed-point shipped example');
+   if(process.env.RADAR_HISTORY28_LEGACY_EXAMPLE)await verifyExample(JSON.parse(fs.readFileSync(process.env.RADAR_HISTORY28_LEGACY_EXAMPLE,'utf8')),'pre-P0 legal example');
    report.checks.push('history28 desktop: frozen-clock zero query requests, out-of-order import rejected, oversize preserves accepted asset');
   }
   await panel.getByRole('button',{name:'返回实时 Radar'}).click();assert.equal(await panel.getAttribute('open'),null);assert.ok(await summary.evaluate(el=>el===document.activeElement));assert.equal(await p.locator('.radar-watch-asset').count(),1);
