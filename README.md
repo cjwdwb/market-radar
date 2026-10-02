@@ -4,21 +4,21 @@
 
 ![Market Radar 桌面界面](docs/screenshots/desktop-after.png)
 
-最新维护（2026-09-24）：删除一个未用图标导入、整理历史状态说明；build/typecheck与独立审计通过，既有3errors/5warnings及其他未验项目保留。不是2.8发布，不宣称提帧。[清理记录](tasks/archive/MR-PRE28-BACKLOG-CLEANUP.md)。
+最新发布（2026-10-02）：**2.8 Foundation / Sites v28**，源码 `75cfa06`。[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site) · [发布记录](tasks/archive/MR-PUBLISH-HISTORY28-FOUNDATION.md)。沿用原访问码设置；这是阶段发布，完整真实历史数据验收仍待补。
 
 ## 2.8 Foundation 阶段版
 
-新增本地历史文件查询、90/180分钟回放与固定协议样本研究，证据默认折叠，错误导入保留上一份数据。当前价格入口仅接受模拟数据；真实回补、正式保管和真实研究验收仍未完成。
+新增本地历史文件查询、90/180分钟回放与固定协议样本研究，证据默认折叠，错误导入保留上一份数据。当前历史价格导入入口仅接受模拟数据，现有实时行情继续沿用真实来源；真实回补、正式保管和真实研究验收仍未完成。
 
 - [文件与数据索引](data/README.md)：302根模拟历史示例、两条既有FED公开资料，以及本地数据库/备份位置。
 - [历史智能契约与验收](docs/HISTORICAL_INTELLIGENCE.md)：281项Node、五视口、来源限制与研究身份。
 - 在Radar下载相应示例，保存后导入对应区域；没有后台采集或个人数据上传。
 
-发布处理中，实际生产版本以[版本索引](docs/VERSIONS.md)为准；不把本阶段称为完整2.8。
+产品标签 `radar-v2.8-foundation` 与发布标签 `sites-v28` 指向同一部署源码；后续说明文档提交不代表重新部署。完整历史见[版本索引](docs/VERSIONS.md)。
 
 ## 功能
 
-2.75维护成果已上线为Sites v27：[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site)。宏观归档导入失败时保留原资料、日期查询和分页；新增可重复的本地性能/请求/交互验证。已完成269项Node与89项浏览器检查记录及独立审计；测量没有证明帧率提升，真机与长时性能限制仍保留。[性能报告](docs/PERFORMANCE_275.md)记录范围、命令与结果。发布进展以[版本索引](docs/VERSIONS.md)为准。
+此前2.75维护成果发布为Sites v27，已包含在当前版本。宏观归档导入失败时保留原资料、日期查询和分页；提供可重复的本地性能/请求/交互验证。该阶段269项Node与89项浏览器检查记录及独立审计通过；测量没有证明帧率提升，真机与长时性能限制仍保留。[性能报告](docs/PERFORMANCE_275.md)记录范围、命令与结果。既有全仓lint债务仍为3errors/5warnings，本次仅运行受影响lint，不宣称全仓lint-clean。
 
 此前2.7 Foundation（阶段成果）发布为Sites v25，其功能已包含在当前版本。[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site)。选中资产可在 Classic 与 Radar 查看同一份可解释状态：短窗、中窗、连续相对表现，以及历史相邻窗口比较。它描述已发生的数据，不预测价格，也不提供买卖评分。
 

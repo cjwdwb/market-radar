@@ -1,14 +1,14 @@
 # 2.8 历史智能：隔离切片与未满足条件
 
-2026-10-02。任务 `tasks/MR-HISTORICAL-INTELLIGENCE-28.md`；开发基线 `1f87fc6bf3a34addf2d827a0689cf56888e6eb49`。本报告不是完整 2.8 验收或发布声明。生产仍按已有记录为 2.75 维护 / Sites v27，源码 `4f84e5cb39abe48e81643a6364339a47a3701472`，本轮没有发布。
+2026-10-02。任务 `tasks/MR-HISTORICAL-INTELLIGENCE-28.md`；开发基线 `1f87fc6bf3a34addf2d827a0689cf56888e6eb49`。本报告不是完整 2.8 验收。开发起点生产为 2.75 维护 / Sites v27，源码 `4f84e5cb39abe48e81643a6364339a47a3701472`；后续阶段发布结果如下。
 
 ## 发布收尾更新（2026-10-02）
 
-用户在上述开发完成后另行授权整理、上传和部署。按2.8 Foundation阶段版准备发布；实际部署结果以 `docs/VERSIONS.md` 和发布任务记录为准，下文“未发布”保留开发阶段时点，不表示后续授权撤销或未执行。
+用户在上述开发完成后另行授权整理、上传和部署。2.8 Foundation阶段版已上传GitHub main并发布为Sites v28，源码 `75cfa0658caa6356c47e8d0c85461b3029d0fccd`，平台 succeeded、环境 revision3。`radar-v2.8-foundation` / `sites-v28` 指向同一部署源码；完整发布证据见 [发布记录](../tasks/archive/MR-PUBLISH-HISTORY28-FOUNDATION.md)。后续文档提交不重新部署；下文开发阶段的限制继续保留，生产登录后/真机未新测。
 
 已新增可下载的302根模拟历史文件（真实生成时间、fixture身份）及既有两条FED公开资料（原文件/viewId/取得时间保留），见[data/README.md](../data/README.md)。没有原始库、备份、个人名单或凭据进入公开文件。数据库原位留在项目work/state27，data/local预留且被忽略；不把项目内目录当作异地保管。
 
-本发布候选新测：281/281 Node（新增公开示例2项），build/typecheck、受影响lint通过；历史10条与宏观9条浏览器检查（均含五视口），pageerrors=[]/warnings=[]。新增实际页面认证下载→文件解析→导入身份验证；宏观下载使用既有真实公开元数据，周边行情仍fixture。首轮HTTP loopback独立请求客户端未发送Secure测试Cookie而取得门禁HTML；改为已认证页面fetch并检查Content-Type后复测通过，没有改动产品门禁。
+发布源码新测：281/281 Node（新增公开示例2项），build/typecheck、受影响lint通过；历史10条与宏观9条浏览器检查（均含五视口），pageerrors=[]/warnings=[]。新增实际页面认证下载→文件解析→导入身份验证；宏观下载使用既有真实公开元数据，周边行情仍fixture。首轮HTTP loopback独立请求客户端未发送Secure测试Cookie而取得门禁HTML；改为已认证页面fetch并检查Content-Type后复测通过，没有改动产品门禁。
 
 精选可公开证据：[verification.json](evidence/history28/verification.json)、[桌面](screenshots/history28-desktop.png)、[手机](screenshots/history28-mobile.png)。主client JS最终790028 bytes，总1067532（原基线772454/1049958），新增静态JSON按需下载，不计入JS。此前性能测量为同一未变数学/存储路径；没有新增FPS结论。独立审计新增数据与产品收尾无confirmed finding，最终文档/证据复核见发布任务。
 
@@ -89,4 +89,4 @@ GPT完成契约、权利核查、版本包、历史有效性/数学复用、研�
 
 本地性能复现：`node --experimental-strip-types --import ./tests/register-types.mjs tests/performance/history28.mjs`。浏览器沿用 `tests/browser/radar.mjs`，显式设置loopback、PLAYWRIGHT_MODULE、RADAR_SYNTHETIC_AUTH=1、RADAR_HISTORY28_ONLY=1；严禁指向生产。
 
-尚需用户决定正式资产/必要基准、来源许可与用途、一次性/增量费用硬上限，以及正式根目录/备份/期限。满足后才能将真实adapter/价格准入、批次回补、逐资产缺口、正式恢复、真实信息和研究结果逐片接通。未推送、未打标签、未部署、未启用持续采集；不承诺离线后台继续运行。
+尚需明确正式资产/必要基准、来源许可与用途、一次性/增量费用硬上限及异地备份/保留期限。本机资料位置已按用户决定整理到项目，见data/README；尚不等于正式长期保管。满足真实来源条件后才能将adapter/价格准入、批次回补、逐资产缺口、正式恢复、真实信息和研究结果逐片接通。已发布的阶段功能不会启用持续采集；不承诺离线后台继续运行。

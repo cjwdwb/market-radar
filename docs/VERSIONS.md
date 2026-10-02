@@ -1,8 +1,8 @@
 # 版本与回退索引
 
-发布候选（2026-10-02）：2.8 Foundation，历史版本包/90与180分钟回放/固定协议模拟研究、可下载模拟示例与既有FED公开资料。完整2.8真实回补/正式保管/研究未完成。281Node、build/typecheck、19条相关浏览器检查通过；正式源码/标签/平台版本待发布成功后记录。
+当前生产（2026-10-02）：**Market Radar 2.8 Foundation / Sites v28**，源码 `75cfa0658caa6356c47e8d0c85461b3029d0fccd`，平台 succeeded，环境 revision3。产品标签 `radar-v2.8-foundation`、发布标签 `sites-v28` 对应同一源码。历史版本包/90与180分钟回放/固定协议模拟研究、可下载模拟示例与既有FED公开资料已上线；完整真实回补/正式保管/研究仍未完成。281Node、build/typecheck、19条相关浏览器检查及独立审计通过。记录 [MR-PUBLISH-HISTORY28-FOUNDATION](../tasks/archive/MR-PUBLISH-HISTORY28-FOUNDATION.md)；后续文档提交不重新部署，生产登录后/真机未复测。
 
-当前生产：Market Radar 2.75维护发布 / Sites v27，2026-09-24 CST，源码`4f84e5cb39abe48e81643a6364339a47a3701472`，平台succeeded、环境revision3。本次Pre-2.8有限清理只删除未用Cloud导入并整理历史说明，不创建新产品版本，不移动radar-v2.75。发布标签sites-v27对应源码；记录tasks/archive/MR-PUBLISH-PRE28-CLEANUP.md。此前v26/source0a86366的产品功能与性能限制保留，完整2.7/2.8仍未完成。后续文档提交不重新部署。
+上一生产：Market Radar 2.75维护发布 / Sites v27，2026-09-24 CST，源码`4f84e5cb39abe48e81643a6364339a47a3701472`，平台succeeded、环境revision3。Pre-2.8有限清理只删除未用Cloud导入并整理历史说明，不创建新产品版本，不移动radar-v2.75。发布标签sites-v27对应源码；记录tasks/archive/MR-PUBLISH-PRE28-CLEANUP.md。此前v26/source0a86366的产品功能与性能限制保留。
 
 以下为此前阶段记录：
 
@@ -38,9 +38,11 @@
 | Radar 2.6 | `radar-v2.6` | `8641d81` | 双窗口、同步Relative、Alignment、历史比较与详情精修 | Sites v24 已发布 |
 | Radar 2.75 | `radar-v2.75` | `0a86366` | 归档导入可靠性与性能基线；保留验收限制 | Sites v26 已发布 |
 | Radar 2.7 Foundation | `radar-v2.7-foundation` | `5d759a1` | 自选同源状态、离线宏观资料与本地归档基础；完整2.7待补 | Sites v25 已发布 |
+| Radar 2.8 Foundation | `radar-v2.8-foundation` | `75cfa06` | 受限历史包、方向/RMS回放、描述性模拟研究和公开示例；真实数据待补 | Sites v28 已发布 |
 
 | Sites 版本 | Git 标签 | 源码提交 | 主要内容 | 证据 |
 | --- | --- | --- | --- | --- |
+| 28 | `sites-v28` | `75cfa06` | Historical Intelligence Foundation | MR-PUBLISH-HISTORY28-FOUNDATION；平台 succeeded |
 | 27 | `sites-v27` | `4f84e5c` | Pre-2.8有限维护，产品仍2.75 | MR-PUBLISH-PRE28-CLEANUP；平台 succeeded |
 | 26 | `sites-v26` | `0a86366` | Performance baseline + archive import reliability | MR-PUBLISH-PERFORMANCE275；平台 succeeded |
 | 25 | `sites-v25` | `5d759a1` | Watchlist + local history foundation | MR-PUBLISH-FOUNDATION27；平台 succeeded |

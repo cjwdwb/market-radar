@@ -1,8 +1,8 @@
 # 当前状态
 
-2.8 Foundation发布收尾（2026-10-02）：已整理隔离查询/回放/固定协议研究及模拟示例、既有FED元数据；281Node/build/typecheck/受影响lint通过。当前生产仍下述2.75/v27，待本轮正式部署确认后更新；完整2.8真实数据/保管/研究仍开放。任务tasks/MR-PUBLISH-HISTORY28-FOUNDATION.md，数据索引data/README.md。
+当前生产（2026-10-02）：**Market Radar 2.8 Foundation / Sites v28**，源码 `75cfa0658caa6356c47e8d0c85461b3029d0fccd` 已上传GitHub main，平台 succeeded、环境 revision3。包含隔离历史查询/回放/固定协议研究及模拟示例、既有FED元数据；281Node/build/typecheck/受影响lint、19条相关浏览器检查与独立审计通过。`radar-v2.8-foundation` / `sites-v28` 标记部署源码，后续文档提交不重新部署。完整2.8真实数据/正式保管/研究仍开放；未启用云采集/迁移，未改访问策略。任务tasks/archive/MR-PUBLISH-HISTORY28-FOUNDATION.md，数据索引data/README.md。生产登录后/真机本轮NOT RUN。
 
-当前生产：Market Radar 2.75维护发布 / Sites v27，2026-09-24 CST，源码`4f84e5cb39abe48e81643a6364339a47a3701472`，平台succeeded、环境revision3。本次Pre-2.8有限清理只删除未用Cloud导入并整理历史说明，不创建新产品版本，不移动radar-v2.75。发布标签sites-v27对应源码；记录tasks/archive/MR-PUBLISH-PRE28-CLEANUP.md。此前v26/source0a86366的产品功能与性能限制保留，完整2.7/2.8仍未完成。后续文档提交不重新部署。
+上一生产：Market Radar 2.75维护发布 / Sites v27，2026-09-24 CST，源码`4f84e5cb39abe48e81643a6364339a47a3701472`，平台succeeded、环境revision3。Pre-2.8有限清理只删除未用Cloud导入并整理历史说明，不创建新产品版本，不移动radar-v2.75。发布标签sites-v27对应源码；记录tasks/archive/MR-PUBLISH-PRE28-CLEANUP.md。此前v26/source0a86366的产品功能与性能限制保留。
 
 以下为此前阶段记录：
 

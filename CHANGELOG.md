@@ -2,11 +2,12 @@
 
 本文件记录 Market Radar 的可识别产品里程碑。完整发布来源、验证范围和回退注意事项见 [docs/VERSIONS.md](docs/VERSIONS.md)。
 
-## Radar 2.8 Foundation — 阶段发布候选 — 2026-10-02
+## Radar 2.8 Foundation — Sites v28 已发布 — 2026-10-02
 
 - 新增固定版本历史包、独立历史校验、90/180分钟方向/RMS回放及可解释相近样本研究，沿用原数学与10样本门槛。
 - 增加模拟历史与既有FED公开资料下载/导入入口；所有数据标明身份与时点。真实价格来源未准入，不代表完成真实回补或预测验证。
 - 数据文件/精选验证证据归入项目；原始数据库、备份和个人信息保持本地且被Git忽略。
+- 部署源码 `75cfa0658caa6356c47e8d0c85461b3029d0fccd`，平台确认 succeeded；`radar-v2.8-foundation` / `sites-v28` 标记同一源码。文档随后独立提交，不重新部署。
 - 最终281项Node、build/typecheck与受影响lint通过；五视口和独立审计结果见[报告](docs/HISTORICAL_INTELLIGENCE.md)。发布记录以[版本索引](docs/VERSIONS.md)为准。
 
 ## Pre-2.8有限维护 — 2026-09-24

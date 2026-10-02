@@ -14,7 +14,7 @@
 
 发布：普通非强推GitHub main（远端先核对），官方Sites source workflow、保存准确源码版本、保持现有public+应用门禁并部署；仅终态succeeded后写sites-vNN。新产品标签radar-v2.8-foundation，既有标签不移动。外部条件未满足项仍由原2.8任务跟踪，不归档为全部完成。
 
-当前未发布，结果待记录。发布动作由协调者，复用前轮DS纯展示组件；本发布收尾不新增Provider任务。
+发布已成功，终态与源码见下文。发布动作由协调者，复用前轮DS纯展示组件；本发布收尾无新增DS调用，不将Provider配置可用记为参与。
 
 ## 发布前检查
 
@@ -25,3 +25,18 @@
 独立GPT新增收尾检查：示例2/2重跑通过、FED同原文件、无私有字段、DB/backup/local递归忽略与Git未追踪检查通过；产品无新finding。最终精选报告/截图/发布说明独立VERIFY PASS，与实际10/9条报告和281Node一致，未见私有信息或未解决finding。只发布Foundation，不以公开宏观或fixture代替真实价格/正式保管/前瞻研究验收。原2.8任务继续开放。
 
 用户本轮已接受数据文件存放项目内，本机资料位置按data/README确定，无需重复确认这一点；异地备份、保留期限和真实来源权限仍未由这句话解决。
+
+## 发布结果（2026-10-02）
+
+- 源码提交：`75cfa0658caa6356c47e8d0c85461b3029d0fccd`，29文件，GitHub main普通fast-forward上传成功；完整2.8任务未归档为全部完成。
+- 产品标签：`radar-v2.8-foundation`；发布标签：`sites-v28`。两枚新annotated tag均指向上述部署源码，不移动已有标签。
+- Sites project：`appgprj_6a9b9dc23584819190a31ae417863e7a`。
+- Sites version：28，`appgprj_6a9b9dc23584819190a31ae417863e7a~appgver_dfb326d1fbb481918cbaad1e0d955c21`。
+- Deployment：`appgdep_6abf83ce0b588191a684174a7ff4da09`，原生状态 `succeeded`，`updated_at=2026-10-02T10:16:11.328996+00:00`，环境 revision3。
+- 正式网址：https://market-radar-rex.swt-aether.chatgpt.site 。沿用原public受众与应用访问码门禁，未修改密钥、访问配置或通知设置。
+
+工具过程：本机Git默认HTTPS helper路径失效，使用已安装的mingw64/bin作进程级GIT_EXEC_PATH后普通推送成功，不改全局Git配置。官方Sites workflow完成源码推送/确认后，本地归档子命令因启动失败未生成压缩包；使用平台支持的无archive保存版本与云端构建路径，同一源码保存为v28后部署成功。未把本地归档失败写成通过，没有跳过云端构建或证书校验。
+
+发布后记录仅修改README/CHANGELOG、版本/当前状态/报告与任务索引；该文档提交不重新部署。平台succeeded是本轮新发布证据，不替代生产登录后或iPhone实测；本轮这两项NOT RUN，旧QA按用户既有决定保留、不重新作为发布Gate。
+
+交付边界：2.8 Foundation已发布；真实价格历史仍0条，完整九月回补、正式长期保管、历史Relative/Alignment/Transition与真实前瞻结果未完成。公开两条FED元数据为既有合法视图，非本轮重新采集、完整九月资讯或个股公告。未购买服务、创建收费资源、生产迁移/回补写入、启用持续云采集；没有后台自行继续任务。
