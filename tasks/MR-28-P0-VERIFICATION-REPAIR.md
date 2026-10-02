@@ -64,3 +64,9 @@ Builder允许写入：collector/store.mjs（仅assertIdentity）、scripts/histo
 独立GPT审计：1项LOW（history-local遗漏COM¹、CONIN$/CONOUT$等设备名）；仅补正则与5个bad路径用例。修复后verify-node22.log/verify-node24.log均288/287/0fail/1skip，lint-verify.log无诊断。审计员独立VERIFY运行6项/5pass/1skip，核对8文件哈希与修正范围，结论PASS，无未关闭finding。完整分工及证据见报告第4节，摘要outputs/p0/audit-summary.json。
 
 P0继续开放：Ubuntu24.04.5/Node22.15完整npm test BLOCKED；修复源码远端CI NOT RUN；文件symlink权限项NOT RUN。独立审计不等于原环境验证通过。P1–P3仍不实施；未提交、未发布，不归档为全部通过。
+
+## 2026-10-02 继续操作与限定授权
+
+用户明确允许“推送分支、创建草稿 PR 并完成 CI”；只向GitHub独立分支codex/mr-28-p0-repair上传并建立draft PR触发既有Ubuntu/Node22.15验证。若CI暴露相关失败，可继续有界修复与复核。不授权合并main、部署、真实采集或P1–P3。
+
+本地修复提交 `57b3d0f3d49383fab7a17872efb7a24c8794674f`，代码/样例/测试与已审计8文件哈希一致。上文UNCOMMITTED DIFF为首次审计时的真实状态；续跑已形成提交，不重新声称旧结果为新测。既有CI在feature push不触发，只在main push或pull_request触发；本次使用draft PR，保持workflow不变。远端结果尚待记录。

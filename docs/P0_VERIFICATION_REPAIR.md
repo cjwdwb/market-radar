@@ -2,6 +2,8 @@
 
 日期：2026-10-02。任务：[MR-28-P0-VERIFICATION-REPAIR](../tasks/MR-28-P0-VERIFICATION-REPAIR.md)。
 
+续跑状态：用户现已明确授权推送独立分支、建立草稿PR并完成CI。本地修复提交 `57b3d0f3d49383fab7a17872efb7a24c8794674f`，与下述已审计代码相同；远端验证待记录。下文未提交/无push权限为首次隔离阶段事实，不再代表续跑授权；仍不合并main、不部署、不采集真实数据。
+
 **隔离修复已有 Windows 验证及独立审计复核；P0 尚未关闭。** Ubuntu / Node22.15 的完整 `npm test` 受环境限制，修复源码的远端 CI 未运行。本轮不 push/merge/tag/deploy、不采集真实历史、不操作真实库。
 
 ## 1. 源码、CI 与实际对象

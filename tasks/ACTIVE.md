@@ -2,6 +2,8 @@
 
 ## MR-28-P0-VERIFICATION-REPAIR — 本地修复与审计复核完成，Linux/CI门槛待补
 
+续跑授权：用户已明确允许上传独立分支并建立draft PR完成CI；本地修复提交57b3d0f，正在补GitHub Ubuntu验证。不合并main、不部署、不进入P1–P3。以下未提交/禁止push描述保留首次隔离阶段事实。
+
 任务卡tasks/MR-28-P0-VERIFICATION-REPAIR.md，分支codex/mr-28-p0-repair、独立工作树market-radar-p0-repair，基线27b0bab。最新main CI仍281/278/3失败，旧c978520为281/276/5失败；本地历史通过不替代远端。仅修SQLite/路径/模拟生成验证，不push/deploy、不进入真实回补或P1–P3。
 
 本轮候选未提交；Windows Node22与24各288项/287通过/1文件symlink权限跳过，分项build/typecheck/lint及12条相关浏览器检查通过。docs/P0_VERIFICATION_REPAIR.md记录根因/新旧样例差异。独立GPT审计1项设备名LOW已修并VERIFY；原Linux完整npm test和修复源码CI未验证，P0不归档为全部通过。
