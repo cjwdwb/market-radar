@@ -1,5 +1,7 @@
 # MR-28-P0-VERIFICATION-REPAIR
 
+最终交接：用户另行授权分支上传与draft PR验证后，修复提交57b3d0f已上传，PR #1/run37002078172完整Ubuntu24.04.5/Node22.15/npm10.9.2验证288/288通过、0失败/跳过。P0修复候选验证完成；未合并main、未部署、不进入P1–P3。下文保留首次隔离阶段门槛与后续授权/证据。
+
 2026-10-02，P0有界隔离修复。用户完整指令为本轮附件b2c3c6fe；不push/merge/tag/deploy，不进入P1–P3，不操作真实库或生产资源。
 
 ## 基线与 Planner
@@ -70,3 +72,9 @@ P0继续开放：Ubuntu24.04.5/Node22.15完整npm test BLOCKED；修复源码远
 用户明确允许“推送分支、创建草稿 PR 并完成 CI”；只向GitHub独立分支codex/mr-28-p0-repair上传并建立draft PR触发既有Ubuntu/Node22.15验证。若CI暴露相关失败，可继续有界修复与复核。不授权合并main、部署、真实采集或P1–P3。
 
 本地修复提交 `57b3d0f3d49383fab7a17872efb7a24c8794674f`，代码/样例/测试与已审计8文件哈希一致。上文UNCOMMITTED DIFF为首次审计时的真实状态；续跑已形成提交，不重新声称旧结果为新测。既有CI在feature push不触发，只在main push或pull_request触发；本次使用draft PR，保持workflow不变。远端结果尚待记录。
+
+## 新测GitHub证据与归档
+
+PR https://github.com/cjwdwb/market-radar/pull/1，draft=true，head7b37baff07c6208da4451d2b85d058912a12393e；run37002078172/job110821834479/attempt1，2026-10-02 11:38 UTC，verify success。实际checkout0281a06585065b87e1a35f42d63e8fb782be5ef4是PR合并测试提交，与head的tree同为34b7fa4db89ed41a0841efec38590801ade20ff2；这不是合并main。Ubuntu24.04.5/image20260927.320.1与旧失败环境匹配，Node22.15.0/npm10.9.2；npm ci、npm test（build/typecheck/tests）全部通过，288测试、288通过、0失败/跳过/取消。必要摘录outputs/p0/evidence/pr-ci-run27-extract.log，在线job为公开可复查证据。
+
+8个审计代码文件哈希不变；本次没有重做产品或重复本地suite。独立审计及修复VERIFY沿用同一代码结果，CI由真实runner新测。Windows文件symlink权限未测仍保留，不用Linux通过冒充Windows权限测试。无新的DS调用。任务按修复候选完成归档，生产/合并/P1–P3未授权且未执行；后续仅文档归档提交将再由现有PR CI核对最终head。

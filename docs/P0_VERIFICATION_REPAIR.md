@@ -1,20 +1,22 @@
 # 2.8 P0 验证修复记录
 
-日期：2026-10-02。任务：[MR-28-P0-VERIFICATION-REPAIR](../tasks/MR-28-P0-VERIFICATION-REPAIR.md)。
+日期：2026-10-02。任务：[MR-28-P0-VERIFICATION-REPAIR](../tasks/archive/MR-28-P0-VERIFICATION-REPAIR.md)。
 
-续跑状态：用户现已明确授权推送独立分支、建立草稿PR并完成CI。本地修复提交 `57b3d0f3d49383fab7a17872efb7a24c8794674f`，与下述已审计代码相同；远端验证待记录。下文未提交/无push权限为首次隔离阶段事实，不再代表续跑授权；仍不合并main、不部署、不采集真实数据。
+续跑状态：用户明确授权推送独立分支、建立草稿PR并完成CI。修复提交 `57b3d0f3d49383fab7a17872efb7a24c8794674f` 已上传，[草稿PR #1](https://github.com/cjwdwb/market-radar/pull/1) 的完整Ubuntu CI通过；代码与已审计8文件一致。仍不合并main、不部署、不采集真实数据。
 
-**隔离修复已有 Windows 验证及独立审计复核；P0 尚未关闭。** Ubuntu / Node22.15 的完整 `npm test` 受环境限制，修复源码的远端 CI 未运行。本轮不 push/merge/tag/deploy、不采集真实历史、不操作真实库。
+**P0修复候选验证完成，停在草稿PR交接点。** 本地Windows、必要浏览器、独立GPT审计及GitHub Ubuntu24.04.5/Node22.15完整 `npm ci → npm test` 均有实际证据。Windows文件symlink权限项仍未测，Linux对应项已通过；不把原main的失败改写成成功，也不称修复已进入生产。
 
 ## 1. 源码、CI 与实际对象
 
 - 基线 / 查询时 GitHub main：`27b0bab92d5e5cd5072abcdb3550d1ac9571cd1d`。
-- 候选：`codex/mr-28-p0-repair`，独立工作树 `../market-radar-p0-repair`，**UNCOMMITTED DIFF**；原工作树保留。
+- 候选：`codex/mr-28-p0-repair`，独立工作树 `../market-radar-p0-repair`；修复57b3d0f，首个CI head为授权记录提交7b37baf。原工作树保留。审计时的UNCOMMITTED DIFF已形成上述提交。
 - 当前生产发布记录：2.8 Foundation / Sites v28，源码 `75cfa0658caa6356c47e8d0c85461b3029d0fccd`。本轮没有重新发布，也没有验证生产登录后路径。
 - 原审查：run [36995381868](https://github.com/cjwdwb/market-radar/actions/runs/36995381868)，job110800789451，attempt1，checkout `c97852010eb2e8926fdbfcb2a4394cf80f8cada8`，281/276/5失败/0跳过。
-- 最新查询：run [36999220149](https://github.com/cjwdwb/market-radar/actions/runs/36999220149)，job110812813714，attempt1，checkout27b0bab，281/278/3失败/0跳过。
+- 修复前main：run [36999220149](https://github.com/cjwdwb/market-radar/actions/runs/36999220149)，job110812813714，attempt1，checkout27b0bab，281/278/3失败/0跳过。
 - 两次实际环境：Ubuntu24.04.5、runner2.337.0、image ubuntu-24.04 / 20260927.320.1，Node22.15.0/npm10.9.2。`npm ci` 成功，`npm test` 的 build/typecheck 成功后测试失败。两提交目标产品/测试/锁文件/CI无相关差异；后一次是文档注释提交，不能写成修复。
 - 原 Windows Node24 开发通过属于历史证据，未被覆盖成 CI 通过。必要日志摘录在 `outputs/p0/evidence/{prior,latest}-ci-extract.log`；完整日志仍在相应 GitHub job。
+- 修复后新测：run [37002078172](https://github.com/cjwdwb/market-radar/actions/runs/37002078172)，[job110821834479](https://github.com/cjwdwb/market-radar/actions/runs/37002078172/job/110821834479)，attempt1，2026-10-02 11:38 UTC，结论success。PR head `7b37baff07c6208da4451d2b85d058912a12393e`；实际checkout是PR合并测试提交 `0281a06585065b87e1a35f42d63e8fb782be5ef4`，其父为main27b0bab与该head。两者tree均 `34b7fa4db89ed41a0841efec38590801ade20ff2`，确认测试了修复源码，未合并main。
+- 新CI实际环境：Ubuntu24.04.5，image20260927.320.1，与失败日志一致；Node22.15.0/npm10.9.2。npm ci、npm test（含build/typecheck）全部success，288 tests/288 pass/0 fail/0 skip/0 cancelled。本地摘录 `outputs/p0/evidence/pr-ci-run27-extract.log`。Actions运行时有checkout/setup-node旧Node20声明被平台改用Node24的警告；这是Action自身运行时，测试Node仍明确为22.15，不因此改workflow或混淆验证环境。
 
 候选文件：`collector/store.mjs`、`scripts/history-local.mjs`、`scripts/prepare-history28-example.mjs`、`public/examples/history28-fixture.json`、`tests/p0-verification.test.mjs`、`tests/fixtures/p0-sqlite-lifecycle.mjs`、`tests/history28-release.test.mjs`、`tests/browser/radar.mjs`；文档为本报告、`docs/CURRENT_STATE.md`、`tasks/ACTIVE.md`、本任务卡。代码8文件SHA256清单在 `outputs/p0/candidate-manifest.json`，首轮审计清单为 `outputs/p0/audit-r1-manifest.json`；没有编造修复提交。
 
@@ -22,7 +24,7 @@
 
 ### SQLite 生命周期
 
-原三项分别保留：FED `source is guarded before HTTP; one successful page stores real receipt identity and repeats are idempotent`；history `duplicate retry, source correction and A-B-A return have distinct stable versions`；history `cutoff, native interval, OHLC, completed and universe validations reject bad bars`。原错误均为 assertIdentity 路径 `ERR_INVALID_STATE: statement has been finalized`。最新 CI 仅第二项再次失败，不抹去另外两项的间歇失败事实。
+原三项分别保留：FED `source is guarded before HTTP; one successful page stores real receipt identity and repeats are idempotent`；history `duplicate retry, source correction and A-B-A return have distinct stable versions`；history `cutoff, native interval, OHLC, completed and universe validations reject bad bars`。原错误均为 assertIdentity 路径 `ERR_INVALID_STATE: statement has been finalized`。修复前main CI仅第二项再次失败，不抹去另外两项的间歇失败事实；新PR CI三项均通过。
 
 Windows Node22 修复前56项定向回归53通过、3失败（FED幂等、同一assertIdentity栈的信息拒绝用例、示例）；Node24为56/56。最小内存数据库3行，临时 `prepare().iterate()` 内强制GC时 Node22第一行后失效，连接 `SELECT 1` 仍可用；显式保活statement则完整遍历。Node24两种写法均成功。该实测证明此写法在Node22的资源保活兼容问题，不声称生产数据库损坏或未经核对的官方缺陷编号。
 
@@ -64,7 +66,7 @@ Windows Node22 修复前56项定向回归53通过、3失败（FED幂等、同一
 
 | 检查 | 实际命令/范围 | 结果 | 本地证据 |
 | --- | --- | --- | --- |
-| 原CI环境 | Linux+Node22 `npm ci → npm test` | BLOCKED：WSL未安装，无Docker/Linux执行环境 | 远端原失败保留，不能用Windows替代 |
+| 匹配CI环境 | GitHub Ubuntu24.04.5+Node22.15 `npm ci → npm test` | PASS，288/288，0失败/跳过；本机仍无Linux | run37002078172/job110821834479 |
 | 隔离安装 | node22 outputs/p0/tools/node22/node-v22.15.0-win-x64/node_modules/npm/bin/npm-cli.js ci --cache outputs/p0/npm-cache --fetch-retries=1 --fetch-timeout=60000 | PASS，676包；原锁文件，PATH仅本进程指向便携Node22 | outputs/p0/npm-ci-windows22.log |
 | 修复前定向 | node22 / node24 types --test：history-foundation、fed-history、history28、history28-release | FAIL 56/53/3；PASS 56/56 | outputs/p0/before-node{22,24}.log |
 | 原失败及相关回归 | node22 types --test 上述四文件 + p0-verification | PASS 63项/62通过/0失败/1权限跳过 | outputs/p0/targeted-fixed-node22.log |
@@ -77,9 +79,9 @@ Windows Node22 修复前56项定向回归53通过、3失败（FED幂等、同一
 | 新旧数值 | node22 / node24 types outputs/p0/compare-fixed.mjs | PASS，新文件canonical相等；上述变化单列 | outputs/p0/fixed-{22.15.0,24.19.0}.json |
 | 必要浏览器 | node22 types tests/browser/radar.mjs，RADAR_HISTORY28_ONLY=1 | PASS，12条检查/5视口/3档动效；errors=[]，warnings=[] | outputs/p0/browser/verification.json与截图 |
 | 独立GPT审计 | 稳定完整diff、任务卡及本报告；修复后仅复核LOW与定向测试 | PASS，1项LOW已修，VERIFY无未关闭finding | outputs/p0/audit-summary.json；本报告第4节 |
-| 新源码远端CI | 没有push、workflow dispatch或重跑旧提交 | NOT RUN | GitHub仍保留上述失败 |
+| 新源码远端CI | 独立分支上传，draft PR触发现有workflow，未重跑旧提交 | PASS，head7b37baf与checkout树一致 | run37002078172；旧main失败仍保留 |
 
-Windows缺少Bash/GNU timeout，实际执行现有build/typecheck/test分项。**不称本轮 `npm test` 包装命令成功**，也没有改workflow、engines、依赖/锁文件或测试glob。
+Windows缺少Bash/GNU timeout，本机实际执行现有build/typecheck/test分项；完整 `npm test` 成功发生在上述GitHub Ubuntu环境，不冒充Windows包装命令成功。未改workflow、engines、依赖/锁文件或测试glob。
 
 审计后唯一产品修正仅涉及本机CLI设备名拒绝，浏览器/构建输入未变，因此复用本轮上述build/typecheck/browser结果；完整Node与受影响lint已在新版本复跑。不是用历史开发记录代替本轮新测。
 
@@ -87,7 +89,7 @@ Windows缺少Bash/GNU timeout，实际执行现有build/typecheck/test分项。*
 
 新增下载包和旧包均实际导入、回放、研究及拒绝损坏digest；桌面冻结时钟的查询请求增量为0，仅隔离实验。五视口检查分页、键盘、44px目标、无横向溢出及返回焦点；3档动效检查部分窗口/缺端点/返回。已查看桌面和390px截图；不是iPhone或生产性能测量，不声称FPS提升。后端修改无需无关全站视觉重测。
 
-## 4. 分工与未闭合门槛
+## 4. 分工、审计与残余限制
 
 独立GPT首轮只读审计：1项LOW，`scripts/history-local.mjs:12`遗漏COM¹、CONIN$、CONOUT$等Windows设备名。审计员实际只读调用localFile复现接受，并用Windows RtlIsDosDeviceName_U确认设备身份（返回8/12/14，普通名0）。不是已证实的目录逃逸。Builder仅补齐COM/LPT上标¹²³、CONIN$/CONOUT$及5个非法路径用例；Node22/24完整suite和lint已复测，独立VERIFY PASS，无未关闭finding。
 
@@ -97,8 +99,8 @@ VERIFY实际运行Node22 `tests/p0-verification.test.mjs`：6项/5通过/0失败
 
 GPT完成Planner、根因、边界契约、全部代码/测试与集成。实际DS调用1次：现有deepseek-worker profile、deepseek/deepseek-flash，读取限定脱敏CI计数/环境，输出核对摘要；无仓库数据、工具访问、私有自选或生产凭据外发。GPT采纳核对后的事实摘要；DS超出指定输出长度、附带Node24/Linux建议未采纳。没有把配置可用当参与，没有额度节省估算。
 
-P0：待匹配Ubuntu/Node22完整npm test及新源码CI；Windows文件symlink权限项未测。原环境受阻不影响交付隔离候选，但不称“P0修复候选验证完成”或“CI已转绿”。无Optimizer：本轮没有可复现性能优化目标，不以历史chunk warning扩范围。
+P0：已补齐匹配Ubuntu/Node22完整npm test与修复源码CI；可称“P0修复候选验证完成、PR CI通过”。Windows文件symlink权限项未测，不用Linux结果替代Windows权限实测；原main仍是旧代码且失败记录保留。无Optimizer：本轮没有可复现性能优化目标，不以历史chunk warning扩范围。GitHub连接器缺PR写权限，续跑使用已有本机GitHub认证完成获准分支/草稿PR；凭据未输出或落盘，未改变访问设置。
 
 P1：真实价格仍0条；正式清单、价格来源用途/费用、长期保管条件仍待确认。位置：[HISTORICAL_INTELLIGENCE](HISTORICAL_INTELLIGENCE.md)、[HISTORY_FOUNDATION](HISTORY_FOUNDATION.md)、[2.8任务](../tasks/MR-HISTORICAL-INTELLIGENCE-28.md)。无新的真实数据访问或补采。P2历史时间选择仍是现有history-workspace，P3沿用tests/performance/history28.mjs后续测量，本轮均不实施。
 
-下一步先补P0原环境门槛；获准后才提交候选验证新CI。随后仅建议规划P1的一个已批准资产/来源真实链路，不在本轮启动。
+下一步由用户决定是否合并/发布修复；后续仅建议规划P1的一个已批准资产/来源真实链路，不在本轮启动。
