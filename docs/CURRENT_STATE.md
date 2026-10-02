@@ -1,5 +1,9 @@
 # 当前状态
 
+P0续跑完成（2026-10-02）：用户另行授权独立分支/draft PR验证；修复57b3d0f已上传codex/mr-28-p0-repair，PR #1/run37002078172在Ubuntu24.04.5/Node22.15/npm10.9.2完整npm ci→npm test成功（288/288、0fail/0skip），实际checkout与head7b37baf树一致。独立审计已VERIFY。归档tasks/archive/MR-28-P0-VERIFICATION-REPAIR.md；报告docs/P0_VERIFICATION_REPAIR.md。未合并main或部署，Windows文件symlink权限项仍未测。下段为首次隔离验证时的记录，不是当前进度。
+
+2026-10-02 首次隔离记录：GitHub main27b0bab对应run36999220149在Ubuntu24.04.5/Node22.15为281/278/3失败；原c978520对应run36995381868为281/276/5失败。下方原Windows发布验证保留为历史证据，不等于CI成功。隔离分支codex/mr-28-p0-repair已修SQLite statement生命周期、可移植CLI路径与模拟生成数值，Windows22/24各288项/287通过/1权限跳过，分项build/typecheck/lint与12条相关浏览器检查通过；独立GPT审计1项LOW已修并VERIFY。当时未提交/上传/部署、Linux/CI待补；后续已按上段完成续跑。
+
 当前生产（2026-10-02）：**Market Radar 2.8 Foundation / Sites v28**，源码 `75cfa0658caa6356c47e8d0c85461b3029d0fccd` 已上传GitHub main，平台 succeeded、环境 revision3。包含隔离历史查询/回放/固定协议研究及模拟示例、既有FED元数据；281Node/build/typecheck/受影响lint、19条相关浏览器检查与独立审计通过。`radar-v2.8-foundation` / `sites-v28` 标记部署源码，后续文档提交不重新部署。完整2.8真实数据/正式保管/研究仍开放；未启用云采集/迁移，未改访问策略。任务tasks/archive/MR-PUBLISH-HISTORY28-FOUNDATION.md，数据索引data/README.md。生产登录后/真机本轮NOT RUN。
 
 上一生产：Market Radar 2.75维护发布 / Sites v27，2026-09-24 CST，源码`4f84e5cb39abe48e81643a6364339a47a3701472`，平台succeeded、环境revision3。Pre-2.8有限清理只删除未用Cloud导入并整理历史说明，不创建新产品版本，不移动radar-v2.75。发布标签sites-v27对应源码；记录tasks/archive/MR-PUBLISH-PRE28-CLEANUP.md。此前v26/source0a86366的产品功能与性能限制保留。

@@ -1,5 +1,11 @@
 # 当前任务索引
 
+## MR-28-P0-VERIFICATION-REPAIR — 修复候选验证完成，草稿PR待交接
+
+用户另行授权上传独立分支与draft PR完成CI。修复57b3d0f，分支codex/mr-28-p0-repair，[PR #1](https://github.com/cjwdwb/market-radar/pull/1)；run37002078172在Ubuntu24.04.5/Node22.15/npm10.9.2完整npm ci→npm test成功，288/288、0失败/跳过，实际checkout与head7b37baf树一致。独立GPT审计LOW已修并VERIFY；本地Windows287/288另1权限跳过、build/typecheck/lint及12条浏览器检查保留。
+
+归档tasks/archive/MR-28-P0-VERIFICATION-REPAIR.md，报告docs/P0_VERIFICATION_REPAIR.md。Windows文件symlink权限项仍未测；未合并main、未部署、未进入P1–P3或真实采集。原main27b0bab失败记录不改写；现有生产仍2.8 Foundation / Sites v28。
+
 ## MR-REPOSITORY-READABILITY — 仓库导航与中文注释已整理，已归档
 
 任务卡tasks/archive/MR-REPOSITORY-READABILITY.md。基线c978520，分支codex/mr-repository-readability；精简README、补docs导航与项目/架构说明，五个关键源码文件增加中文注释。token/去注释编译结果及忽略模式一致，12项相关Node、受影响lint、65链接检查通过。主代理按auditor流程复核，无独立审计或新DS调用。保留2.8未完成项、历史证据及本地数据；本次仅文档/注释同步GitHub，不重新部署，生产仍2.8 Foundation/Sites v28。
