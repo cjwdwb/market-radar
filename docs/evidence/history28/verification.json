@@ -1,0 +1,164 @@
+{
+  "task": "MR-PUBLISH-HISTORY28-FOUNDATION",
+  "date": "2026-10-02",
+  "scope": "Local release candidate; not production login or physical-device acceptance",
+  "dataIdentity": "Synthetic prices; two existing real Federal Reserve public metadata records",
+  "node": {
+    "total": 281,
+    "passed": 281,
+    "failed": 0
+  },
+  "typecheck": "PASS",
+  "build": "PASS",
+  "scopedLint": "PASS",
+  "history": {
+    "browser": "149.0.4022.98",
+    "viewports": [
+      {
+        "name": "desktop",
+        "width": 1440,
+        "height": 1000
+      },
+      {
+        "name": "tablet",
+        "width": 768,
+        "height": 1024
+      },
+      {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      {
+        "name": "narrow",
+        "width": 320,
+        "height": 740
+      },
+      {
+        "name": "landscape",
+        "width": 844,
+        "height": 390
+      }
+    ],
+    "checks": [
+      "history28 shipped example: local authenticated download and import, explicit synthetic identity",
+      "history28 desktop: frozen-clock zero query requests, out-of-order import rejected, oversize preserves accepted asset",
+      "history28 desktop: explicit fixture identity, keyboard, folded evidence, UTC query, pagination, failed import retains query, 44px, overflow, return focus",
+      "history28 tablet: explicit fixture identity, keyboard, folded evidence, UTC query, pagination, failed import retains query, 44px, overflow, return focus",
+      "history28 mobile: explicit fixture identity, keyboard, folded evidence, UTC query, pagination, failed import retains query, 44px, overflow, return focus",
+      "history28 narrow: explicit fixture identity, keyboard, folded evidence, UTC query, pagination, failed import retains query, 44px, overflow, return focus",
+      "history28 landscape: explicit fixture identity, keyboard, folded evidence, UTC query, pagination, failed import retains query, 44px, overflow, return focus",
+      "history28 system: partial horizon, missing exact endpoint and return under system reduced motion",
+      "history28 normal: partial horizon, missing exact endpoint and return under system reduced motion",
+      "history28 reduced: partial horizon, missing exact endpoint and return under system reduced motion"
+    ],
+    "errors": [],
+    "warnings": [],
+    "historyQueryApiRequests": []
+  },
+  "macro": {
+    "browser": "149.0.4022.98",
+    "viewports": [
+      {
+        "name": "desktop",
+        "width": 1440,
+        "height": 1000
+      },
+      {
+        "name": "tablet",
+        "width": 768,
+        "height": 1024
+      },
+      {
+        "name": "mobile",
+        "width": 390,
+        "height": 844
+      },
+      {
+        "name": "narrow",
+        "width": 320,
+        "height": 740
+      },
+      {
+        "name": "landscape",
+        "width": 844,
+        "height": 390
+      }
+    ],
+    "checks": [
+      "macro shipped example: authenticated local download, existing real public metadata imports with preserved identity; surrounding prices fixture",
+      "macro desktop: offline import, UTC bounds, fixed pages, reset, provenance, keyboard, 44px, no overflow",
+      "macro tablet: offline import, UTC bounds, fixed pages, reset, provenance, keyboard, 44px, no overflow",
+      "macro mobile: offline import, UTC bounds, fixed pages, reset, provenance, keyboard, 44px, no overflow",
+      "macro narrow: offline import, UTC bounds, fixed pages, reset, provenance, keyboard, 44px, no overflow",
+      "macro landscape: offline import, UTC bounds, fixed pages, reset, provenance, keyboard, 44px, no overflow",
+      "macro system: selected/range workflow preserved",
+      "macro normal: selected/range workflow preserved",
+      "macro reduced: selected/range workflow preserved"
+    ],
+    "errors": [],
+    "warnings": [],
+    "fedQueryApiRequests": []
+  },
+  "earlierIntegration": {
+    "checks": 58,
+    "pageerrors": 0,
+    "resourceConsoleErrors": 25,
+    "limitation": "Previous isolated slice before median overflow fix; not repeated in release polish"
+  },
+  "performance": {
+    "identity": "fixture",
+    "clock": "performance.now, not frozen",
+    "runtime": "v24.19.0",
+    "bars": 2000,
+    "networkRequests": 0,
+    "measurements": [
+      {
+        "queryPackageMs": 70.05169999999998,
+        "replayAndResearchMs": 25.227700000000027,
+        "samples": 70
+      },
+      {
+        "queryPackageMs": 60.6635,
+        "replayAndResearchMs": 16.315200000000004,
+        "samples": 70
+      },
+      {
+        "queryPackageMs": 59.86170000000004,
+        "replayAndResearchMs": 14.138199999999983,
+        "samples": 70
+      },
+      {
+        "queryPackageMs": 59.50819999999993,
+        "replayAndResearchMs": 14.92820000000006,
+        "samples": 70
+      },
+      {
+        "queryPackageMs": 62.90530000000001,
+        "replayAndResearchMs": 17.488200000000006,
+        "samples": 70
+      }
+    ]
+  },
+  "bundle": {
+    "basis": "Same machine and dependencies; raw client JS bytes",
+    "baseline": {
+      "main": 772454,
+      "total": 1049958
+    },
+    "candidate": {
+      "main": 790028,
+      "total": 1067532
+    }
+  },
+  "limitations": [
+    "No real price backfill",
+    "No verified formal or offsite custody",
+    "No point-in-time reconstruction or forward forecast result mechanism",
+    "No production-login or physical-iPhone test"
+  ],
+  "screenshots": [
+    "../../screenshots/history28-mobile.png",
+    "../../screenshots/history28-desktop.png"
+  ]
+}

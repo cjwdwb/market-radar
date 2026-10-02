@@ -1,5 +1,13 @@
 # 当前任务索引
 
+## MR-PUBLISH-HISTORY28-FOUNDATION — 整理与发布中
+
+用户2026-10-02授权完善/上传/部署及项目内文件整理。任务卡tasks/MR-PUBLISH-HISTORY28-FOUNDATION.md。仅发布2.8 Foundation已验证阶段成果；新增可下载模拟示例、既有FED公开元数据与精选证据，私有/原始数据库保留本地。原2.8真实来源/正式保管/研究后续未完成项继续开放。
+
+## MR-HISTORICAL-INTELLIGENCE-28 — 隔离查询/回放/研究已验证，真实条件待确认
+
+任务卡tasks/MR-HISTORICAL-INTELLIGENCE-28.md，报告docs/HISTORICAL_INTELLIGENCE.md。承接完整2.7四主线，基线1f87fc6；首个fixture查询包/90与180分钟回放/固定研究/UI隔离切片已实现。最终279Node、build/typecheck/受影响lint、新历史9条与宏观8条五视口检查通过；独立核心LOW已修并VERIFY，完整交付及文档补记独立审计PASS。DS实际实施纯展示。正式集合、价源用途/费用及保管条件未确认；真实价格0条、完整2.8未完成，不把fixture或宏观当真实价格验收。未提交/上传/部署，生产仍2.75维护/Sites v27。
+
 ## MR-PUBLISH-PRE28-CLEANUP — 发布成功，已归档
 
 当前生产：Market Radar 2.75维护发布 / Sites v27，2026-09-24 CST，源码`4f84e5cb39abe48e81643a6364339a47a3701472`，平台succeeded、环境revision3。本次Pre-2.8有限清理只删除未用Cloud导入并整理历史说明，不创建新产品版本，不移动radar-v2.75。发布标签sites-v27对应源码；记录tasks/archive/MR-PUBLISH-PRE28-CLEANUP.md。此前v26/source0a86366的产品功能与性能限制保留，完整2.7/2.8仍未完成。后续文档提交不重新部署。 下列未发布描述为清理开发阶段事实。

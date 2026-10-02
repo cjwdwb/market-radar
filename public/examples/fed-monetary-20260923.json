@@ -1,0 +1,44 @@
+{
+  "format": "fed-monetary-view-v1",
+  "source": "fed-board:monetary-v1",
+  "attribution": "Source: Board of Governors of the Federal Reserve System",
+  "rightsUrl": "https://www.federalreserve.gov/disclaimer.htm",
+  "identity": "reconstructed",
+  "vintage": "current",
+  "readRevision": 2,
+  "exportedAt": 1790094442120,
+  "range": {
+    "from": 1788220800000,
+    "cutoff": 1790094411618
+  },
+  "coverage": {
+    "status": "endpoint_snapshot",
+    "expectedCount": null,
+    "limitation": "Not a complete historical or point-in-time collection"
+  },
+  "records": [
+    {
+      "id": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
+      "title": "Federal Reserve issues FOMC statement",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm",
+      "publishedAt": 1789581600000,
+      "publicationPrecision": "minute",
+      "firstReceivedAt": 1790094298933,
+      "versionReceivedAt": 1790094298933,
+      "version": 1,
+      "contentHash": "cc5400d649ab97c6d00b44470d180c14b31b239db1650de8c61481b48078470e"
+    },
+    {
+      "id": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916b.htm",
+      "title": "Federal Reserve Board and Federal Open Market Committee release economic projections from the September 15-16 FOMC meeting",
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916b.htm",
+      "publishedAt": 1789581600000,
+      "publicationPrecision": "minute",
+      "firstReceivedAt": 1790094298933,
+      "versionReceivedAt": 1790094298933,
+      "version": 1,
+      "contentHash": "bceccf2da510edbb189c2e1d365ff31120a502770135e5d9cdfd259cc2842f1d"
+    }
+  ],
+  "viewId": "5d76e9a931ab32d5da668bef672efd0e10541551ff6ea1c9a8a4c93b3c4aefb4"
+}

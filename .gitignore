@@ -43,5 +43,9 @@ next-env.d.ts
 /outputs/
 /work/
 
+# Project-local personal datasets and backups stay off public Git/Sites.
+/data/local/*
+!/data/local/.gitkeep
+
 # Local Worker preview secrets
 .dev.vars*

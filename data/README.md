@@ -1,0 +1,18 @@
+# 数据与验收文件索引
+
+项目内保管与公开发布分开。可公开的两份示例位于 `public/examples`，随仓库/网站发布；原始数据库和备份仍在被Git忽略的本地目录。没有将真实价格变成fixture，也没有启用云端同步。
+
+| 文件/位置 | 内容与身份 | 用途 / 边界 |
+| --- | --- | --- |
+| [history28-fixture.json](../public/examples/history28-fixture.json) | 程序生成的302根5分钟模拟OHLC，fixture/current_vintage | 导入Radar的“历史回放与研究”；无真实交易记录、无资产推荐；生成时间是执行脚本的真实时间 |
+| [fed-monetary-20260923.json](../public/examples/fed-monetary-20260923.json) | 既有真实FED公开元数据，2条2026-09-16发布记录；2026-09-23 CST导出 | 导入“官方宏观资料”；Source: Board of Governors of the Federal Reserve System。原链接与时间保留，不代表当前RSS、完整九月或个股新闻 |
+| [history28验收摘要](../docs/evidence/history28/verification.json) | 脱敏本地fixture/桌面模拟检查摘要 | 不代替真实行情、生产登录或真机验收；详细范围见历史智能报告 |
+| `work/state27/fed-monetary/` | 现有SQLite、备份及公开视图；本地、Git忽略 | 原位保留，兼容既有runner，不随部署上传；本轮未移动/删除或新增采集 |
+| `data/local/` | 本地资料预留目录；仅占位文件受Git管理 | 可存个人名单/新导出；不放在public，不放生产密钥；现有runner不会自动读取此目录 |
+| `outputs/history28/` | 原始开发日志、截图、性能记录 | Git忽略；已挑选适合公开的结果放docs，未整体上传 |
+
+FED元数据沿用已核验的来源范围及归属：[官方使用说明](https://www.federalreserve.gov/disclaimer.htm)。文件无文章全文、个人名单、提醒、owner/run、Cookie或凭据；数据校验和不等于官方签名。来源内容不构成本站对价格变化原因的解释。
+
+模拟文件生成：`node --experimental-strip-types scripts/prepare-history28-example.mjs`。脚本只创建这一份明确的示例，真实generated/exportedAt取执行时钟，不伪造过去的采集时间。不会修改任何数据库或真实来源。文件可通过 `parseHistoryPackage` 校验。
+
+**保管限制：** 项目内文件不等于异地备份或持续历史服务。请为本地数据库设置项目目录之外的备份目标与保留期限；本轮没有这些条件，不能称正式恢复/长期保管完成。个人名单、合法价格来源、费用和真实回补仍由原2.8任务跟踪。

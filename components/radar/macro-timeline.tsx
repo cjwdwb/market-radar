@@ -26,6 +26,7 @@ export function MacroTimeline(){
   },[view,from,to,page]);
   return <details className="panel macro-timeline"><summary>官方宏观资料 <span>本地归档</span></summary>
     <p>{view?'已载入本地归档 · 文件仅在本页读取':'导入公开视图文件后查看，不上传、不启动采集。'}</p>
+    <a className="btn" style={{minHeight:44,display:'inline-flex',marginBottom:8}} href="/examples/fed-monetary-20260923.json" download>下载两条公开资料示例</a>
     <input type="file" accept=".json,application/json" aria-label="导入官方宏观归档" onChange={event=>{void load(event.target.files?.[0]);event.target.value='';}}/>
     {loading&&<p role="status">正在检查归档…</p>}{error&&<p role="alert" className="error-text">{error}{view?' 已保留上一份归档与当前查询。':''}</p>}
     {view&&<div className="macro-view" data-view-id={view.viewId}>
