@@ -1,5 +1,9 @@
 # 当前任务索引
 
+## MR-PUBLISH-HISTORY28-P0 — 已授权上传与发布
+
+用户2026-10-02明确要求“上传部署”。任务卡tasks/MR-PUBLISH-HISTORY28-P0.md；目标为PR #1已通过CI/独立审计的2.8维护修复，保持既有public与应用访问码。将正常合并main、执行Sites官方发布并记录准确源码/版本；不新增产品功能或启用真实采集。
+
 ## MR-28-P0-VERIFICATION-REPAIR — 修复候选验证完成，草稿PR待交接
 
 用户另行授权上传独立分支与draft PR完成CI。修复57b3d0f，分支codex/mr-28-p0-repair，[PR #1](https://github.com/cjwdwb/market-radar/pull/1)；run37002078172在Ubuntu24.04.5/Node22.15/npm10.9.2完整npm ci→npm test成功，288/288、0失败/跳过，实际checkout与head7b37baf树一致。独立GPT审计LOW已修并VERIFY；本地Windows287/288另1权限跳过、build/typecheck/lint及12条浏览器检查保留。
