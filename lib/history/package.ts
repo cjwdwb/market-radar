@@ -1,4 +1,4 @@
-/** Bounded, portable transport. A checksum proves integrity, never data rights. */
+/** 有界的便携历史包。校验和只能证明内容一致，不能证明来源许可或官方签名。 */
 export const PACKAGE_LIMIT = 2 * 1024 * 1024;
 export const BAR_LIMIT = 2000;
 export type HistoryBar = { time: number; open: number; high: number; low: number; close: number; volume: number | null; version: number; receivedAt: number };
@@ -10,6 +10,7 @@ export type HistoryPackage = {
   coverage: "not_verified"; bars: HistoryBar[]; digest: string;
 };
 export function canonical(value: unknown): string {
+  // 对象键排序、数组顺序保留，让导出与浏览器校验生成同一摘要；不重排K线。
   if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
   if (value && typeof value === "object") return `{${Object.entries(value).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([k, v]) => `${JSON.stringify(k)}:${canonical(v)}`).join(",")}}`;
   if (typeof value === "number" && !Number.isFinite(value)) throw Error("INVALID_NUMBER");
@@ -25,11 +26,14 @@ const integer = (v: unknown, min = 1): v is number => typeof v === "number" && N
 const token = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9:^._/@+-]{1,120}$/.test(v);
 const price = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v) && v > 0;
 export async function parseHistoryPackage(text: string, now: number): Promise<HistoryPackage> {
+  // 用户导入文件视为不可信输入：先限制UTF-8字节数，再核对完整字段集合与身份。
   if (!integer(now) || new TextEncoder().encode(text).length > PACKAGE_LIMIT) throw Error("历史文件超出大小或时间限制。");
   const p = JSON.parse(text);
   if (!keys(p, "format identity vintage source asset intervalMs sessionEvidence readRevision range exportedAt coverage bars digest") || p.format !== "history-package-v1" || p.identity !== "fixture" || p.vintage !== "current_vintage" || !token(p.source) || !p.source.startsWith("fixture:") || p.sessionEvidence !== "fixture_only" || p.coverage !== "not_verified") throw Error("此入口仅接受明确标记的模拟历史包，真实来源尚未准入。");
   if (!keys(p.asset, "id market venue providerId currency adjustment") || !Object.values(p.asset).every(token) || !["crypto", "us", "cn", "hk"].includes(p.asset.market as string)) throw Error("资产身份不完整。");
   if (![300000, 900000].includes(p.intervalMs as number) || !integer(p.readRevision) || !integer(p.exportedAt) || p.exportedAt > now || !keys(p.range, "from cutoff") || !integer(p.range.from) || !integer(p.range.cutoff) || p.range.cutoff <= p.range.from || p.range.cutoff > p.exportedAt || p.range.cutoff - p.range.from > 31 * 86400000 || !Array.isArray(p.bars) || !p.bars.length || p.bars.length > BAR_LIMIT) throw Error("历史范围、周期或条数无效。");
+  // time是开盘时间；完整收盘必须落在冻结cutoff以内。
+  // receivedAt与exportedAt保留实际取得/导出时间，不将历史K线时间伪装成当时已观察。
   const interval = p.intervalMs as number;
   let previous = 0;
   for (const b of p.bars) {
@@ -37,6 +41,7 @@ export async function parseHistoryPackage(text: string, now: number): Promise<Hi
     if ((b.high as number) < Math.max(b.open as number, b.close as number, b.low as number) || (b.low as number) > Math.min(b.open as number, b.close as number)) throw Error("OHLC 关系无效。");
     previous = b.time;
   }
+  // 摘要覆盖除digest外的全部字段；即使摘要正确，前面的身份/时间/价格校验仍不可省略。
   const { digest, ...body } = p;
   if (typeof digest !== "string" || digest !== await packageDigest(body)) throw Error("历史文件校验失败。");
   return p as HistoryPackage;

@@ -7,9 +7,11 @@ import { HistoryResult } from "./history-result";
 const inputTime = (at: number) => new Date(at).toISOString().slice(0, 16);
 const utc = (at: number) => new Date(at).toISOString().replace("T", " ");
 type Accepted = { data: HistoryPackage; replay: HistoryReplay; research: HistoryResearch };
+/** 历史文件与实时行情隔离；只有完整校验和计算成功后才替换上一份有效结果。 */
 export function HistoryWorkspace() {
   const [accepted, setAccepted] = useState<Accepted | null>(null);
   const [asOf, setAsOf] = useState(""), [error, setError] = useState(""), [loading, setLoading] = useState(false), [page, setPage] = useState(0);
+  // 新文件或卸载推进代次，防止较慢的旧读取覆盖较新的选择，或在卸载后写回状态。
   const generation = useRef(0), panel = useRef<HTMLDetailsElement>(null);
   useEffect(() => () => { generation.current++; }, []);
   async function load(file: File | undefined) {
@@ -21,6 +23,7 @@ export function HistoryWorkspace() {
       if (version !== generation.current) return;
       const at = data.bars.at(-1)!.time + data.intervalMs, now = Date.now();
       const replay = replayHistory(data, at, now), research = researchHistory(data, at, now);
+      // 成功时一起提交文件、回放和研究；catch只提示错误，保留旧文件、查询与分页。
       setAccepted({ data, replay, research }); setAsOf(inputTime(at)); setPage(0);
     } catch (e) { if (version === generation.current) setError(e instanceof Error ? e.message : "无法读取历史。"); }
     finally { if (version === generation.current) setLoading(false); }
@@ -28,6 +31,7 @@ export function HistoryWorkspace() {
   function query() {
     if (!accepted) return;
     try {
+      // datetime-local本身不带时区；本面板明确使用UTC，不能按设备时区解释归档时间。
       const at = Date.parse(asOf + ":00Z"), now = Date.now();
       if (!Number.isFinite(at) || inputTime(at) !== asOf) throw Error("请选择归档范围内的有效 UTC 时间。");
       const replay = replayHistory(accepted.data, at, now), research = researchHistory(accepted.data, at, now);

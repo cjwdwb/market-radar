@@ -12,17 +12,20 @@ export type HistoryReplay = {
   identity: "historical_simulation"; vintage: "current_vintage"; ruleVersion: string;
   asOf: number; calculatedAt: number; horizons: ReplayHorizon[];
 };
-/** Input must pass parseHistoryPackage. Never fabricates live quote/fetch/session metadata. */
+/** 输入须先通过parseHistoryPackage；历史有效性独立判断，不补造实时报价、抓取或session信息。 */
 export function replayHistory(p: HistoryPackage, asOf: number, calculatedAt: number): HistoryReplay {
   if (!Number.isSafeInteger(asOf) || !Number.isSafeInteger(calculatedAt) || asOf < p.range.from || asOf > p.range.cutoff || calculatedAt < p.exportedAt || asOf > calculatedAt) throw Error("INVALID_REPLAY_TIME");
   const interval = p.intervalMs;
+  // asOf必须恰好对应完整K线收盘；不能拿较早末根冒充请求时点的证据。
   const end = p.bars.findIndex(b => b.time + interval === asOf);
   let start = end;
+  // 只取截止点之前连续的后缀，遇到缺口即停止；不跨午休/隔夜插值补样本。
   while (start > 0 && p.bars[start].time - p.bars[start - 1].time === interval) start--;
   const suffix = end < 0 ? [] : p.bars.slice(start, end + 1);
   const horizons = (["short", "medium"] as const).map<ReplayHorizon>(id => {
     const config = ASSET_STATE_V2_RULES[id];
     const count = config.durationMs / interval + 1;
+    // 保留共用输入的22根有效性下限；收益窗口还需要多一个起始收盘价。
     const required = Math.max(22, count);
     const reason = end < 0 ? "missing_endpoint" : suffix.length < required ? "insufficient_contiguous_bars" : null;
     if (reason) return { id, minutes: config.durationMs / 60000, reason, evidence: null, direction: null, volatility: null };
@@ -46,6 +49,7 @@ export type HistoryResearch = {
   samples: ResearchSample[]; statistics: { min: number; median: number; max: number } | null;
 };
 export function researchHistory(p: HistoryPackage, asOf: number, createdAt: number): HistoryResearch {
+  // 当前版本历史模拟：相似样本只是描述性参照，不是过去发布过的预测或PIT证明。
   const query = replayHistory(p, asOf, createdAt).horizons[0];
   const counts = { candidates: 0, invalidFeature: 0, unmatched: 0, immature: 0, missingOutcome: 0, overlap: 0, capped: 0, retained: 0 };
   const result: HistoryResearch = { protocol: RESEARCH_PROTOCOL.id, identity: "historical_simulation", vintage: "current_vintage", digest: p.digest, asOf, createdAt, status: "query_unavailable", counts, samples: [], statistics: null };
@@ -57,6 +61,7 @@ export function researchHistory(p: HistoryPackage, asOf: number, createdAt: numb
     if (candidateAt >= asOf) break;
     counts.candidates++;
     const targetEnd = candidateAt + RESEARCH_PROTOCOL.targetMs;
+    // 候选的30分钟结果须已结束，且不能进入查询自身的完整依赖窗口，避免未来信息泄漏。
     if (targetEnd >= asOf || targetEnd > query.evidence.dependencyStartAt) { counts.immature++; continue; }
     const candidate = replayHistory(p, candidateAt, createdAt).horizons[0];
     if (!candidate.evidence || candidate.direction?.availability !== "available" || candidate.volatility?.availability !== "available") { counts.invalidFeature++; continue; }
@@ -68,6 +73,8 @@ export function researchHistory(p: HistoryPackage, asOf: number, createdAt: numb
     if (!Number.isFinite(returnPercent)) { counts.missingOutcome++; continue; }
     eligible.push({ asOf: candidateAt, dependencyStartAt: candidate.evidence.dependencyStartAt, targetEnd, distancePP, startPrice: b.close, endPrice: p.bars[last].close, returnPercent });
   }
+  // 先按时间消除“特征+结果”窗口重叠，再按相似度排序，避免重复证据撑大样本量。
+  // 窗口可边界接触；消重后仍不宣称样本在统计上完全独立。
   let previousEnd = 0;
   for (const candidate of eligible) {
     if (candidate.dependencyStartAt < previousEnd) { counts.overlap++; continue; }
@@ -79,6 +86,7 @@ export function researchHistory(p: HistoryPackage, asOf: number, createdAt: numb
   result.status = counts.retained < RESEARCH_PROTOCOL.minimum ? "insufficient" : "available";
   if (result.status === "available") {
     const returns = result.samples.map(s => s.returnPercent).sort((a, b) => a - b), middle = Math.floor(returns.length / 2);
+    // 两项先各除以2再相加，防止极大但有限收益在求偶数中位数时溢出。
     const statistics = { min: returns[0], median: returns.length % 2 ? returns[middle] : returns[middle - 1] / 2 + returns[middle] / 2, max: returns.at(-1)! };
     if (!Object.values(statistics).every(Number.isFinite)) throw Error("INVALID_RESEARCH_STATISTICS");
     result.statistics = statistics;

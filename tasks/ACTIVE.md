@@ -1,5 +1,9 @@
 # 当前任务索引
 
+## MR-REPOSITORY-READABILITY — 仓库导航与中文注释已整理，已归档
+
+任务卡tasks/archive/MR-REPOSITORY-READABILITY.md。基线c978520，分支codex/mr-repository-readability；精简README、补docs导航与项目/架构说明，五个关键源码文件增加中文注释。token/去注释编译结果及忽略模式一致，12项相关Node、受影响lint、65链接检查通过。主代理按auditor流程复核，无独立审计或新DS调用。保留2.8未完成项、历史证据及本地数据；本次仅文档/注释同步GitHub，不重新部署，生产仍2.8 Foundation/Sites v28。
+
 ## MR-PUBLISH-HISTORY28-FOUNDATION — 发布成功，已归档
 
 用户2026-10-02授权完善/上传/部署及项目内文件整理。2.8 Foundation源码 `75cfa0658caa6356c47e8d0c85461b3029d0fccd` 已上传GitHub main并发布Sites v28，平台 succeeded、环境 revision3。标签radar-v2.8-foundation/sites-v28对应同一源码；任务卡tasks/archive/MR-PUBLISH-HISTORY28-FOUNDATION.md。新增可下载模拟示例、既有FED公开元数据与精选证据，私有/原始数据库保留本地；281Node、build/typecheck、19条相关浏览器检查及独立审计通过。后续发布文档单独提交，不重新部署。完整2.8真实来源/正式保管/研究未完成项继续开放。

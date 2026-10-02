@@ -1,4 +1,4 @@
-// Explicit isolated fixture export only. No network, migration or production binding.
+// 仅显式导出隔离fixture历史；不请求网络、不执行迁移，也不绑定生产资源。
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,6 +9,7 @@ import { BAR_LIMIT, PACKAGE_LIMIT, packageDigest, parseHistoryPackage } from '..
 export async function exportHistoryPackage(store, { owner, source, asset, from, to, exportedAt }) {
   if (typeof source !== 'string' || !source.startsWith('fixture:')) throw Error('PRICE_SOURCE_NOT_APPROVED');
   let p;
+  // 分页在同一读事务内完成，并固定readRevision，避免导出时混入其他写入版本。
   store.db.exec('BEGIN');
   try {
     let cursor = null, identity = null, interval = null, revision = null;
@@ -22,6 +23,7 @@ export async function exportHistoryPackage(store, { owner, source, asset, from, 
         const run = store.requireRun(owner, row.run_id);
         const configured = run.config.assets.find(a => a.id === asset);
         if (!configured) throw Error('ASSET_IDENTITY_MISSING');
+        // 只导出可携带的资产身份；owner、run和私有采集配置不进入浏览器文件。
         const nextIdentity = Object.fromEntries(['id','market','venue','providerId','currency','adjustment'].map(key => [key, configured[key]]));
         identity ??= nextIdentity; interval ??= row.payload.intervalMs;
         if (JSON.stringify(identity) !== JSON.stringify(nextIdentity) || interval !== row.payload.intervalMs || row.payload.currency !== identity.currency || row.payload.adjustment !== identity.adjustment) throw Error('MIXED_ASSET_OR_INTERVAL');
@@ -43,6 +45,7 @@ export async function exportHistoryPackage(store, { owner, source, asset, from, 
 }
 
 async function main([dbName, queryJson, outputName]) {
+  // 沿用work/state27范围与符号链接检查；wx要求新文件，避免覆盖既有导出/备份。
   const path = localFile(dbName), output = localFile(outputName);
   if (!existsSync(path)) throw Error('DATABASE_NOT_FOUND');
   if (existsSync(output)) throw Error('NEW_OUTPUT_REQUIRED');

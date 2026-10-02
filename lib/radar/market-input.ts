@@ -7,7 +7,7 @@ export const QUOTE_MAX_AGE = 3 * MINUTE;
 export const CANDLE_LAG_ALLOWANCE = MINUTE;
 export type PreparedMarketInput = { quote: Quote; history: RadarHistory; bars: Point[] };
 export type PreparedPair = { time: number; asset: number; benchmark: number };
-/** Exact legacy join only; callers own compatibility, tail, sample and window rules. */
+/** 仅按相同时间精确配对；来源/币种/session、末端同步及样本窗口仍由调用方验证。 */
 export function pairPreparedInputs(asset: PreparedMarketInput, benchmark: PreparedMarketInput): PreparedPair[] {
   const byTime = new Map(benchmark.bars.map(point => [point.time, point]));
   return asset.bars.flatMap(point => { const reference = byTime.get(point.time); return reference ? [{ time: point.time, asset: point.close, benchmark: reference.close }] : []; });
@@ -21,8 +21,8 @@ export const mean = (values: number[]) => values.reduce((sum, value) => sum + va
 export const rms = (values: number[]) => Math.sqrt(mean(values.map(value => value * value)));
 export const simpleReturns = (bars: Point[]) => bars.slice(1).map((point, i) => (point.close / bars[i].close - 1) * 100);
 
-/** Shared legacy preparation, preserving Engine condition order and continuous-suffix semantics.
- * Quote clock skew is intentionally unchanged; consumers requiring strict now-completion add that gate.
+/** Engine与State共用的准备层，保留原检测条件顺序及“连续后缀”语义。
+ * 报价时钟容差沿用既有规则；需要严格不晚于now的调用方须追加自己的完成时间校验。
  */
 export function prepareMarketInput(snapshot: RadarSnapshot, symbol: string, now: number): MarketInputResult {
   const quote = snapshot.quotes[symbol];
@@ -37,8 +37,9 @@ export function prepareMarketInput(snapshot: RadarSnapshot, symbol: string, now:
   if (history.source !== quote.source || history.currency !== quote.currency) return reject("source_currency_mismatch", "历史来源或币种不匹配");
   if (!Number.isFinite(history.fetchedAt) || now - history.fetchedAt > FETCH_MAX_AGE || history.fetchedAt > now + MINUTE) return reject("stale_history", "历史数据过期");
   if (history.intervalMs !== (symbol.endsWith("-USDT") ? 15 : 5) * MINUTE) return reject("unsupported_interval", "历史周期不支持");
-  // Yahoo confirmed assumes 15m; preserve completion from its actual 5m period.
+  // Yahoo的confirmed字段按15m定义，此处按实际5m周期与报价时间判断完成；OKX另需confirmed。
   let bars = history.points.filter(point => point.time + history.intervalMs <= quote.timestamp && (!symbol.endsWith("-USDT") || point.confirmed === true)).slice(-80);
+  // 保留最新连续一段，不把停牌、午休、隔夜或来源缺口两端拼成同一观察窗口。
   for (let i = bars.length - 1; i > 0; i--) {
     if (bars[i].time - bars[i - 1].time !== history.intervalMs) { bars = bars.slice(i); break; }
   }

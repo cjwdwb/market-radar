@@ -1,98 +1,87 @@
 # Market Radar · 市场雷达
 
-一个为桌面与手机设计的中文市场行情工作台。Market Radar 把真实行情、自选和价格提醒连接成一条清晰路径：查看市场、发现异常、理解证据、进入图表，再继续关注或设置提醒。界面采用黑白主调和低饱和涨跌色，适合长时间阅读。
+面向桌面和手机的中文行情工作台：查看市场 → 发现异常 → 理解证据 → 进入图表 → 关注与跟踪。黑白主调、低饱和涨跌色，支持加密货币、美股、A股与港股。
+
+**当前发布：2.8 Foundation / Sites v28**（2026-10-02），部署源码 `75cfa06`。这是历史智能阶段版，真实价格历史回补、长期保管与真实研究验收仍待完成。
+
+[打开网站](https://market-radar-rex.swt-aether.chatgpt.site) · [文档导航](docs/README.md) · [数据与示例](data/README.md) · [版本记录](docs/VERSIONS.md) · [更新日志](CHANGELOG.md)
 
 ![Market Radar 桌面界面](docs/screenshots/desktop-after.png)
 
-最新发布（2026-10-02）：**2.8 Foundation / Sites v28**，源码 `75cfa06`。[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site) · [发布记录](tasks/archive/MR-PUBLISH-HISTORY28-FOUNDATION.md)。沿用原访问码设置；这是阶段发布，完整真实历史数据验收仍待补。
+## 现在可以做什么
 
-## 2.8 Foundation 阶段版
+| 区域 | 已有能力 |
+| --- | --- |
+| Classic 行情工作台 | 真实报价、可拖动/缩放K线、最多20个本机自选、价格提醒 |
+| Radar 异常情报 | 异动、突破/跌破、波动及可靠量能异常；证据、置信度、事件聚合和确定性摘要 |
+| 资产与自选状态 | 90/180分钟方向与RMS波动、适用基准下的短窗相对表现、维度关系和历史窗口比较；分维度说明缺失数据 |
+| 双向工作流 | 同资产Classic ⇄ Radar ⇄ 图表，保留手动周期，共用自选与价格提醒 |
+| 历史回放与研究 | 导入受限模拟历史包、按截止时间查询、方向/RMS回放和固定协议相近样本研究 |
+| 官方宏观资料 | 导入本地公开视图，按UTC日期查询、分页及追溯来源；附两条既有FED公开元数据 |
 
-新增本地历史文件查询、90/180分钟回放与固定协议样本研究，证据默认折叠，错误导入保留上一份数据。当前历史价格导入入口仅接受模拟数据，现有实时行情继续沿用真实来源；真实回补、正式保管和真实研究验收仍未完成。
+支持手机、平板、桌面、键盘操作和「跟随系统 / 标准 / 减少」动效偏好。状态与研究描述数据，不提供买卖评分、价格预测或交易执行。
 
-- [文件与数据索引](data/README.md)：302根模拟历史示例、两条既有FED公开资料，以及本地数据库/备份位置。
-- [历史智能契约与验收](docs/HISTORICAL_INTELLIGENCE.md)：281项Node、五视口、来源限制与研究身份。
-- 在Radar下载相应示例，保存后导入对应区域；没有后台采集或个人数据上传。
+## 使用示例与当前边界
 
-产品标签 `radar-v2.8-foundation` 与发布标签 `sites-v28` 指向同一部署源码；后续说明文档提交不代表重新部署。完整历史见[版本索引](docs/VERSIONS.md)。
+在Radar展开「历史回放与研究」或「官方宏观资料」，下载对应示例后导入。文件只在当前页面读取；刷新后需重新导入。
 
-## 功能
+- **实时行情**继续使用现有OKX USDT及Yahoo股票/兼容USD数据源。
+- **历史价格导入**仅接受明确标记的模拟数据；302根示例不是已完成的真实回补或预测成绩。
+- **FED示例**是两条既有公开元数据，保留原来源和时间；不代表当前RSS、完整九月资讯或个股公告。
+- **本地归档工具**不随网站部署成为持续采集服务。来源许可、正式资产集合、历史覆盖与长期备份仍由[2.8任务](tasks/MR-HISTORICAL-INTELLIGENCE-28.md)跟踪。
 
-此前2.75维护成果发布为Sites v27，已包含在当前版本。宏观归档导入失败时保留原资料、日期查询和分页；提供可重复的本地性能/请求/交互验证。该阶段269项Node与89项浏览器检查记录及独立审计通过；测量没有证明帧率提升，真机与长时性能限制仍保留。[性能报告](docs/PERFORMANCE_275.md)记录范围、命令与结果。既有全仓lint债务仍为3errors/5warnings，本次仅运行受影响lint，不宣称全仓lint-clean。
-
-此前2.7 Foundation（阶段成果）发布为Sites v25，其功能已包含在当前版本。[打开市场雷达](https://market-radar-rex.swt-aether.chatgpt.site)。选中资产可在 Classic 与 Radar 查看同一份可解释状态：短窗、中窗、连续相对表现，以及历史相邻窗口比较。它描述已发生的数据，不预测价格，也不提供买卖评分。
-
-本次2.7阶段成果：自选总览与单资产详情共享原2.6状态，逐资产显示方向/RMS/Relative/Alignment/历史比较的可用性；支持用户点击导出本机自选名单。Radar新增默认折叠的官方宏观资料区，可显式导入本地公开视图文件，按UTC日期筛选、分页并查来源与时间。文件不上传，刷新后需重新导入。
-
-配套本地Node采集器已验证美联储官方宏观元数据→SQLite→查询→导出/恢复→页面展示，两条九月公告真实入库、重跑无重复。它是本地手动工具，不随网站部署成为在线资讯服务或持续采集器。当前RSS快照不等于九月完整历史，也不自动关联个股。真实自选集合、获准价格历史、长期保管与研究流程仍未完成；这不是完整2.7验收。操作与边界见[历史基础报告](docs/HISTORY_FOUNDATION.md)。
-
-阶段验证：269项Node、最终44项存储专项、构建/类型检查、33项浏览器检查与独立审计通过，均为本地开发证据。新增UI生产登录后/真机尚未验证。当前发布进展见 [版本索引](docs/VERSIONS.md)。2.6领域阶段218项Node通过；最终局部精修的构建、类型检查、五视口专项和相关回归通过，独立审计及复核完成。[2.6验收](tasks/archive/MR-STATE-INTELLIGENCE-26.md)与[精修报告](tasks/archive/MR-STATE26-REFINE.md)区分测试版本与范围。新版本真机及生产登录后路径未全面验证，旧反馈不替代新版本验收。
-
-- 2.6 使用90/180分钟固定窗口描述方向结构和RMS波动；短窗相对表现使用原有适用基准，双方最新完整收盘须精确对齐，收益差以百分点展示。无异常事件也能计算，缺失/过期只使相关维度降级。
-- Alignment描述窗口与绝对/相对参照的关系，不输出综合分；历史比较按相邻窗口重算，披露重叠和滚动基线，不冒充精确变化时刻。完整规则与样本限制见[State Intelligence](docs/STATE_INTELLIGENCE.md)。
-- 手机历史比较改为逐项展开，保留完整证据；详情末尾可直接回到当前图表并保留手动周期。390px固定fixture总览高度减少约80%，这是阅读高度改善，不是FPS测量。零新增行情请求、provider symbol、timer或依赖。
-- 修复极小价格和大额窄区间的折线刻度精度、图表隐藏/返回时尺寸警告，以及加载误显示为暂停的问题；手机详情层级更紧凑。
-
-- Radar 2.45 统一面板、图表工具、自选与事件详情的视觉层级。运行设置提供「跟随系统 / 标准 / 减少」动效偏好，实时生效并保存；减少模式会立即取消装饰动画，保留焦点与选中反馈。
-
-- Markets / Classic 与 Radar 双体验，默认体验可在运行设置中保存。
-- Radar 共享自选与行情，识别价格异动、区间突破/跌破、波动和可靠的量能异常；支持来源追溯、有限会话历史、相对强弱、Confidence、组合事件与确定性摘要。
-- Radar 2.2 提供自选覆盖概况、事件到图表的上下文跳转、返回 Radar 路径，以及复用同一份自选和价格提醒的工作流操作。
-- Radar 2.4 在 Classic 与 Radar 之间共享当前资产的情报上下文：主事件、检测覆盖、数据可用性、事件方向关系和相对基准证据。详情默认折叠；自选与价格提醒保持独立，不生成资产评分或 AI 预测。设计契约见 [Asset Intelligence](docs/ASSET_INTELLIGENCE.md)。
-- OKX 欧易 USDT 现货报价与 15 分钟 K 线。
-- Yahoo Finance 美股、A 股、港股和兼容的旧 USD 交易对行情。
-- K 线拖动、双指或 `Ctrl + 滚轮` 缩放、快捷回到最新行情。
-- 最多 20 个本机自选，支持市场筛选、涨跌排序和价格提醒。
-- 访问码保护；可选独立 Cloudflare Worker + D1 云端监控。
-- 适配 320 px 手机、平板和桌面，支持键盘与 `prefers-reduced-motion`。
-
-## 技术栈
-
-React 19、TypeScript、Vinext、Vite、Tailwind CSS、Radix UI、Recharts 和 Cloudflare Workers。运行环境需要 Node.js 22.15 或更高版本。
+发布前验收：281项Node测试、构建/类型检查、受影响lint、19项相关浏览器检查及独立审计通过。浏览器结果来自本地五视口模拟，不代表生产登录后或iPhone真机复测。既有全仓lint债务保留。详见[历史智能报告](docs/HISTORICAL_INTELLIGENCE.md)和[发布记录](tasks/archive/MR-PUBLISH-HISTORY28-FOUNDATION.md)。
 
 ## 本地开发
 
+React 19、TypeScript、Vinext/Vite、Tailwind CSS、Cloudflare Workers；Node.js要求 **≥22.15.0**。依赖版本以[package.json](package.json)和锁文件为准。
+
+安装依赖后，将 `.env.example` 复制为 `.dev.vars` 并填写本机配置。仅首次复制，保留已有配置；密钥含义见[项目速览](docs/PROJECT.md)。
+
 ```bash
 npm ci
-cp .env.example .dev.vars
+cp -n .env.example .dev.vars
 npm run dev
 ```
 
-在 `.dev.vars` 中填写：
+PowerShell启动入口（依赖已安装）：
 
-- `ACCESS_CODE_HASH`：访问码去除空格与连字符、转为大写后的 SHA-256。
-- `ACCESS_SESSION_SECRET`：至少 32 个字符的随机字符串。
-- `SITE_OWNER_EMAIL`、`MONITOR_URL`、`MONITOR_TOKEN`：仅启用云端监控时需要。
-
-构建和测试：
-
-```bash
-npm run build
-npm test
+```powershell
+if (!(Test-Path -LiteralPath '.dev.vars')) {
+  Copy-Item -LiteralPath '.env.example' -Destination '.dev.vars'
+}
+$env:WRANGLER_LOG_PATH = '.wrangler/wrangler.log'
+node node_modules/vite/bin/vite.js
 ```
 
-Windows 环境中的项目脚本依赖 Bash；也可以直接执行 `node node_modules/vinext/dist/cli.js build` 验证构建。
+标准验证：
 
-## 项目结构
+```bash
+npm test       # 已包含build、typecheck及全量Node测试，不必先重复build
+npm run lint
+```
 
-- `app/market-radar.tsx`：行情工作台和主要交互。
-- `components/candle-chart.tsx`：15 分钟 K 线及视口交互。
-- `lib/market-data.ts`、`lib/okx.ts`：行情聚合与数据源。
-- `worker/access-gate.ts`：访问码验证。
-- `monitor/`：可选的云端定时监控 Worker 和 D1 schema。
-- `tests/`：行情、提醒、访问控制、图表与刷新策略测试。
-- `docs/`：架构、接口约定、设计决策和验证说明。
+部分npm包装脚本依赖Bash/Linux工具；PowerShell构建、单项测试及浏览器限制见[开发与验证](docs/PROJECT.md#开发与验证)。
 
-本轮视觉与交互改进的前后数据和截图见 [`docs/VISUAL_REFINEMENT.md`](docs/VISUAL_REFINEMENT.md)。
+## 从哪里读代码
 
-Classic + Radar 的规则、覆盖限制和验证结果见 [`docs/RADAR.md`](docs/RADAR.md)。
+| 路径 | 职责 |
+| --- | --- |
+| [app/market-radar.tsx](app/market-radar.tsx) | 页面共同状态、行情调度、Classic/Radar集成 |
+| [components/radar/](components/radar/) | Radar、自选状态、资产详情、宏观资料与历史展示 |
+| [components/candle-chart.tsx](components/candle-chart.tsx) | K线与图表交互 |
+| [lib/radar/](lib/radar/) | 输入有效性、Engine、Intelligence、State及工作流纯逻辑 |
+| [lib/history/](lib/history/) | 历史包校验、独立回放及描述性研究 |
+| [lib/market-data.ts](lib/market-data.ts)、[lib/okx.ts](lib/okx.ts) | 行情聚合与来源适配 |
+| [worker/](worker/) / [monitor/](monitor/) | 网站入口与门禁 / 可选独立云监控 |
+| [collector/](collector/) / [scripts/](scripts/) | 本地SQLite归档、有限来源采集及显式运行工具 |
+| [tests/](tests/) | Node、隔离浏览器和性能验证 |
+| [docs/](docs/README.md) / [tasks/](tasks/ACTIVE.md) | 契约与证据 / 任务索引和归档 |
 
-版本历史与回退点见 [`docs/VERSIONS.md`](docs/VERSIONS.md)，面向使用者的变更摘要见 [`CHANGELOG.md`](CHANGELOG.md)。`sites-vNN` 只表示已确认的 Sites 发布源码；`milestone-vNN` 和 `radar-v2.x` 表示可回退的 Git 产品里程碑，不宣称生产发布。开发过程以 `main` 为准。
+## 文件保管与版本
 
-## 数据与安全边界
+公开示例位于 `public/examples/`，精选截图和摘要位于 `docs/`；原始库、备份、个人资料和日志保留在Git忽略的 `work/`、`data/local/`、`outputs/`。见[数据索引](data/README.md)。项目内整理不等于异地备份。
 
-行情接口可能延迟、限流或暂时中断。页面会保留并标记上次报价；过期、休市或失败报价不会触发提醒。系统只监控行情，不执行交易，也不需要交易账户凭据。
+网站有访问码门禁，本机自选和提醒保存在浏览器。可选云监控需独立部署Worker、配置D1和站主权限。不要提交 `.env`、`.dev.vars`、密钥、原始数据库或构建产物。第三方数据受来源条款约束，品牌标识归其设计者所有。
 
-本机自选和提醒保存在浏览器。云端监控需要单独部署 `monitor/worker.mjs`、配置 D1 和服务端密钥。不要提交 `.env`、`.dev.vars`、访问码、Token 或构建产物。
-
-项目中的品牌标识归其设计者所有。第三方行情数据受对应数据提供方条款约束。
+`radar-v2.8-foundation` 与 `sites-v28` 指向同一部署源码；后续文档或注释提交不代表重新部署。全部版本与回退点见[版本索引](docs/VERSIONS.md)。

@@ -1,6 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# 安装依赖及包管理器本地缓存
 /node_modules
 /.pnp
 .pnp.*
@@ -10,42 +10,43 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# 测试覆盖率产物
 /coverage
 
-# next.js
+# 框架构建产物
 /.next/
 /out/
 
-# misc
+# 系统文件与证书
 .DS_Store
 *.pem
 
-# debug
+# 本地调试日志
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# 环境配置默认忽略，仅提交无真实值的示例
 .env*
 !.env.example
 
 # vercel
 .vercel
 
-# typescript
+# 类型检查缓存与框架生成声明
 *.tsbuildinfo
 next-env.d.ts
+# 构建、运行缓存、原始验证产物与本地归档
 /dist/
 /.wrangler/
 /.sites-runtime/
 /outputs/
 /work/
 
-# Project-local personal datasets and backups stay off public Git/Sites.
+# 项目内个人资料与备份不上传Git；占位文件仅保留目录结构
 /data/local/*
 !/data/local/.gitkeep
 
-# Local Worker preview secrets
+# 本地Worker预览密钥，禁止提交真实值
 .dev.vars*
