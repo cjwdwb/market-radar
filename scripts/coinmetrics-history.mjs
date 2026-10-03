@@ -9,8 +9,21 @@ import { canonical } from '../collector/store.mjs';
 import { CoinMetricsArchive, collectCoinMetrics, CM_PILOT, CM_MAY_PILOT, reextractCoinMetricsMay } from '../collector/coinmetrics-archive.mjs';
 
 const dbName = 'coinmetrics-sep2026/archive.sqlite', mayDbName = 'coinmetrics-may2026/archive.sqlite', apiDbName = 'coinmetrics-api-sep2026/archive.sqlite';
+const longDbName = 'coinmetrics-long20261003/archive.sqlite';
 export async function main(args) {
   const [command, ...rest] = args;
+  if (['long-collect','long-status','long-query','long-backup'].includes(command)) {
+    if (command === 'long-query' ? rest.length !== 4 : command === 'long-status' ? rest.length !== 0 : rest.length !== 1) throw Error('CM_ARGUMENTS');
+    const path=localFile(longDbName), backup=command==='long-backup'?localFile(rest[0]):null;
+    if(command==='long-collect')mkdirSync(dirname(path),{recursive:true});
+    const store=new CoinMetricsArchive(path,{create:command==='long-collect'&&!existsSync(path),series:true,readOnly:command!=='long-collect'});
+    try {
+      if(command==='long-collect')return await collectCoinMetrics(store,{batch:rest[0]});
+      if(command==='long-status')return {...store.status(),catalog:store.catalog()};
+      if(command==='long-query')return store.query(rest[0],Date.parse(rest[1]+'T00:00:00Z'),Date.parse(rest[2]+'T00:00:00Z'),rest[3]==='latest'?null:rest[3]);
+      const text=store.exportSnapshot();mkdirSync(dirname(backup),{recursive:true});writeFileSync(backup,text,{flag:'wx',mode:0o600,flush:true});return {format:'coinmetrics-local-snapshot-v2',bytes:Buffer.byteLength(text),collectionOnRestore:'disabled'};
+    } finally {store.close();}
+  }
   if (!['collect','status','query','backup','restore','extract-may','may-status','may-query','may-backup','api-collect','api-status','api-query','api-backup'].includes(command)) throw Error('CM_COMMAND_REQUIRED');
   if (command === 'extract-may') {
     if (rest.length) throw Error('CM_ARGUMENTS');
@@ -42,7 +55,7 @@ export async function main(args) {
   if (command === 'restore') {
     if (rest.length !== 2) throw Error('CM_ARGUMENTS');
     const source = localFile(rest[0]), target = localFile(rest[1]);
-    if (statSync(source).size > 1024 ** 2) throw Error('CM_BACKUP_LIMIT');
+    if (statSync(source).size > 8 * 1024 ** 2) throw Error('CM_BACKUP_LIMIT');
     const text = readFileSync(source, 'utf8');
     if (existsSync(target)) throw Error('CM_NEW_TARGET_REQUIRED');
     mkdirSync(dirname(target), { recursive: true });

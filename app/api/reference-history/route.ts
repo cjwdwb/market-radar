@@ -1,4 +1,4 @@
-import publication from "../../../data/published/coinmetrics-sep2026.json" with { type: "json" };
+import publication from "../../../data/published/coinmetrics-long20261003.json" with { type: "json" };
 import { loadPublishedReference, queryPublishedReference } from "../../../lib/history/published-reference";
 export const dynamic = "force-dynamic";
 let prepared: ReturnType<typeof loadPublishedReference> | undefined;

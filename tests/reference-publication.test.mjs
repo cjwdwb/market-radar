@@ -46,8 +46,8 @@ test("fixed snapshot queries reject wrong ranges/versions and return independent
 test("read-only route supplies private catalog and strict versioned queries",async()=>{
  const req=query=>GET(new Request("http://localhost/api/reference-history"+query));
  const catalog=await req("");assert.equal(catalog.status,200);assert.equal(catalog.headers.get("cache-control"),"private, no-store");
- assert.equal((await catalog.json()).series.length,2);
- const params=new URLSearchParams({asset:"btc",from:String(from),cutoff:String(cutoff),version:fixture.sources[0].version});
+ const current=await catalog.json();assert.equal(current.series.length,2);assert.equal(current.batch,"CM-LONG-20261003-001");
+ const params=new URLSearchParams({asset:"btc",from:String(from),cutoff:String(cutoff),version:current.series[0].version});
  const good=await req("?"+params);assert.equal(good.status,200);assert.equal((await good.json()).points.length,30);
  for(const tail of ["?asset=btc","?x=1","?asset=btc&asset=eth","?"+params+"&extra=x","?"+params.toString().replace(String(from),"1e12")]) assert.equal((await req(tail)).status,400);
  params.set("version","0".repeat(64));assert.equal((await req("?"+params)).status,409);

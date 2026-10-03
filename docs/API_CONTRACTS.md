@@ -68,3 +68,9 @@ reference-query固定完整序列与内容版本，API和CSV来源在现有UI区
 GET /api/reference-history 经原worker accessGate；无参数返回reference-catalog-v1；完整且仅asset/from/cutoff/version返回原ReferenceQuery。仅批准BTC/ETH/PriceUSD/USD/1d、[2026-09-01,2026-10-01)UTC完整日的子范围。额外/重复/非法参数400，旧版本409，发布包非法503；POST405，所有响应private,no-store。没有DB、provider请求、采集入口、用户配置或计时器。data/published/coinmetrics-sep2026.json是6445bytes构建输入，校验<=32KiB、原始来源解析与原archiveVersion；不在public直接暴露文件。旧/__archive接口及分钟规则不变。
 
 2026-10-03更新：上述批准九月日频网站查询已随Sites v30/source749c727上线；本机原库、完整备份未上传，分钟研究/长期目标未完成。[发布记录](../tasks/archive/MR-PUBLISH-REFERENCE29.md)。
+
+### 长期日频发布包（2026-10-03候选）
+
+同一GET路由改读`coinmetrics-long20261003.json`，批准范围为BTC/ETH、PriceUSD/USD/1d、[2021-10-01,2026-10-03) UTC。无参数返回目录；查询仍须完整asset/from/cutoff/version，单响应最多31日，page.nextFrom用于固定版本续页。queryRange保留请求范围，coverageRange及coverage仅描述本页。400/409/503、405、原门禁与private,no-store不变。
+
+publication-v2上限512KiB，实际360699bytes；包含14个有界公开响应及原批次/取得时间，完整重建原数据版本和逐日首次/修订时间。仅允许冻结计划下14/16/18个有序响应（后两对仅为既定有限修订），same-value不新增事实版本；dataset/checksum/来源身份均校验。不接入SQLite、实时源、网络采集或定时器。旧32KiB publication-v1及九月包保留兼容；两者不冒充分钟OHLC、PIT或State输入。

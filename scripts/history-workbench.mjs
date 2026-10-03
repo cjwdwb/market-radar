@@ -26,6 +26,8 @@ export async function startWorkbench({ snapshotName, owner, journalName, referen
   let service = null, journal = null, reference = null;
   try {
     if (referenceName) reference = new CoinMetricsArchive(localFile(referenceName), { readOnly: true });
+    // 多年查询固定在恢复副本；不长期占用采集库的rollback-journal读锁。
+    if (reference?.series && reference.meta().enabled) throw Error('REFERENCE_RESTORED_COPY_REQUIRED');
     if (snapshotName) {
       const snapshot = localFile(snapshotName), journalPath = localFile(journalName), nested = relative(snapshot, journalPath);
       if (!isAbsolute(nested) && nested !== '..' && !nested.startsWith('..' + sep)) throw Error('JOURNAL_MUST_BE_SEPARATE');
