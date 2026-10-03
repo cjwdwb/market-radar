@@ -24,7 +24,7 @@ export function PublishedReferenceHistory() {
       const data = await read<ReferenceCatalog>("/api/reference-history", controller.current.signal);
       if (id !== generation.current) return;
       if (data.format !== "reference-catalog-v1" || data.identity !== "reconstructed" ||
-          data.batch !== "CM-API-SEP2026-002" || !Array.isArray(data.series) || data.series.length !== 2) {
+          !["CM-API-SEP2026-002","CM-LONG-20261003-001"].includes(data.batch) || !Array.isArray(data.series) || data.series.length !== 2) {
         throw Error("已发布日频目录无效。");
       }
       setCatalog(data);
@@ -36,7 +36,7 @@ export function PublishedReferenceHistory() {
     return read<ReferenceQuery>("/api/reference-history?" + params, signal);
   }
   return <section className="published-reference" aria-label="网站日频资料">
-    <p>网站日频资料 · BTC / ETH · 2026 年 9 月。固定历史快照，不代表实时价格。</p>
+    <p>网站日频资料 · BTC / ETH · 2021-10-01 至 2026-10-02。固定历史快照，不代表实时价格。</p>
     <button className="btn" style={{minHeight:44}} disabled={busy} onClick={() => void load()}>
       {busy ? "正在加载日频资料…" : catalog ? "重新加载日频资料" : "加载已发布日频资料"}
     </button>

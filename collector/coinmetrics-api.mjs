@@ -14,26 +14,40 @@ const fail = code => { throw Error(code); };
 const exact = (v, keys) => v && typeof v === 'object' && !Array.isArray(v) &&
   Object.keys(v).sort().join(' ') === keys.split(' ').sort().join(' ');
 export function coinMetricsApiUrl(manifest) {
+  return dailyUrl(manifest, CM_API_SEP.from, CM_API_SEP.cutoff, '100');
+}
+export function coinMetricsDailyUrl(manifest, from, cutoff) {
+  return dailyUrl(manifest, from, cutoff, '1000');
+}
+function dailyUrl(manifest, from, cutoff, pageSize) {
   if (!exact(manifest, 'asset transport') || !['btc','eth'].includes(manifest.asset) || manifest.transport !== 'community_api') fail('CM_API_MANIFEST');
+  if (!Number.isSafeInteger(from) || !Number.isSafeInteger(cutoff) || from % DAY || cutoff % DAY ||
+      from < Date.parse('2021-10-01T00:00:00Z') || cutoff <= from || cutoff - from > 366 * DAY) fail('CM_API_RANGE');
   const url = new URL('https://community-api.coinmetrics.io/v4/timeseries/asset-metrics');
   url.search = new URLSearchParams({
     assets: manifest.asset, metrics: 'PriceUSD', frequency: '1d',
-    start_time: '2026-09-01T00:00:00Z', end_time: '2026-10-01T00:00:00Z',
-    end_inclusive: 'false', page_size: '100', paging_from: 'start',
+    start_time: new Date(from).toISOString().replace('.000Z','Z'), end_time: new Date(cutoff).toISOString().replace('.000Z','Z'),
+    end_inclusive: 'false', page_size: pageSize, paging_from: 'start',
   }).toString();
   return url.href;
 }
 /** 有限完整响应；后页不能默默截断为完整月，不跟服务端任意URL。 */
 export function parseCoinMetricsApi(bytes, { manifest, from, cutoff, receivedAt, now }) {
-  const sourceUrl = coinMetricsApiUrl(manifest);
+  if (from !== CM_API_SEP.from || cutoff !== CM_API_SEP.cutoff) fail('CM_API_RANGE');
+  return parseDailyPage(bytes, { manifest, from, cutoff, receivedAt, now }, coinMetricsApiUrl(manifest));
+}
+export function parseCoinMetricsDailyPage(bytes, options) {
+  return parseDailyPage(bytes, options, coinMetricsDailyUrl(options.manifest, options.from, options.cutoff));
+}
+function parseDailyPage(bytes, { manifest, from, cutoff, receivedAt, now }, sourceUrl) {
+  const days = (cutoff - from) / DAY;
   if (!(bytes instanceof Uint8Array) || !bytes.byteLength || bytes.byteLength > CM_API_BYTES) fail('CM_API_SIZE');
-  if (from !== CM_API_SEP.from || cutoff !== CM_API_SEP.cutoff ||
-      !Number.isSafeInteger(now) || !Number.isSafeInteger(receivedAt) || receivedAt < cutoff || receivedAt > now) fail('CM_API_RANGE');
+  if (!Number.isSafeInteger(now) || !Number.isSafeInteger(receivedAt) || receivedAt < cutoff || receivedAt > now) fail('CM_API_RANGE');
   let response;
   try { response = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)); } catch { fail('CM_API_JSON'); }
   if (!response || typeof response !== 'object' || Array.isArray(response) ||
       Object.keys(response).some(k => !['data','next_page_token','next_page_url'].includes(k)) ||
-      !Array.isArray(response.data) || response.data.length > 30) fail('CM_API_SHAPE');
+      !Array.isArray(response.data) || response.data.length > days) fail('CM_API_SHAPE');
   for (const key of ['next_page_token','next_page_url']) {
     if (Object.hasOwn(response, key) && response[key] !== null && response[key] !== '') fail('CM_API_PAGINATION');
   }
@@ -70,7 +84,7 @@ export function parseCoinMetricsApi(bytes, { manifest, from, cutoff, receivedAt,
       bytes: bytes.byteLength, receivedAt, sourcePublishedAt: null, publicationPrecision: 'unknown',
       authentication: 'not_proven_by_checksum' },
     range: { from, cutoff },
-    coverage: { status: missing.length ? 'partial' : 'date_grid_present', expectedDates: 30, presentValues: points.length,
+    coverage: { status: missing.length ? 'partial' : 'date_grid_present', expectedDates: days, presentValues: points.length,
       missing, sourceRows: response.data.length, excludedOutsideRange: 0, excludedIncomplete: 0,
       limitation: 'A present date grid does not prove source accuracy, historical point-in-time availability, or exchange OHLC coverage.' },
     points, analysis: { short90m: 'unsupported_frequency', medium180m: 'unsupported_frequency', forward30m: 'unsupported_frequency' },

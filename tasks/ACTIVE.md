@@ -1,5 +1,13 @@
 # 当前任务索引
 
+## MR-PUBLISH-LONG-REFERENCE29 — 已授权接入网站并发布
+
+用户“弄吧”承接先上线长期日频；[任务卡](MR-PUBLISH-LONG-REFERENCE29.md)。保留前轮归档与全部成果，扩展既有只读公开查询→相关验证/独立审计→GitHub正常PR/CI→Sites；不购买分钟源、不改访问设置或启用调度。生产当前仍v30，未提前填上线。
+
+## MR-29-HISTORICAL-COVERAGE-EXPANSION — 本批交接，分钟来源仍阻塞
+
+[冻结来源与批次契约](MR-29-HISTORICAL-COVERAGE-EXPANSION.md)：BTC/ETH各1828真实USD日频值，2021-10-01至2026-10-02；14HTTP/314495bytes，逐条恢复/新进程/项目外同机副本一致，手动增量已验证。全Node368PASS+1权限skip、Node22专项49PASS、build/typecheck/lint、长历史五视口11组+旧入口10组及本地性能通过；独立GPT最终VERIFY PASS，无确认finding。[交付报告](../docs/HISTORY_COVERAGE_EXPANSION.md)。分钟来源/真实研究与异地保管仍开放；本轮未push/deploy，Sites v30保持原九月切片。原工作树加密行情诊断改动保留；本批停止，不自动继续采集。
+
 ## MR-PUBLISH-REFERENCE29 — 阶段发布成功，已归档
 
 用户已明确批准分批交付。PR#2正常合并，部署源码749c7270fc14f6bd1440c86e9f871b48a6b19409，PR/main CI各357/357通过，Sites v30原生succeeded/env revision3，访问方式不变。[发布记录](archive/MR-PUBLISH-REFERENCE29.md)。九月BTC/ETH各30条USD日频查询已上线；完整2.9分钟/长期覆盖/异地保管仍开放。下方未发布/等待完整版均为此前交接状态。

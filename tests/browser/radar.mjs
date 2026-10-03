@@ -233,7 +233,8 @@ async function fed27Checks(browser,report){
  }
 }
 async function publishedReferenceChecks(browser,report){
- report.dataIdentity='Actual approved Coin Metrics September publication through built Worker HTTP; quotes/auth fixtures; delay/503/409 local injections';
+ const long=process.env.RADAR_PUBLISHED_LONG==='1',count=long?31:30;
+ report.dataIdentity='Actual approved Coin Metrics '+(long?'long daily':'September')+' publication through built Worker HTTP; quotes/auth fixtures; delay/503/409 local injections';
  const denied=await browser.newContext();const denial=await denied.request.get(base+'/api/reference-history');
  assert.equal(denial.status(),401);await denied.close();
  report.checks.push('no-session published API denied by existing access gate');
@@ -246,11 +247,22 @@ async function publishedReferenceChecks(browser,report){
   assert.equal(app.requests.filter(u=>u.includes('/api/reference-history')).length,0);
   await load.click();const ref=panel.locator('.reference-history');await ref.waitFor();assert.equal(await ref.getAttribute('open'),null);
   await ref.locator(':scope > summary').focus();await p.keyboard.press('Enter');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();
-  await ref.locator('[data-reference-asset=btc]').waitFor();assert.equal(await ref.locator('.macro-records li').count(),30);
+  await ref.locator('[data-reference-asset=btc]').waitFor();assert.equal(await ref.locator('.macro-records li').count(),count);
   assert.match(await ref.innerText(),/不支持 Short90m/);assert.match(await ref.innerText(),/不能证明当时已知/);
   assert.equal(await ref.getByRole('link',{name:'CC BY-NC 4.0',exact:true}).getAttribute('href'),'https://creativecommons.org/licenses/by-nc/4.0/');
-  await ref.getByLabel('日频资产',{exact:true}).selectOption('eth');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await ref.locator('[data-reference-asset=eth]').waitFor();assert.equal(await ref.locator('.macro-records li').count(),30);
+  await ref.getByLabel('日频资产',{exact:true}).selectOption('eth');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await ref.locator('[data-reference-asset=eth]').waitFor();assert.equal(await ref.locator('.macro-records li').count(),count);
   assert.equal(app.requests.filter(u=>u.includes('/api/reference-history')).length,3);
+  if(long){
+   assert.match(await ref.innerText(),/1828\/1828/);assert.equal(await ref.locator('.macro-records time').first().getAttribute('datetime'),'2021-10-01');
+   await ref.getByRole('button',{name:'下一页日频',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.reference-result .macro-records time')?.getAttribute('datetime')==='2021-11-01');
+   await ref.getByRole('button',{name:'上一页日频',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.reference-result .macro-records time')?.getAttribute('datetime')==='2021-10-01');
+   await ref.getByLabel('日频日期起点',{exact:true}).fill('2023-12-20');await ref.getByLabel('日频日期截止',{exact:true}).fill('2024-03-10');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.reference-result .macro-records time')?.getAttribute('datetime')==='2023-12-20');
+   for(const target of ['2024-01-20','2024-02-20']){await ref.getByRole('button',{name:'下一页日频',exact:true}).click();await p.waitForFunction(t=>document.querySelector('.reference-result .macro-records time')?.getAttribute('datetime')===t,target);}
+   assert.equal(await ref.locator('time[datetime="2024-02-29"]').count(),1);assert.equal(await ref.locator('.macro-records li').count(),19);assert.ok(await ref.getByRole('button',{name:'下一页日频',exact:true}).isDisabled());
+   await ref.locator('.macro-records details').first().locator('summary').click();assert.match(await ref.innerText(),/原始响应 SHA256/);
+   await ref.getByLabel('日频日期起点',{exact:true}).fill('2021-10-01');await ref.getByLabel('日频日期截止',{exact:true}).fill('2026-10-03');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.reference-result .macro-records time')?.getAttribute('datetime')==='2021-10-01');
+   report.checks.push('published long '+name+': 1828 days per asset; bounded fixed-version pages, year/leap-day, raw per-point evidence');
+  }
   if(name==='desktop'){
    report.publishedHttpTiming=await p.evaluate(async()=>{const catalog=await(await fetch('/api/reference-history')).json();const s=catalog.series[0],params=new URLSearchParams({asset:s.asset,from:String(s.range.from),cutoff:String(s.range.cutoff),version:s.version}),times=[];let bytes=0;for(let i=0;i<5;i++){const start=performance.now();const r=await fetch('/api/reference-history?'+params);const text=await r.text();if(!r.ok)throw Error('MEASUREMENT_QUERY_FAILED');times.push(performance.now()-start);bytes=new TextEncoder().encode(text).length;}return {environment:'isolated local workerd + headless Edge; no provider traffic',samplesMs:times,bodyBytes:bytes,notProductionLatency:true};});
    const postStatus=await p.evaluate(async()=> (await fetch('/api/reference-history',{method:'POST'})).status);assert.equal(postStatus,405);
@@ -273,7 +285,7 @@ async function publishedReferenceChecks(browser,report){
   for(const target of [ref.locator(':scope > summary'),ref.getByLabel('日频资产',{exact:true}),ref.getByRole('button',{name:'查询日频价格',exact:true})])assert.ok((await target.boundingBox()).height>=44);
   await ref.scrollIntoViewIfNeeded();await p.screenshot({path:output+'/published-'+name+'.png'});await ref.locator('.macro-records li').first().evaluate(el=>el.scrollIntoView({block:'center',behavior:'instant'}));await pause(100);const priceBox=await ref.locator('.macro-records li p.numeric').first().boundingBox();assert.ok(priceBox.y>=64 && priceBox.y+priceBox.height<=height-72,JSON.stringify({name,priceBox,height}));await p.screenshot({path:output+'/published-'+name+'-prices.png'});
   await panel.getByRole('link',{name:'返回实时图表',exact:true}).click();await p.locator('.price-chart').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
-  assert.deepEqual(app.errors,[]);report.viewports.push({name,width,height});report.checks.push('published '+name+': explicit load only, 3 initial HTTP requests, actual BTC/ETH 30 each, license/limitations, keyboard/44px/no overflow, manual range preserved');await app.context.close();
+  assert.deepEqual(app.errors,[]);report.viewports.push({name,width,height});report.checks.push('published '+name+': explicit load only, 3 initial HTTP requests, actual BTC/ETH '+count+' rows per page, license/limitations, keyboard/44px/no overflow, manual range preserved');await app.context.close();
  }
  for(const motionPreference of ['system','normal','reduced']){
   const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',motionPreference,watchlist:['NVDA']}),p=app.page;
@@ -281,7 +293,7 @@ async function publishedReferenceChecks(browser,report){
   assert.equal(await p.evaluate(()=>document.documentElement.dataset.motion),motionPreference==='normal'?'normal':'reduced');
   const panel=p.locator('.history-workspace');await panel.locator(':scope > summary').click();await panel.getByRole('button',{name:'加载已发布日频资料',exact:true}).click();
   const ref=panel.locator('.reference-history');await ref.locator(':scope > summary').click();await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await ref.locator('[data-reference-asset=btc]').waitFor();
-  assert.equal(await ref.locator('.macro-records li').count(),30);await panel.getByRole('button',{name:'返回实时 Radar',exact:true}).click();assert.equal(await panel.getAttribute('open'),null);
+  assert.equal(await ref.locator('.macro-records li').count(),count);await panel.getByRole('button',{name:'返回实时 Radar',exact:true}).click();assert.equal(await panel.getAttribute('open'),null);
   assert.equal(await p.evaluate(()=>document.documentElement.dataset.motion),motionPreference==='normal'?'normal':'reduced');assert.deepEqual(app.errors,[]);await app.context.close();
   report.checks.push('published '+motionPreference+': real daily query and return under system reduced preference');
  }
@@ -290,6 +302,7 @@ async function publishedReferenceChecks(browser,report){
 
 async function referenceChecks(browser,report){
  const token='fixture-only-reference-browser-session', expected=Number(process.env.RADAR_REFERENCE_EXPECTED??'0'), simulated=process.env.RADAR_REFERENCE_FIXTURE==='1', days=Number(process.env.RADAR_REFERENCE_DAYS??'30');
+ const long=process.env.RADAR_REFERENCE_LONG==='1';
  report.dataIdentity=simulated?'All reference data/quotes/auth are fixtures; no actual source coverage':'Actual Coin Metrics approved archive query; live quotes/auth isolated fixtures; error/delay injection local only';
  for(const [name,width,height]of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
   const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',watchlist:['NVDA']}),p=app.page;
@@ -301,9 +314,21 @@ async function referenceChecks(browser,report){
   assert.match(await ref.innerText(),simulated?/模拟验证/:/真实来源归档/);assert.equal(await panel.getByLabel('归档序列').count(),0);
   await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await ref.locator('[data-reference-asset=btc]').waitFor();
   assert.equal(await ref.locator('.macro-records li').count(),expected);assert.match(await ref.innerText(),/不支持 Short90m/);assert.match(await ref.innerText(),/不能证明当时已知/);
-  assert.equal(await ref.locator('.reference-result details').getAttribute('open'),null);
+  assert.equal(await ref.locator('.reference-result > details').getAttribute('open'),null);
   await ref.getByText('覆盖、版本与限制',{exact:true}).click();assert.match(await ref.innerText(),new RegExp('缺失 '+(days-expected)+' 日'));await ref.getByText('覆盖、版本与限制',{exact:true}).click();
   assert.equal(await ref.getByRole('link',{name:'CC BY-NC 4.0',exact:true}).getAttribute('href'),'https://creativecommons.org/licenses/by-nc/4.0/');
+  if(long){
+   assert.match(await ref.innerText(),/1828\/1828/);await ref.getByText('覆盖、版本与限制',{exact:true}).click();assert.match(await ref.innerText(),/响应集合摘要/);await ref.getByText('覆盖、版本与限制',{exact:true}).click();
+   const first=await ref.locator('.macro-records time').first().getAttribute('datetime');assert.equal(first,'2021-10-01');
+   await ref.getByRole('button',{name:'下一页日频',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.reference-result .macro-records time')?.getAttribute('datetime')==='2021-11-01');
+   await ref.getByRole('button',{name:'上一页日频',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.reference-result .macro-records time')?.getAttribute('datetime')==='2021-10-01');
+   await ref.getByLabel('日频日期起点',{exact:true}).fill('2023-12-20');await ref.getByLabel('日频日期截止',{exact:true}).fill('2024-03-10');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.reference-result .macro-records time')?.getAttribute('datetime')==='2023-12-20');
+   for(const target of ['2024-01-20','2024-02-20']){await ref.getByRole('button',{name:'下一页日频',exact:true}).click();await p.waitForFunction(t=>document.querySelector('.reference-result .macro-records time')?.getAttribute('datetime')===t,target);}
+   assert.equal(await ref.locator('time[datetime="2024-02-29"]').count(),1);assert.ok(await ref.getByRole('button',{name:'下一页日频',exact:true}).isDisabled());assert.equal(await ref.locator('.macro-records li').count(),19);
+   await ref.locator('.macro-records details').first().locator('summary').click();assert.match(await ref.innerText(),/首次取得/);assert.match(await ref.innerText(),/原始响应 SHA256/);
+   await ref.getByLabel('日频日期起点',{exact:true}).fill('2021-10-01');await ref.getByLabel('日频日期截止',{exact:true}).fill('2026-10-03');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.reference-result .macro-records time')?.getAttribute('datetime')==='2021-10-01');
+   report.checks.push('long daily '+name+': actual multiyear fixed-version pagination, year/leap-day boundaries, per-fact raw provenance,31-date browser bound');
+  }
   if(name==='desktop'){
    let release,seen,first=true;const received=new Promise(r=>seen=r);
    await p.route('**/__archive/reference-query',async route=>{if(first){first=false;const response=await route.fetch();seen();await new Promise(r=>release=r);await route.fulfill({response}).catch(()=>{});}else await route.continue();});
@@ -773,7 +798,7 @@ async function visualCapture(browser, phase) {
   if(process.env.RADAR_VISUAL_PHASE){await visualCapture(browser,process.env.RADAR_VISUAL_PHASE);return;}
   if(process.env.RADAR_POST_RELEASE==='1'){await postReleaseChecks(browser,report);fs.writeFileSync(`${output}/post-release-extra.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_PUBLISHED_REFERENCE_ONLY==='1'){await publishedReferenceChecks(browser,report);fs.writeFileSync(output+'/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
-  if(process.env.RADAR_REFERENCE_ONLY==='1'){await referenceChecks(browser,report);fs.writeFileSync(output+'/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
+  if(process.env.RADAR_REFERENCE_ONLY==='1'){await referenceChecks(browser,report);report.warnings=observedWarnings;fs.writeFileSync(output+'/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_HISTORY29_ONLY==='1'){await history29Checks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_HISTORY28_ONLY==='1'){await history28Checks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_FED27_ONLY==='1'){await fed27Checks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify({...report,warnings:observedWarnings},null,2));console.log(JSON.stringify(report));return;}

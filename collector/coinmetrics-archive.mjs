@@ -6,6 +6,7 @@ import { canonical, digest } from './store.mjs';
 import { CM_DAILY, coinMetricsFile, parseCoinMetricsCsv } from './coinmetrics-source.mjs';
 
 import { CM_API_SEP, CM_API_BYTES, CM_API_NOTICE, coinMetricsApiUrl, parseCoinMetricsApi } from './coinmetrics-api.mjs';
+import { isDailySeriesFile, openDailySeries, dailyStatus, dailyQuery, dailyCatalog, validateDailySeries, exportDailySeries, restoreDailySeries, collectDailyBatch } from './coinmetrics-series.mjs';
 const isApi = config => config.batch === CM_API_SEP.batch;
 const byteLimit = config => isApi(config) ? CM_API_BYTES : FILE_BYTES;
 const sourceUrl = (config, manifest) => isApi(config) ? coinMetricsApiUrl(manifest) : coinMetricsFile(manifest);
@@ -107,7 +108,10 @@ function validateSlice(body, points, config, asset) {
   }
 }
 export class CoinMetricsArchive {
-  constructor(path, { create = false, fixture = null, readOnly = false, batch = CM_PILOT.batch } = {}) {
+  constructor(path, { create = false, fixture = null, readOnly = false, batch = CM_PILOT.batch, series = false } = {}) {
+    if (series || !create && isDailySeriesFile(path)) {
+      Object.assign(this, openDailySeries(path, { create, fixture: !!fixture, readOnly })); return;
+    }
     const exists = existsSync(path);
     if (create && exists || !create && !exists) fail(create ? 'CM_NEW_TARGET_REQUIRED' : 'CM_ARCHIVE_NOT_FOUND');
     if (exists && statSync(path).size > 2 * 1024 ** 2) fail('CM_DB_LIMIT');
@@ -130,8 +134,9 @@ export class CoinMetricsArchive {
   }
   close() { this.db.close(); }
   transaction(fn) { this.db.exec('BEGIN IMMEDIATE'); try { const result = fn(); this.db.exec('COMMIT'); return result; } catch (e) { this.db.exec('ROLLBACK'); throw e; } }
-  meta() { return this.db.prepare('SELECT * FROM cm_meta').get(); }
+  meta() { return this.db.prepare(this.series ? 'SELECT * FROM cm_series_meta' : 'SELECT * FROM cm_meta').get(); }
   status() {
+    if (this.series) return dailyStatus(this);
     const requests = this.db.prepare('SELECT * FROM cm_requests ORDER BY id').all(), files = this.db.prepare('SELECT asset FROM cm_files ORDER BY asset').all();
     const meta = this.meta();
     return { batch: this.config.batch, identity: this.config.identity, requestAccounting: this.config.batch === CM_MAY_PILOT.batch ? 'inherited_from_CM-SEP2026-001' : 'direct', newRequests: this.config.batch === CM_MAY_PILOT.batch ? 0 : requests.length, requests, files: files.map(x => x.asset), reservedBytes: requests.length * byteLimit(this.config), reservedMs: requests.length * 30000, actualBytes: requests.reduce((n, r) => n + (r.bytes ?? 0), 0), points: this.db.prepare('SELECT count(*) AS n FROM cm_points').get().n, enabled: !!meta.enabled, blocked: !!meta.blocked, retryAt: meta.retry_at };
@@ -178,6 +183,7 @@ export class CoinMetricsArchive {
     return slice;
   }
   query(asset, from = this.config.from, cutoff = this.config.cutoff, version = null) {
+    if (this.series) return dailyQuery(this,asset,from,cutoff,version);
     if (!['btc','eth'].includes(asset) || !int(from, this.config.from, this.config.cutoff - DAY) || from % DAY ||
         !int(cutoff, from + DAY, this.config.cutoff) || cutoff % DAY) fail('CM_QUERY_RANGE');
     const row = this.db.prepare('SELECT * FROM cm_files WHERE asset=?').get(asset);
@@ -189,12 +195,14 @@ export class CoinMetricsArchive {
     return { ...body, points, version: row.hash, queryRange: { from, cutoff }, coverageRange: body.range };
   }
   catalog() {
+    if (this.series) return dailyCatalog(this);
     return { format: 'reference-catalog-v1', batch: this.config.batch, identity: this.config.identity, series: this.status().files.map(asset => {
       const q = this.query(asset);
       return { asset, id: q.series.id, version: q.version, range: q.range, count: q.points.length, coverage: q.coverage, receivedAt: q.provenance.receivedAt };
     }) };
   }
   validate(now = Date.now()) {
+    if (this.series) return validateDailySeries(this,now);
     const s = this.status();
     if (s.requests.length > 4 || s.files.length > 2 || s.points > (this.config.cutoff - this.config.from) / DAY * 2 || !int(s.retryAt)) fail('CM_ARCHIVE_BUDGET');
     if (this.config.batch === CM_MAY_PILOT.batch && s.enabled) fail('CM_OFFLINE_COLLECTION_FORBIDDEN');
@@ -224,6 +232,7 @@ export class CoinMetricsArchive {
     if (s.requests.filter(r => r.status === 'accepted').length !== rows.length || this.db.prepare('PRAGMA foreign_key_check').all().length) fail('CM_CHECKPOINT_INVALID');
   }
   exportSnapshot() {
+    if (this.series) return exportDailySeries(this);
     this.db.exec('SAVEPOINT cm_export');
     try {
       this.validate();
@@ -234,6 +243,7 @@ export class CoinMetricsArchive {
     } finally { this.db.exec('RELEASE cm_export'); }
   }
   static restore(path, text) {
+    if (typeof text === 'string' && Buffer.byteLength(text) <= 8 * 1024 ** 2 && JSON.parse(text)?.format === 'coinmetrics-local-snapshot-v2') return restoreDailySeries(path,text);
     if (typeof text !== 'string' || Buffer.byteLength(text) > 1024 ** 2) fail('CM_BACKUP_LIMIT');
     const envelope = JSON.parse(text);
     if (!exact(envelope, 'format meta requests files points checksum')) fail('CM_BACKUP_INVALID');
@@ -278,7 +288,8 @@ export class CoinMetricsArchive {
 }
 
 /** 一次调用只执行有限批次；无自动重试，错误后由操作者显式续跑。 */
-export async function collectCoinMetrics(store, { fetchImpl = fetch, clock = Date.now, saveRaw = () => {}, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
+export async function collectCoinMetrics(store, { fetchImpl = fetch, clock = Date.now, saveRaw = () => {}, wait = ms => new Promise(resolve => setTimeout(resolve, ms)), batch, signal } = {}) {
+  if (store.series) return collectDailyBatch(store,batch,{fetchImpl,clock,wait,signal});
   if (store.config.batch === CM_MAY_PILOT.batch) fail('CM_COLLECTION_DISABLED');
   const started = clock();
   for (const manifest of store.config.manifests) {

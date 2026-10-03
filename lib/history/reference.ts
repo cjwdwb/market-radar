@@ -1,7 +1,8 @@
 // 与受控本地reference查询一致；这里不计算价格、状态或研究结论。
 export type ReferenceCoverage = {
   status: "partial" | "date_grid_present"; expectedDates: number; presentValues: number;
-  missing: { sourceDate: string; reason: "missing_value" | "missing_date" }[];
+  missing: { sourceDate: string; reason: "missing_value" | "missing_date" | "not_backfilled" }[];
+  missingCount?: number; gapCount?: number; notBackfilledCount?: number; missingTruncated?: boolean;
 };
 export type ReferenceCatalog = {
   format: "reference-catalog-v1"; batch: string; identity: "fixture" | "reconstructed";
@@ -12,6 +13,7 @@ export type ReferenceQuery = {
   series: { id: string; providerId: "btc" | "eth"; currency: "USD"; type: "reference_price"; frequency: "1d" };
   derivation?: { method: "offline_reextract"; derivedAt: number; parentBatch: string; parentSnapshot: string; parentVersion: string };
   version: string; queryRange: { from: number; cutoff: number }; coverageRange: { from: number; cutoff: number };
-  coverage: ReferenceCoverage; provenance: { receivedAt: number; sha256: string } & ({ commit: string; transport?: never } | { transport: "community_api"; commit?: never });
-  points: { sourceDate: string; periodStartAt: number; evidenceEndAt: number; price: string }[];
+  coverage: ReferenceCoverage; provenance: { receivedAt: number; sha256: string; responseDigests?: string[] } & ({ commit: string; transport?: never } | { transport: "community_api"; commit?: never });
+  page?: { from: number; cutoff: number; nextFrom: number | null };
+  points: { sourceDate: string; periodStartAt: number; evidenceEndAt: number; price: string; firstReceivedAt?: number; versionReceivedAt?: number; sourceVersion?: string }[];
 };
