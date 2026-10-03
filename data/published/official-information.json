@@ -1,0 +1,399 @@
+{
+  "format": "official-information-v1",
+  "identity": "reconstructed",
+  "vintage": "current",
+  "exportedAt": 1791035019234,
+  "sources": [
+    {
+      "sourceId": "bitcoin-core",
+      "snapshotId": "01ee6b81b2889ba278159ab9e3e2bfff98d31df02d7325d8c9d485f543e4393a",
+      "checkedAt": 1791034178595,
+      "receiptBasis": "reviewed_capture_mtime",
+      "records": [
+        {
+          "fact": {
+            "id": 352006528,
+            "tag": "v29.4",
+            "url": "https://github.com/bitcoin/bitcoin/releases/tag/v29.4",
+            "publishedAt": 1783693537000,
+            "sourceUpdatedAt": 1783693537000,
+            "prerelease": false
+          },
+          "version": 1,
+          "contentHash": "f34926c85cf5e28df9227412b9b83bf1392270a15fa62ea2669d81e6dbe970fa",
+          "firstSavedAt": 1791035019101,
+          "versionSavedAt": 1791035019101
+        },
+        {
+          "fact": {
+            "id": 350813643,
+            "tag": "v31.1",
+            "url": "https://github.com/bitcoin/bitcoin/releases/tag/v31.1",
+            "publishedAt": 1783502055000,
+            "sourceUpdatedAt": 1783502055000,
+            "prerelease": false
+          },
+          "version": 2,
+          "contentHash": "7fb5f784e048460bf8230a0f934f96b099ac7d93d585738097cc12a66db6b9f4",
+          "firstSavedAt": 1791035019101,
+          "versionSavedAt": 1791035019101
+        },
+        {
+          "fact": {
+            "id": 352005822,
+            "tag": "v30.3",
+            "url": "https://github.com/bitcoin/bitcoin/releases/tag/v30.3",
+            "publishedAt": 1783676099000,
+            "sourceUpdatedAt": 1783676099000,
+            "prerelease": false
+          },
+          "version": 3,
+          "contentHash": "804657e365c4414f2afa5ce701d3f366fb392f1003ce1ad55273d5748b9ee84e",
+          "firstSavedAt": 1791035019101,
+          "versionSavedAt": 1791035019101
+        },
+        {
+          "fact": {
+            "id": 311187860,
+            "tag": "v31.0",
+            "url": "https://github.com/bitcoin/bitcoin/releases/tag/v31.0",
+            "publishedAt": 1776691277000,
+            "sourceUpdatedAt": 1776691277000,
+            "prerelease": false
+          },
+          "version": 4,
+          "contentHash": "996b1af8ca8b7bc0ccae615ff9f54e5d6a8db2be871e120959712c5323f0b08a",
+          "firstSavedAt": 1791035019101,
+          "versionSavedAt": 1791035019101
+        },
+        {
+          "fact": {
+            "id": 305548520,
+            "tag": "v28.4",
+            "url": "https://github.com/bitcoin/bitcoin/releases/tag/v28.4",
+            "publishedAt": 1775457437000,
+            "sourceUpdatedAt": 1775457438000,
+            "prerelease": false
+          },
+          "version": 5,
+          "contentHash": "6d2a900e45c31d3a84eb620136b64f921566a04389bd5ce5fb7f56b71e22be5d",
+          "firstSavedAt": 1791035019101,
+          "versionSavedAt": 1791035019101
+        }
+      ]
+    },
+    {
+      "sourceId": "go-ethereum",
+      "snapshotId": "76023ab6ef5e88f62bba3108e66fbcc4b626fedfd34520352c559fa6e6e7a2e3",
+      "checkedAt": 1791034243746,
+      "receiptBasis": "reviewed_capture_mtime",
+      "records": [
+        {
+          "fact": {
+            "id": 398878393,
+            "tag": "v1.17.7",
+            "url": "https://github.com/ethereum/go-ethereum/releases/tag/v1.17.7",
+            "publishedAt": 1790768888000,
+            "sourceUpdatedAt": 1790768888000,
+            "prerelease": false
+          },
+          "version": 6,
+          "contentHash": "5a183f1832cb77be5aef1ce3e4fca23a4125acbfde79f4a6e86124ba5b597d0e",
+          "firstSavedAt": 1791035019109,
+          "versionSavedAt": 1791035019109
+        },
+        {
+          "fact": {
+            "id": 393420218,
+            "tag": "v1.17.6",
+            "url": "https://github.com/ethereum/go-ethereum/releases/tag/v1.17.6",
+            "publishedAt": 1790130107000,
+            "sourceUpdatedAt": 1790130107000,
+            "prerelease": false
+          },
+          "version": 7,
+          "contentHash": "c7c66dec1a27e16c68023db435a70a18c1dd9e1c0cf3ace60800deefe9b03569",
+          "firstSavedAt": 1791035019109,
+          "versionSavedAt": 1791035019109
+        },
+        {
+          "fact": {
+            "id": 359133713,
+            "tag": "v1.17.5",
+            "url": "https://github.com/ethereum/go-ethereum/releases/tag/v1.17.5",
+            "publishedAt": 1785140260000,
+            "sourceUpdatedAt": 1785140260000,
+            "prerelease": false
+          },
+          "version": 8,
+          "contentHash": "988626b2f6962c9a5abe218106dc34e4f0cac7f7ec5e87bd20517a061a604cdf",
+          "firstSavedAt": 1791035019109,
+          "versionSavedAt": 1791035019109
+        },
+        {
+          "fact": {
+            "id": 342731497,
+            "tag": "v1.17.4",
+            "url": "https://github.com/ethereum/go-ethereum/releases/tag/v1.17.4",
+            "publishedAt": 1782114429000,
+            "sourceUpdatedAt": 1782114429000,
+            "prerelease": false
+          },
+          "version": 9,
+          "contentHash": "dc33e6d64f5e445b39a63664b222eabb3aa0380267796e3d11992e5e5b697721",
+          "firstSavedAt": 1791035019109,
+          "versionSavedAt": 1791035019109
+        },
+        {
+          "fact": {
+            "id": 318776827,
+            "tag": "v1.17.3",
+            "url": "https://github.com/ethereum/go-ethereum/releases/tag/v1.17.3",
+            "publishedAt": 1778513021000,
+            "sourceUpdatedAt": 1778513021000,
+            "prerelease": false
+          },
+          "version": 10,
+          "contentHash": "09a7399f31d7f4c0fb29cc324f6d68ef58880e0e9f978b10d9e2bde4782eefb8",
+          "firstSavedAt": 1791035019109,
+          "versionSavedAt": 1791035019109
+        }
+      ]
+    },
+    {
+      "sourceId": "agave",
+      "snapshotId": "b86db99fdec2b77f9b4745123203a8f484b1a267b4610926e72a2029527ab276",
+      "checkedAt": 1791034248332,
+      "receiptBasis": "reviewed_capture_mtime",
+      "records": [
+        {
+          "fact": {
+            "id": 402374245,
+            "tag": "v4.5.0-alpha.1",
+            "url": "https://github.com/anza-xyz/agave/releases/tag/v4.5.0-alpha.1",
+            "publishedAt": 1791010248000,
+            "sourceUpdatedAt": 1791013653000,
+            "prerelease": true
+          },
+          "version": 11,
+          "contentHash": "28293555347b1e7e7822f17b2efde84ca7c0e90d93675d04eb312a637a6f4f00",
+          "firstSavedAt": 1791035019114,
+          "versionSavedAt": 1791035019114
+        },
+        {
+          "fact": {
+            "id": 398365753,
+            "tag": "v4.4.0-beta.0",
+            "url": "https://github.com/anza-xyz/agave/releases/tag/v4.4.0-beta.0",
+            "publishedAt": 1790608204000,
+            "sourceUpdatedAt": 1790666943000,
+            "prerelease": true
+          },
+          "version": 12,
+          "contentHash": "fbd8267b88c66b1256c36b7d2c85036b266b478746788416451ce35c7bf42339",
+          "firstSavedAt": 1791035019114,
+          "versionSavedAt": 1791035019114
+        },
+        {
+          "fact": {
+            "id": 391586317,
+            "tag": "v4.4.0-alpha.5",
+            "url": "https://github.com/anza-xyz/agave/releases/tag/v4.4.0-alpha.5",
+            "publishedAt": 1789745543000,
+            "sourceUpdatedAt": 1789996908000,
+            "prerelease": true
+          },
+          "version": 13,
+          "contentHash": "b43c03884f80a832b521f4663f096e9a6288ad5f8ed1a75214bb91eccd1464be",
+          "firstSavedAt": 1791035019114,
+          "versionSavedAt": 1791035019114
+        },
+        {
+          "fact": {
+            "id": 391449122,
+            "tag": "v4.3.0",
+            "url": "https://github.com/anza-xyz/agave/releases/tag/v4.3.0",
+            "publishedAt": 1789733717000,
+            "sourceUpdatedAt": 1789997076000,
+            "prerelease": false
+          },
+          "version": 14,
+          "contentHash": "3cf947dec3afec3960581172bfa8a31ec87207f71b3ef2cbf335ff6a3340d309",
+          "firstSavedAt": 1791035019114,
+          "versionSavedAt": 1791035019114
+        },
+        {
+          "fact": {
+            "id": 387110768,
+            "tag": "v4.3.0-rc.1",
+            "url": "https://github.com/anza-xyz/agave/releases/tag/v4.3.0-rc.1",
+            "publishedAt": 1789137589000,
+            "sourceUpdatedAt": 1789402358000,
+            "prerelease": false
+          },
+          "version": 15,
+          "contentHash": "f35909d3eb0300c308ef6bf7d4a7029045bb3d605f48ce47c9a4be93c0999b3a",
+          "firstSavedAt": 1791035019114,
+          "versionSavedAt": 1791035019114
+        }
+      ]
+    },
+    {
+      "sourceId": "nvidia-driver",
+      "snapshotId": "f447aa6f8235efe1edf5e48dad376f9445792ca92f65079e14b9075ca2a61c5f",
+      "checkedAt": 1791034310363,
+      "receiptBasis": "reviewed_capture_mtime",
+      "records": [
+        {
+          "fact": {
+            "id": 393955980,
+            "tag": "595.104.02",
+            "url": "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/595.104.02",
+            "publishedAt": 1790096530000,
+            "sourceUpdatedAt": 1790096530000,
+            "prerelease": false
+          },
+          "version": 16,
+          "contentHash": "c230e35fd6ed74f805e7b3b8b5d0cb26a5f67a7a749312a1014530214905a5ae",
+          "firstSavedAt": 1791035019118,
+          "versionSavedAt": 1791035019118
+        },
+        {
+          "fact": {
+            "id": 385770454,
+            "tag": "615.71.09",
+            "url": "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/615.71.09",
+            "publishedAt": 1788980269000,
+            "sourceUpdatedAt": 1788980269000,
+            "prerelease": false
+          },
+          "version": 17,
+          "contentHash": "20102e9e055e487766c4da1763d3ec7fe84a1ec4832faac7a8d96977162b9ecf",
+          "firstSavedAt": 1791035019118,
+          "versionSavedAt": 1791035019118
+        },
+        {
+          "fact": {
+            "id": 378770900,
+            "tag": "595.44.15",
+            "url": "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/595.44.15",
+            "publishedAt": 1787952012000,
+            "sourceUpdatedAt": 1787952012000,
+            "prerelease": true
+          },
+          "version": 18,
+          "contentHash": "bb95c3c2b6153df7a0d38f5890c3079ce2594ea2d12cabe792056f8a5b9c35fb",
+          "firstSavedAt": 1791035019118,
+          "versionSavedAt": 1791035019118
+        },
+        {
+          "fact": {
+            "id": 377983261,
+            "tag": "595.99.02",
+            "url": "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/595.99.02",
+            "publishedAt": 1787849494000,
+            "sourceUpdatedAt": 1787849494000,
+            "prerelease": false
+          },
+          "version": 19,
+          "contentHash": "785777120a3f340f84a9bfa1ffdf0560c61349acf8729887a34027c28c796eac",
+          "firstSavedAt": 1791035019118,
+          "versionSavedAt": 1791035019118
+        },
+        {
+          "fact": {
+            "id": 366578395,
+            "tag": "595.44.14",
+            "url": "https://github.com/NVIDIA/open-gpu-kernel-modules/releases/tag/595.44.14",
+            "publishedAt": 1786086986000,
+            "sourceUpdatedAt": 1786086986000,
+            "prerelease": true
+          },
+          "version": 20,
+          "contentHash": "076fb6e637fd11b7bd9d0705eb4a7471d3283a3a418b91be07684624b8240a55",
+          "firstSavedAt": 1791035019118,
+          "versionSavedAt": 1791035019118
+        }
+      ]
+    },
+    {
+      "sourceId": "powertoys",
+      "snapshotId": "dc9120ddce8d68fe62217f52b653fdb08aa2073d4b593eeb89cbb7890e11fef5",
+      "checkedAt": 1791034313606,
+      "receiptBasis": "reviewed_capture_mtime",
+      "records": [
+        {
+          "fact": {
+            "id": 399008609,
+            "tag": "v0.101.2712.0",
+            "url": "https://github.com/microsoft/PowerToys/releases/tag/v0.101.2712.0",
+            "publishedAt": 1790745658000,
+            "sourceUpdatedAt": 1790745658000,
+            "prerelease": true
+          },
+          "version": 21,
+          "contentHash": "7ec55aa0d4caf07e26dc503da69a2a775f3a34da5c51c4b0f271af09ad7b1ad4",
+          "firstSavedAt": 1791035019122,
+          "versionSavedAt": 1791035019122
+        },
+        {
+          "fact": {
+            "id": 397256938,
+            "tag": "v0.101.2684.0",
+            "url": "https://github.com/microsoft/PowerToys/releases/tag/v0.101.2684.0",
+            "publishedAt": 1790433813000,
+            "sourceUpdatedAt": 1790433813000,
+            "prerelease": true
+          },
+          "version": 22,
+          "contentHash": "219b21e71cef8ebf2b25ecdb46f575be2e7308ff2697970df701cd1056902ce6",
+          "firstSavedAt": 1791035019122,
+          "versionSavedAt": 1791035019122
+        },
+        {
+          "fact": {
+            "id": 394479611,
+            "tag": "v0.101.2652.0",
+            "url": "https://github.com/microsoft/PowerToys/releases/tag/v0.101.2652.0",
+            "publishedAt": 1790167553000,
+            "sourceUpdatedAt": 1790167553000,
+            "prerelease": true
+          },
+          "version": 23,
+          "contentHash": "7f6a2ea2d0adcd3b44d1f2858ad42e764142016a737df1f6b0a56b22bb3bd3c1",
+          "firstSavedAt": 1791035019122,
+          "versionSavedAt": 1791035019122
+        },
+        {
+          "fact": {
+            "id": 392828994,
+            "tag": "v0.101.2632.0",
+            "url": "https://github.com/microsoft/PowerToys/releases/tag/v0.101.2632.0",
+            "publishedAt": 1789984626000,
+            "sourceUpdatedAt": 1789984626000,
+            "prerelease": true
+          },
+          "version": 24,
+          "contentHash": "9fe2e6a9015f50178cf6d009ba8db26f6c832039c285c6904ee861451a347891",
+          "firstSavedAt": 1791035019122,
+          "versionSavedAt": 1791035019122
+        },
+        {
+          "fact": {
+            "id": 391544114,
+            "tag": "v0.101.2601.0",
+            "url": "https://github.com/microsoft/PowerToys/releases/tag/v0.101.2601.0",
+            "publishedAt": 1789742595000,
+            "sourceUpdatedAt": 1789742595000,
+            "prerelease": true
+          },
+          "version": 25,
+          "contentHash": "c179e9ee76c1e9e279263f9eed092954ade34e783d74aeaa1e3134b611c4880e",
+          "firstSavedAt": 1791035019122,
+          "versionSavedAt": 1791035019122
+        }
+      ]
+    }
+  ],
+  "viewId": "376f9590af0ae7ce3d4823914052835820e52ea990017fbf3db4e33927fbd95e"
+}

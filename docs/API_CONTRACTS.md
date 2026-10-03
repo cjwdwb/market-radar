@@ -1,4 +1,7 @@
 # API 契约索引
+
+2026-10-03本地信息入口新增（未部署）：`GET /api/information`经原Worker accessGate，仅返回已审核构建输入的fed-monetary-view-v1。无参数；任何非空query400，非法发布包503，原门禁401/未支持方法405；private,no-store（Worker补max-age=0）。固定FED货币政策元数据、1MiB/200条/31日原校验、reconstructed/current-vintage；不接受URL/路径/SQL、不读数据库、不网络采集、不包含owner/run/账本。UI首次展开懒加载，保留本地文件导入和失败旧视图。准备方式与证据见[信息入口交付](INFORMATION_DELIVERY.md)。
+
 基线 87925c4；修改接口时同时核对这里指向的实现和调用方。下表是现状摘要，不是新协议。
 
 | 接口 | 输入 | 响应/失败 |
@@ -74,3 +77,7 @@ GET /api/reference-history 经原worker accessGate；无参数返回reference-ca
 同一GET路由改读`coinmetrics-long20261003.json`，批准范围为BTC/ETH、PriceUSD/USD/1d、[2021-10-01,2026-10-03) UTC。无参数返回目录；查询仍须完整asset/from/cutoff/version，单响应最多31日，page.nextFrom用于固定版本续页。queryRange保留请求范围，coverageRange及coverage仅描述本页。400/409/503、405、原门禁与private,no-store不变。
 
 publication-v2上限512KiB，实际360699bytes；包含14个有界公开响应及原批次/取得时间，完整重建原数据版本和逐日首次/修订时间。仅允许冻结计划下14/16/18个有序响应（后两对仅为既定有限修订），same-value不新增事实版本；dataset/checksum/来源身份均校验。不接入SQLite、实时源、网络采集或定时器。旧32KiB publication-v1及九月包保留兼容；两者不冒充分钟OHLC、PIT或State输入。
+
+## 官方项目/产品资料快照
+
+GET `/api/asset-information`：继承原门禁，拒绝全部query参数（400），无效构建包503；固定`official-information-v1`、128KiB、5源×5条元数据，原链接/版本/来源时间保留，private/no-store。网络抓取只在操作员手动runner，GET不接触SQLite/外部API。与FED `/api/information` 分开；产品版本不是财报、新闻或Signal。[契约和维护](INFORMATION_SOURCES.md)。
