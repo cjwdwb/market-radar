@@ -1,5 +1,13 @@
 # 当前状态
 
+2026-10-03发布决定：用户已确认分批交付，当前执行[MR-PUBLISH-REFERENCE29](../tasks/MR-PUBLISH-REFERENCE29.md)。待CI与原生部署返回后更新实际版本；当前生产仍Sites v29。此前“完整2.9完成后才发布”的顺序已由此授权更新，未完成范围仍保留。
+
+2026-10-03后续推进：[网站日频只读切片](../tasks/MR-29-PUBLIC-REFERENCE.md)已本地实现验证，BTC/ETH九月60值经固定版本同源API接入现有历史面板；新五视口及三档动效10检查、旧本机入口6检查、356Node通过/1权限跳过。新增项目外同机备份及新进程恢复，不等于异地长期保管。分钟公开来源仍缺必要许可/历史范围，完整2.9未完成；本轮未上传或部署，生产仍v29。
+
+2026-10-03发布前检查：完整2.9尚未完成。新核对GitHub main31702c45、PR#2 open/draft/head073adc3及历史CI成功；Sites v29/source2ad04ee仍succeeded，未新发布。实际库九月60/60与五月46/48、十文件候选hash已只读复核。真实分钟回放/研究仍fixture-only，日频入口仅本机，长期覆盖/项目外保管未交付；独立GPT同结论。用户授权达到验收后上传部署，当前未满足条件，未擅自改为阶段版。详见[完成度矩阵](../tasks/MR-29-RELEASE-READINESS.md)。
+
+2026-10-03九月修复（最新本地候选）：CM-API-SEP2026-002通过官方免费Community API实取BTC/ETH各30个USD日终参考价，9月1–30日共60/60；2HTTP/5171响应体bytes，逐值/固定版本/重开/新空恢复/五视口查询已通过，旧五月及CSV九月库不变。最终353 Node中352通过/0失败/1Windows权限跳过，Node22专项39/39、build/typecheck/受影响lint通过；独立GPT P2修复并VERIFY。报告[Stage A追加](HISTORY_STAGE_A.md)，[任务](../tasks/archive/MR-29-SEPTEMBER-GAP.md)。未上传/部署，生产仍Sites v29；分钟研究、长期分层目标及外部保管未完成。以下为按时间保留的旧状态。
+
 2026-10-03上传：已验证2.9 A/B/C本地成果与Coin Metrics五月试点代码上传至codex/mr-29-c-research-workflow，[草稿PR #2](https://github.com/cjwdwb/market-radar/pull/2)。源码5a06c46的GitHub Ubuntu24.04.5/Node22.15完整CI344/344通过；收尾提交仅文档与末尾空行整理，最新检查以PR为准。未合并main、未部署，数据/原CSV/备份仍仅本机。九月0/60原因复核为该官方CSV档案最新版本仍停五月；完整2.9未完成。下方按时间保留旧交接状态。
 
 2026-10-03接续：用户已批准五月独立离线试点，BTC/ETH各23个真实USD日频参考值已保存、查询和恢复验证；目标5月1–24日，5月24日两源价格为空，覆盖46/48。原九月仍0/60，未修改目标或旧库；新增0请求/0网络字节。报告[HISTORY_STAGE_A](HISTORY_STAGE_A.md)。当前候选未提交/上传/部署；分钟研究/完整2.9及外部长期保管仍开放。下段为此前C交接时状态，生产记录不变。

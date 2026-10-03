@@ -5,6 +5,12 @@ import { randomUUID } from 'node:crypto';
 import { canonical, digest } from './store.mjs';
 import { CM_DAILY, coinMetricsFile, parseCoinMetricsCsv } from './coinmetrics-source.mjs';
 
+import { CM_API_SEP, CM_API_BYTES, CM_API_NOTICE, coinMetricsApiUrl, parseCoinMetricsApi } from './coinmetrics-api.mjs';
+const isApi = config => config.batch === CM_API_SEP.batch;
+const byteLimit = config => isApi(config) ? CM_API_BYTES : FILE_BYTES;
+const sourceUrl = (config, manifest) => isApi(config) ? coinMetricsApiUrl(manifest) : coinMetricsFile(manifest);
+const parseSource = (config, bytes, options) => isApi(config) ? parseCoinMetricsApi(bytes, options) : parseCoinMetricsCsv(bytes, options);
+
 const DAY = 86400000, FILE_BYTES = 4 * 1024 ** 2;
 const commit = 'f1a36afb962731c387bb03982758ab0103063da5';
 export const CM_PILOT = Object.freeze({
@@ -31,34 +37,40 @@ const exact = (v, keys) => v && typeof v === 'object' && !Array.isArray(v) && Ob
 const hashSchema = db => digest(db.prepare("SELECT type,name,tbl_name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name").all());
 const memory = new DatabaseSync(':memory:'); memory.exec(schema); const expectedSchema = hashSchema(memory); memory.close();
 function configFor(fixture, batch = CM_PILOT.batch) {
-  const base = batch === CM_PILOT.batch ? CM_PILOT : batch === CM_MAY_PILOT.batch ? CM_MAY_PILOT : null;
+  const base = batch === CM_PILOT.batch ? CM_PILOT : batch === CM_MAY_PILOT.batch ? CM_MAY_PILOT : batch === CM_API_SEP.batch ? CM_API_SEP : null;
   if (!base) fail('CM_BATCH_NOT_APPROVED');
   if (!fixture) return JSON.parse(canonical(base));
   // 模拟manifest永远带fixture身份；生产CLI没有这个入口。
   if (!Array.isArray(fixture) || fixture.length !== 2 || fixture[0].asset !== 'btc' || fixture[1].asset !== 'eth') fail('CM_FIXTURE_CONFIG');
-  fixture.forEach(coinMetricsFile);
+  if (isApi(base)) {
+    if (canonical(fixture) !== canonical(base.manifests)) fail('CM_FIXTURE_CONFIG');
+  } else fixture.forEach(coinMetricsFile);
   return { ...base, identity: 'fixture', manifests: fixture };
 }
 function validateSlice(body, points, config, asset) {
   const manifest = config.manifests.find(m => m.asset === asset);
   if (!manifest || !exact(body, 'format source sourceUrl series identity vintage attribution license licenseUrl notice provenance range coverage analysis' + (config.batch === CM_MAY_PILOT.batch ? ' derivation' : '')) ||
       body.format !== 'coinmetrics-reference-slice-v1' || body.identity !== config.identity ||
-      body.source !== CM_DAILY.source || body.sourceUrl !== coinMetricsFile(manifest) ||
+      body.source !== CM_DAILY.source || body.sourceUrl !== sourceUrl(config, manifest) ||
       body.vintage !== 'current_vintage' || body.license !== CM_DAILY.license || body.licenseUrl !== CM_DAILY.licenseUrl ||
-      body.attribution !== CM_DAILY.attribution || body.notice !== CM_DAILY.notice ||
+      body.attribution !== CM_DAILY.attribution || body.notice !== (isApi(config) ? CM_API_NOTICE : CM_DAILY.notice) ||
       canonical(body.range) !== canonical({ from: config.from, cutoff: config.cutoff }) ||
       canonical(body.analysis) !== canonical({ short90m: 'unsupported_frequency', medium180m: 'unsupported_frequency', forward30m: 'unsupported_frequency' })) fail('CM_SLICE_INVALID');
   if (canonical(body.series) !== canonical({ id: 'crypto:coinmetrics:' + asset + ':PriceUSD:USD:1d', providerId: asset, market: 'crypto', venue: 'composite_reference', currency: 'USD', metric: 'PriceUSD', frequency: '1d', periodConvention: 'utc_date_end', adjustment: 'provider_reference', type: 'reference_price' })) fail('CM_SERIES_INVALID');
   const p = body.provenance, c = body.coverage, days = (config.cutoff - config.from) / DAY;
-  if (!exact(p, 'commit blobSha sha256 bytes receivedAt sourcePublishedAt publicationPrecision authentication') ||
-      p.commit !== manifest.commit || p.blobSha !== manifest.blobSha || p.bytes !== manifest.bytes ||
+  if ((isApi(config) ?
+      !exact(p, 'transport sha256 bytes receivedAt sourcePublishedAt publicationPrecision authentication') || p.transport !== 'community_api' || !int(p.bytes, 1, CM_API_BYTES) :
+      !exact(p, 'commit blobSha sha256 bytes receivedAt sourcePublishedAt publicationPrecision authentication') ||
+      p.commit !== manifest.commit || p.blobSha !== manifest.blobSha || p.bytes !== manifest.bytes) ||
       typeof p.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(p.sha256) || !int(p.receivedAt, config.cutoff) ||
       p.sourcePublishedAt !== null || p.publicationPrecision !== 'unknown' || p.authentication !== 'not_proven_by_checksum') fail('CM_PROVENANCE_INVALID');
   if (!exact(c, 'status expectedDates presentValues missing sourceRows excludedOutsideRange excludedIncomplete limitation') ||
       c.expectedDates !== days || c.presentValues !== points.length || !Array.isArray(c.missing) || c.missing.length + points.length !== days ||
-      c.status !== (c.missing.length ? 'partial' : 'date_grid_present') || !int(c.sourceRows, 1, 10000) ||
+      c.status !== (c.missing.length ? 'partial' : 'date_grid_present') || !int(c.sourceRows, isApi(config) ? 0 : 1, isApi(config) ? 30 : 10000) ||
       !int(c.excludedOutsideRange, 0, 10000) || !int(c.excludedIncomplete, 0, 1) ||
       typeof c.limitation !== 'string' || c.limitation.length > 300) fail('CM_COVERAGE_INVALID');
+  if (isApi(config) && (c.excludedOutsideRange !== 0 || c.excludedIncomplete !== 0 ||
+      c.sourceRows !== points.length + c.missing.filter(m => m.reason === 'missing_value').length)) fail('CM_COVERAGE_INVALID');
   if (config.batch === CM_MAY_PILOT.batch) {
     const d = body.derivation;
     if (!exact(d, 'method derivedAt parentBatch parentSnapshot parentVersion parentEvidence') ||
@@ -104,7 +116,7 @@ export class CoinMetricsArchive {
       this.db.exec('PRAGMA trusted_schema=OFF; PRAGMA foreign_keys=ON; PRAGMA busy_timeout=1000;');
       if (create) {
         this.db.exec(schema);
-        this.db.prepare('INSERT INTO cm_meta VALUES(1,1,?,?,0,0)').run(canonical(configFor(fixture, batch)), +(batch === CM_PILOT.batch));
+        this.db.prepare('INSERT INTO cm_meta VALUES(1,1,?,?,0,0)').run(canonical(configFor(fixture, batch)), +(batch !== CM_MAY_PILOT.batch));
       }
       if (hashSchema(this.db) !== expectedSchema) fail('CM_SCHEMA_MISMATCH');
       const rows = this.db.prepare('SELECT * FROM cm_meta').all();
@@ -122,7 +134,7 @@ export class CoinMetricsArchive {
   status() {
     const requests = this.db.prepare('SELECT * FROM cm_requests ORDER BY id').all(), files = this.db.prepare('SELECT asset FROM cm_files ORDER BY asset').all();
     const meta = this.meta();
-    return { batch: this.config.batch, identity: this.config.identity, requestAccounting: this.config.batch === CM_MAY_PILOT.batch ? 'inherited_from_CM-SEP2026-001' : 'direct', newRequests: this.config.batch === CM_MAY_PILOT.batch ? 0 : requests.length, requests, files: files.map(x => x.asset), reservedBytes: requests.length * FILE_BYTES, reservedMs: requests.length * 30000, actualBytes: requests.reduce((n, r) => n + (r.bytes ?? 0), 0), points: this.db.prepare('SELECT count(*) AS n FROM cm_points').get().n, enabled: !!meta.enabled, blocked: !!meta.blocked, retryAt: meta.retry_at };
+    return { batch: this.config.batch, identity: this.config.identity, requestAccounting: this.config.batch === CM_MAY_PILOT.batch ? 'inherited_from_CM-SEP2026-001' : 'direct', newRequests: this.config.batch === CM_MAY_PILOT.batch ? 0 : requests.length, requests, files: files.map(x => x.asset), reservedBytes: requests.length * byteLimit(this.config), reservedMs: requests.length * 30000, actualBytes: requests.reduce((n, r) => n + (r.bytes ?? 0), 0), points: this.db.prepare('SELECT count(*) AS n FROM cm_points').get().n, enabled: !!meta.enabled, blocked: !!meta.blocked, retryAt: meta.retry_at };
   }
   reserve(asset, now) {
     if (this.config.batch === CM_MAY_PILOT.batch) fail('CM_COLLECTION_DISABLED');
@@ -135,11 +147,12 @@ export class CoinMetricsArchive {
       if (s.requests.some(r => r.status === 'reserved' && now < r.started + 30000)) fail('CM_REQUEST_IN_PROGRESS');
       if (s.requests.length >= 4) fail('CM_BATCH_BUDGET');
       this.db.prepare("UPDATE cm_requests SET status='interrupted' WHERE status='reserved'").run();
+      if (isApi(this.config)) this.db.prepare('UPDATE cm_meta SET retry_at=?').run(now + 1000);
       return Number(this.db.prepare("INSERT INTO cm_requests(asset,started,status) VALUES(?,?,'reserved')").run(asset, now).lastInsertRowid);
     });
   }
   failure(id, now, { status = 'failed', bytes = null, retryAt = 0, blocked = false } = {}) {
-    if (!['failed','rejected','rate_limited','invalid'].includes(status) || !int(now) || bytes !== null && !int(bytes, 0, FILE_BYTES) || !int(retryAt) || typeof blocked !== 'boolean') fail('CM_FAILURE_INVALID');
+    if (!['failed','rejected','rate_limited','invalid','oversized'].includes(status) || !int(now) || bytes !== null && !int(bytes, 0, status === 'oversized' ? Number.MAX_SAFE_INTEGER : byteLimit(this.config)) || status === 'oversized' && !int(bytes, byteLimit(this.config) + 1) || !int(retryAt) || typeof blocked !== 'boolean') fail('CM_FAILURE_INVALID');
     this.transaction(() => {
       const r = this.db.prepare('SELECT * FROM cm_requests WHERE id=?').get(id);
       if (!r || r.status !== 'reserved' || now < r.started) fail('CM_RESERVATION_INVALID');
@@ -151,7 +164,7 @@ export class CoinMetricsArchive {
     const req = this.db.prepare('SELECT * FROM cm_requests WHERE id=?').get(id);
     if (!req || req.status !== 'reserved' || !int(receivedAt, req.started, req.started + 30000)) fail('CM_RESERVATION_INVALID');
     const manifest = this.config.manifests.find(m => m.asset === req.asset);
-    const slice = parseCoinMetricsCsv(bytes, { manifest, from: this.config.from, cutoff: this.config.cutoff, receivedAt, now: receivedAt });
+    const slice = parseSource(this.config, bytes, { manifest, from: this.config.from, cutoff: this.config.cutoff, receivedAt, now: receivedAt });
     slice.identity = this.config.identity;
     const { points, ...body } = slice;
     validateSlice(body, points, this.config, req.asset);
@@ -188,9 +201,10 @@ export class CoinMetricsArchive {
     for (let i = 0; i < s.requests.length; i++) {
       const r = s.requests[i];
       if (r.id !== i + 1 || !['btc','eth'].includes(r.asset) || !int(r.started, this.config.cutoff, now) ||
-          !['reserved','accepted','interrupted','failed','rejected','rate_limited','invalid'].includes(r.status) ||
-          r.finished !== null && !int(r.finished, r.started, now) || r.status === 'accepted' && (!int(r.finished, r.started, r.started + 30000) || r.bytes === null) || r.bytes !== null && !int(r.bytes, 0, FILE_BYTES)) fail('CM_REQUEST_LEDGER_INVALID');
+          !['reserved','accepted','interrupted','failed','rejected','rate_limited','invalid','oversized'].includes(r.status) ||
+          r.finished !== null && !int(r.finished, r.started, now) || r.status === 'accepted' && (!int(r.finished, r.started, r.started + 30000) || r.bytes === null) || r.bytes !== null && !int(r.bytes, 0, r.status === 'oversized' ? Number.MAX_SAFE_INTEGER : byteLimit(this.config)) || r.status === 'oversized' && !int(r.bytes, byteLimit(this.config) + 1)) fail('CM_REQUEST_LEDGER_INVALID');
     }
+    if (isApi(this.config) && s.requests.length && s.retryAt < Math.max(...s.requests.map(r => r.started)) + 1000) fail('CM_COOLDOWN_LEDGER_INVALID');
     const rows = this.db.prepare('SELECT * FROM cm_files ORDER BY asset').all();
     for (const row of rows) {
       const q = this.query(row.asset), { points, version, queryRange, coverageRange, ...body } = q;
@@ -264,14 +278,21 @@ export class CoinMetricsArchive {
 }
 
 /** 一次调用只执行有限批次；无自动重试，错误后由操作者显式续跑。 */
-export async function collectCoinMetrics(store, { fetchImpl = fetch, clock = Date.now, saveRaw = () => {} } = {}) {
+export async function collectCoinMetrics(store, { fetchImpl = fetch, clock = Date.now, saveRaw = () => {}, wait = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
+  if (store.config.batch === CM_MAY_PILOT.batch) fail('CM_COLLECTION_DISABLED');
   const started = clock();
   for (const manifest of store.config.manifests) {
     if (clock() - started >= 120000) fail('CM_RUN_DEADLINE');
+    if (store.status().files.includes(manifest.asset)) continue;
+    if (isApi(store.config)) {
+      const pause = store.status().retryAt - clock();
+      if (pause > 1000) fail('CM_SOURCE_COOLDOWN');
+      if (pause > 0) await wait(pause);
+    }
     const id = store.reserve(manifest.asset, clock()); if (id === null) continue;
     let bytesSeen = 0;
     try {
-      const response = await fetchImpl(coinMetricsFile(manifest), { redirect: 'manual', signal: AbortSignal.timeout(30000), headers: { Accept: 'text/csv' } });
+      const response = await fetchImpl(sourceUrl(store.config, manifest), { redirect: 'manual', signal: AbortSignal.timeout(30000), headers: { Accept: isApi(store.config) ? 'application/json' : 'text/csv' } });
       if (response.status !== 200) {
         const now = clock(), header = response.headers.get('retry-after');
         const retry = header && /^\d+$/.test(header) ? now + Number(header) * 1000 : Date.parse(header ?? '');
@@ -281,16 +302,16 @@ export async function collectCoinMetrics(store, { fetchImpl = fetch, clock = Dat
         fail('CM_HTTP_' + response.status);
       }
       const declared = response.headers.get('content-length');
-      if (declared && (!/^\d+$/.test(declared) || Number(declared) > FILE_BYTES)) { await response.body?.cancel(); fail('CM_RESPONSE_LIMIT'); }
+      if (declared && (!/^\d+$/.test(declared) || Number(declared) > byteLimit(store.config))) { await response.body?.cancel(); fail('CM_RESPONSE_LIMIT'); }
       const chunks = [];
-      for await (const chunk of response.body) { bytesSeen += chunk.length; if (bytesSeen > FILE_BYTES) fail('CM_RESPONSE_LIMIT'); chunks.push(chunk); }
+      for await (const chunk of response.body) { bytesSeen += chunk.length; if (bytesSeen > byteLimit(store.config)) fail('CM_RESPONSE_LIMIT'); chunks.push(chunk); }
       const bytes = Buffer.concat(chunks), receivedAt = clock();
       // 原始文件先可靠写入；事实与成功检查点只在accept同事务中公开。
-      parseCoinMetricsCsv(bytes, { manifest, from: store.config.from, cutoff: store.config.cutoff, receivedAt, now: receivedAt });
-      await saveRaw(manifest, bytes, receivedAt);
+      parseSource(store.config, bytes, { manifest, from: store.config.from, cutoff: store.config.cutoff, receivedAt, now: receivedAt });
+      await saveRaw(manifest, bytes, receivedAt, id);
       store.accept(id, bytes, receivedAt);
     } catch (e) {
-      if (store.status().requests.find(r => r.id === id)?.status === 'reserved') store.failure(id, clock(), { status: 'failed', bytes: bytesSeen <= FILE_BYTES ? bytesSeen : FILE_BYTES });
+      if (store.status().requests.find(r => r.id === id)?.status === 'reserved') store.failure(id, clock(), { status: bytesSeen > byteLimit(store.config) ? 'oversized' : 'failed', bytes: bytesSeen });
       throw e;
     }
   }

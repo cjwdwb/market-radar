@@ -12,6 +12,6 @@ export type ReferenceQuery = {
   series: { id: string; providerId: "btc" | "eth"; currency: "USD"; type: "reference_price"; frequency: "1d" };
   derivation?: { method: "offline_reextract"; derivedAt: number; parentBatch: string; parentSnapshot: string; parentVersion: string };
   version: string; queryRange: { from: number; cutoff: number }; coverageRange: { from: number; cutoff: number };
-  coverage: ReferenceCoverage; provenance: { receivedAt: number; commit: string; sha256: string };
+  coverage: ReferenceCoverage; provenance: { receivedAt: number; sha256: string } & ({ commit: string; transport?: never } | { transport: "community_api"; commit?: never });
   points: { sourceDate: string; periodStartAt: number; evidenceEndAt: number; price: string }[];
 };

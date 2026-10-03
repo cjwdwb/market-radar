@@ -205,3 +205,90 @@ DS本片实际调用0。Optimizer跳过，无测量瓶颈，不宣称FPS改善�
 
 ### 上传交接
 本地候选源码5a06c46已普通上传GitHub独立分支及[草稿PR #2](https://github.com/cjwdwb/market-radar/pull/2)，首轮Ubuntu24.04.5/Node22.15完整构建、类型及Node344/344通过。后续仅parser末尾1空行整理（专项17/17新测）和上传文档；各commit的CI分开核对。上传记录[tasks/archive/MR-UPLOAD-HISTORY29](../tasks/archive/MR-UPLOAD-HISTORY29.md)。原CSV/DB/备份未上传，网站未部署，本报告原“本地未上传”为当时状态。
+
+## CM-API-SEP2026-002 — 九月缺口解决（2026-10-03，本地未发布）
+
+任务[MR-29-SEPTEMBER-GAP](../tasks/archive/MR-29-SEPTEMBER-GAP.md)，源码基线073adc3d1f47a1db1647a1f689629b4998f55196，分支codex/mr-29-september-gap。本轮实际取得BTC/ETH各30条2026-09-01至09-30的USD日终参考价；旧CSV停更造成的零覆盖通过官方Community API新批次解决，旧库未覆写。**这不是2.9分钟研究或所有长期目标完成。**
+
+### 来源、用途与日期
+
+- [官方Community产品](https://gitbook-docs.coinmetrics.io/packages/coin-metrics-community-data)：明确免费Community Metrics及[CC BY-NC4](https://creativecommons.org/licenses/by-nc/4.0/)。本项目已获用户确认免费、非商业公开展示；保留署名、许可、筛选/日期转换说明及无担保。并非所有付费API的广泛展示授权。
+- 官方SDK [test_base_url固定版本](https://github.com/coinmetrics/api-client-python/blob/5f3752667b14c3bebec5b335641dddf12373b845/test/test_api_client.py)明确无key使用community-api.coinmetrics.io/v4，带key才用api.coinmetrics.io/v4。主域首次试读401后停止；随后基于这项官方独立产品证据才使用免密入口，不轮换身份/绕过拒绝。
+- [Timeseries契约](https://gitbook-docs.coinmetrics.io/api-reference/timeseries/timeseries-rest/asset-metrics)、[PriceUSD语义](https://gitbook-docs.coinmetrics.io/network-data/network-data-overview/market/price)：固定PriceUSD/1d，UTC源日期D对应日终D+1 00:00；保存原十进制，不伪造OHLC、USDT、实时观察或分钟输入。
+- 官方Master Terms（2025-01-06）§1.1–1.2/§3.1及定义针对双方Order Form服务；未见撤销另行明确的Community许可。仅按免费产品许可使用，未购买/使用PRO。PDF SHA256 0fed9b4dbd7fd8e4282b72bccd35404b99b80ecba50762f9ce176c05a45ae877；独立GPT只读复核一致。
+- 许可/官方文档及试读证据在outputs/september-gap/，不是把第三方教程当许可。P2返回ratePlan=download原样留证，不据该头声称付费权限。
+- 身份reconstructed/current_vintage；sourcePublishedAt=null、publicationPrecision=unknown；实际收到时间为2026-10-03，不能称九月当时已观察/PIT/过去预测。SHA只证明本地内容一致，不是来源签名。
+
+### 实际覆盖与消耗
+
+目标sourceDate为[2026-09-01,2026-10-01) UTC；60个日期格逐项与原API响应核对。
+
+| 来源/序列 | 实际有值日期 | 数量/缺口 | 固定读取版本 |
+| --- | --- | --- | --- |
+| Coin Metrics / BTC / USD / PriceUSD / 1d | 9月1–30日 | 30/30，0缺日/空值 | 0cb5034eeb6ae74a2c11d8732a9f5f85c2313603818f89ef24636d3f2f15a1cc |
+| Coin Metrics / ETH / USD / PriceUSD / 1d | 9月1–30日 | 30/30，0缺日/空值 | efeef0b1680f7ce251f92a970d6ccfdbe84a6ecb80251b8cc2887c7b6e22ac1a |
+| 原CSV CM-SEP2026-001 | 原响应仍只到五月 | 原0/60记录保持，作为旧来源失败证据 | 原库hash不变 |
+| CM-MAY2026-OFFLINE-001 | 5月1–23日 | 原46/48不变 | 原库hash不变 |
+
+首尾BTC为77407.7011547107 / 83579.6739176914；ETH为2418.34781267095 / 2686.06343545295。API原文逐值一致。date_grid_present只证明该批30日期均取得值，不代表来源价格准确率、全市场覆盖或OHLC完整。
+
+采集正常2次HTTP、响应体2589+2582=5171 bytes；实际receivedAt分别05:06:46.500Z / 05:06:46.839Z。来源能力试读另计2次/270 bytes（含主域401/88bytes、免费入口200/182bytes），未把试读混入批次或擦除失败。官方资料读取另计，详见输出metadata；网络传输总账单未测，不把响应体字节当TLS/头/重传总量。本批免费，无采购或付费资源开通。
+
+批次硬约束：仅两资产/固定30日，每资产固定单页page_size100；不跟任意next URL，存在后页则拒绝而不假称完整。4次尝试持久上限、每次30s、每次成功体128KiB、批次运行120s；预留最多512KiB。串行且BEGIN IMMEDIATE内记录至少1秒源冷却，跨次运行/崩溃不重置预算。无自动重试；401/403/重定向停用，429保留Retry-After冷却。仅手动有限续跑，无cron。
+
+128KiB是解码响应的接收/准入门槛，流式读取可能在交付一个超限chunk后才检测；失败账本如实保留已交付字节，不把它截断为预留值，不能宣称线路实际字节绝不超限。未读取的拒绝响应体、传输头和内部网络开销不计入该观测值。
+
+### 持久化、恢复与界面
+
+复用现有CoinMetricsArchive物理schema1和有界snapshot格式；新增严格API profile及provenance，不给API响应伪造Git commit。CSV/May兼容与原导出语义保持。每次raw按requestId/asset/SHA唯一保存并flush，随后同一事务写事实/accepted checkpoint；失败留下消耗、不会公开半提交事实。重跑成功资产跳过，实测新增0请求。
+
+真实库work/state27/coinmetrics-api-sep2026/archive.sqlite为32768bytes；raw/receipt分别保存。backup-v1.json为10775bytes；新空restore-check与审计修复后的restore-final均60值，源/版本/价格/时间/覆盖逐对象相同。关闭后独立Node22进程再次查询相同。恢复禁采集且保留预算、冷却；不覆盖原库。真实断电/磁盘满NOT RUN，相关失败机制只用隔离测试验证。
+
+日频查询沿用现有手动loopback工作台，通过只读固定版本查询，页面默认折叠；来源显示Community API和响应hash，署名链接指向官方产品。查询覆盖分母来自domain，BTC/ETH均显示30/30。失败保留旧结果的资产/日期/版本身份；过期异步响应不覆盖新资产，返回实时保留手动周期。没有新增生产API、行情请求、供应商symbol、timer或研究模型。
+
+数据/原响应/备份都在项目忽略目录，尚无项目外长期备份；本地恢复成功不等于长期保管完成。没有公开网站部署，本机文件不会因上传代码自动上线。
+
+### 本轮验证与独立审计
+
+证据根outputs/september-gap/。历史344/344远端CI未当作本轮结果。
+
+| 检查/实际入口 | 结果 |
+| --- | --- |
+| Node24目标tests/coinmetrics-{source,archive,api}.test.mjs + tests/history29-http.test.mjs | 修复前38/38 PASS；修复后受影响API/archive 20/20 PASS |
+| Node22.15同四个文件 | 最终39/39 PASS，node22-verified.log；SQLite/类型剥离实验提示保留 |
+| node --experimental-strip-types --import ./tests/register-types.mjs --test tests/*.test.mjs | 最终353项：352 PASS/0 FAIL/1 SKIP（Windows文件symlink权限不可用，目录junction另有通过），node-all-verified.log |
+| node node_modules/vinext/dist/cli.js build | PASS，build.log；既有>500KB chunk warning未掩盖，无FPS/性能改善声明 |
+| node scripts/typecheck.mjs | PASS，typecheck.log。Windows实际分项运行，未声称运行npm test包装 |
+| 6个涉及JS/TS/TSX文件ESLint | 修复前后均0诊断，不冒称全仓lint |
+| 本地生产构建 + RADAR_REFERENCE_ONLY=1 / EXPECTED=30 / DAYS=30 / SYNTHETIC_AUTH=1 | Edge149.0.4022.98，五视口6项检查PASS，browser/verification.json及截图 |
+| 五视口 | 1440×1000、768×1024、390×844、320×740、844×390；历史来自真实恢复库，行情/认证fixture，故障503为主动注入；pageerror=[]，1条503 console error如实保留 |
+| UI实看 | mobile/desktop截图已查看；同数据/默认折叠、许可/限制可读，键盘/44px/无横溢出、返回1周周期、慢请求/失败保留已测 |
+| 真实批次/恢复 | collection.json、real-integration.json、restore-final.json，60原值、原库hash不变、0重复请求、Node22子进程恢复一致 |
+| 生产/远端CI/真机/真实断电/性能负载 | 本轮NOT RUN，不用本地/模拟替代 |
+
+独立GPT history29_source_contract只读PLAN核对官方路径/许可及持久限额/raw版本要求；稳定diff发现1个P2：超限流的已交付字节被clamp少记。Builder新增oversized账本状态、保留真实bytesSeen并验证恢复；新增反例。Auditor独立内存复验131073字节与131072预留分开，错误组合拒绝；实际60条备份逐日/原文/hash复核一致，VERIFY无新增finding。其审计不等于它重跑了协调者的全量/UI测试。
+
+DS本片实际调用0；没有将来源、身份及关键保存判断外包。无实测瓶颈，Optimizer跳过。
+
+### 运行与剩余范围
+
+项目根Node>=22.15，通用前缀：
+node --experimental-strip-types --import ./scripts/register-types.mjs scripts/coinmetrics-history.mjs
+
+- api-status / api-query btc / api-query eth：查看固定九月批次。
+- api-collect：显式手动获准批次；已成功的本批再运行0请求。没有下一月/扩资产选项。
+- api-backup <新相对文件>；restore <备份相对文件> <新空目标>：有界备份恢复，不覆盖数据。
+- 原collect/status/query、extract-may/may-*命令保持原目标，不能用它们代替新API批次。
+- 安全启动沿用Stage C工作台说明，referenceName改为coinmetrics-api-sep2026/restore-final/archive.sqlite；独立本机会话key，不使用/暴露生产访问码，20分钟自动结束。
+
+该有限九月日频缺口已解决。长期原生日线OHLC、小时/分钟历史、Relative/Alignment/Transition历史方法、真实分钟研究/成熟前瞻、正式更大名单及项目外保管继续开放，未改原目标。现有生产记录仍Market Radar 2.8 Foundation P0 / Sites v29；本轮候选未push/merge/tag/deploy，无持续采集。
+
+### 本批最终证据核对
+
+2026-10-03，独立GPT history29_source_contract最终只读终审VERIFIED：10文件哈希及指纹be7841c7f4d6bb66d48be44af40bd43f7d543c1791e68da80c280fe127d35748一致，353项中352PASS/1SKIP、Node22 39/39、真实60点/2请求5171bytes/旧库不变、五视口6项及fixture/真实身份均与报告相符。无新增文档或证据误报；未把日频完成说成完整2.9/分钟研究或上线。
+
+协调者git diff --check通过（CRLF提示保留）、暂存为空；36个文档本地链接0损坏。预览两个进程已停止并确认5296/5297无监听；停机检查是协调者执行，不归入独立Auditor的实测范围。无后续常驻任务。
+
+## 后续网站只读交付切片
+
+2026-10-03新增 /api/reference-history 与现有历史UI显式加载，真实固定九月BTC/ETH60条，原日期/美元小数/来源/版本不变；本地生产构建HTTP与五视口通过，尚未部署。详情、同机额外恢复、新测/历史区别见[tasks/MR-29-PUBLIC-REFERENCE](../tasks/MR-29-PUBLIC-REFERENCE.md)。分钟方法不适用；原九月CSV0与五月46归档仍原位保留。

@@ -3,13 +3,15 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync, statSync, openSync,
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { localFile } from './history-local.mjs';
+import { createHash } from 'node:crypto';
+import { CM_API_SEP } from '../collector/coinmetrics-api.mjs';
 import { canonical } from '../collector/store.mjs';
 import { CoinMetricsArchive, collectCoinMetrics, CM_PILOT, CM_MAY_PILOT, reextractCoinMetricsMay } from '../collector/coinmetrics-archive.mjs';
 
-const dbName = 'coinmetrics-sep2026/archive.sqlite', mayDbName = 'coinmetrics-may2026/archive.sqlite';
+const dbName = 'coinmetrics-sep2026/archive.sqlite', mayDbName = 'coinmetrics-may2026/archive.sqlite', apiDbName = 'coinmetrics-api-sep2026/archive.sqlite';
 export async function main(args) {
   const [command, ...rest] = args;
-  if (!['collect','status','query','backup','restore','extract-may','may-status','may-query','may-backup'].includes(command)) throw Error('CM_COMMAND_REQUIRED');
+  if (!['collect','status','query','backup','restore','extract-may','may-status','may-query','may-backup','api-collect','api-status','api-query','api-backup'].includes(command)) throw Error('CM_COMMAND_REQUIRED');
   if (command === 'extract-may') {
     if (rest.length) throw Error('CM_ARGUMENTS');
     const source = new CoinMetricsArchive(localFile(dbName), { readOnly: true });
@@ -36,7 +38,7 @@ export async function main(args) {
       try { return { ...result.status(), reused: existingText !== null, catalog: result.catalog() }; } finally { result.close(); }
     } finally { source.close(); }
   }
-  const action = command.replace(/^may-/, '');
+  const action = command.replace(/^(?:may|api)-/, '');
   if (command === 'restore') {
     if (rest.length !== 2) throw Error('CM_ARGUMENTS');
     const source = localFile(rest[0]), target = localFile(rest[1]);
@@ -47,12 +49,21 @@ export async function main(args) {
     return CoinMetricsArchive.restore(target, text);
   }
   if (action === 'query' ? rest.length !== 1 : action === 'backup' ? rest.length !== 1 : rest.length !== 0) throw Error('CM_ARGUMENTS');
-  const path = localFile(command.startsWith('may-') ? mayDbName : dbName), backup = action === 'backup' ? localFile(rest[0]) : null;
-  if (command === 'collect') mkdirSync(dirname(path), { recursive: true });
-  const store = new CoinMetricsArchive(path, { create: command === 'collect' && !existsSync(path), readOnly: command !== 'collect' });
+  const path = localFile(command.startsWith('api-') ? apiDbName : command.startsWith('may-') ? mayDbName : dbName), backup = action === 'backup' ? localFile(rest[0]) : null;
+  if (action === 'collect') mkdirSync(dirname(path), { recursive: true });
+  const store = new CoinMetricsArchive(path, { create: action === 'collect' && !existsSync(path), readOnly: action !== 'collect', batch: command.startsWith('api-') ? CM_API_SEP.batch : CM_PILOT.batch });
   try {
-    if (command === 'collect' && canonical(store.config) !== canonical(CM_PILOT)) throw Error('CM_APPROVED_PROFILE_REQUIRED');
-    if (command === 'collect') return await collectCoinMetrics(store, { saveRaw: (manifest, bytes, receivedAt) => {
+    if (action === 'collect' && canonical(store.config) !== canonical(command.startsWith('api-') ? CM_API_SEP : CM_PILOT)) throw Error('CM_APPROVED_PROFILE_REQUIRED');
+    if (action === 'collect') return await collectCoinMetrics(store, { saveRaw: (manifest, bytes, receivedAt, requestId) => {
+      if (manifest.transport === 'community_api') {
+        // 每次响应单独保管；落盘后崩溃也不覆盖旧响应或借旧文件回填取得时间。
+        const hash = createHash('sha256').update(bytes).digest('hex');
+        const stem = 'coinmetrics-api-sep2026/raw/' + requestId + '-' + manifest.asset + '-' + hash;
+        const raw = localFile(stem + '.json'); mkdirSync(dirname(raw), { recursive: true });
+        writeFileSync(raw, bytes, { flag: 'wx', mode: 0o600, flush: true });
+        writeFileSync(localFile(stem + '.receipt.json'), JSON.stringify({ manifest, requestId, receivedAt, sha256: hash, bytes: bytes.length }), { flag: 'wx', mode: 0o600, flush: true });
+        return;
+      }
       const raw = localFile('coinmetrics-sep2026/raw/' + manifest.asset + '-' + manifest.blobSha + '.csv');
       mkdirSync(dirname(raw), { recursive: true });
       if (existsSync(raw)) {

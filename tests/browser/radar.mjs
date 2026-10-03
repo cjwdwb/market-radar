@@ -232,6 +232,62 @@ async function fed27Checks(browser,report){
   const app=await fixture(browser,{os:'reduce',watchlist:[]}),p=app.page;await p.clock.setFixedTime(Date.now());await p.setViewportSize({width:390,height:844});await p.goto(base+'/#radar',{waitUntil:'networkidle'});const panel=p.locator('.macro-timeline:not(.history-workspace)');await panel.locator(':scope > summary').click();await panel.locator('input[type=file]').setInputFiles({name:'real-board-public-view.json',mimeType:'application/json',buffer:Buffer.from(realText)});await panel.locator('.macro-records li').first().waitFor();assert.match(await panel.innerText(),/Federal Reserve/);assert.ok((await panel.innerText()).includes(real.records[0].title));await panel.locator('.macro-records details > summary').first().click();await panel.evaluate(el=>el.scrollIntoView({block:'start'}));await p.screenshot({path:`${output}/fed-real-mobile.png`});assert.deepEqual(app.errors,[]);report.realInformation={identity:'real Board metadata exported from local database; surrounding market quotes remain fixtures',viewId:real.viewId,records:real.records.length,source:real.source};await app.context.close();report.checks.push('real Board metadata: DB view imported and visible; no mocked information records');
  }
 }
+async function publishedReferenceChecks(browser,report){
+ report.dataIdentity='Actual approved Coin Metrics September publication through built Worker HTTP; quotes/auth fixtures; delay/503/409 local injections';
+ const denied=await browser.newContext();const denial=await denied.request.get(base+'/api/reference-history');
+ assert.equal(denial.status(),401);await denied.close();
+ report.checks.push('no-session published API denied by existing access gate');
+ for(const [name,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
+  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',watchlist:['NVDA']}),p=app.page;
+  await p.clock.setFixedTime(Date.now());await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});
+  await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.classic-experience .asset-state-summary button').click();
+  const panel=p.locator('.history-workspace');await panel.locator(':scope > summary').focus();await p.keyboard.press('Enter');
+  const load=panel.getByRole('button',{name:'加载已发布日频资料',exact:true});await load.waitFor();
+  assert.equal(app.requests.filter(u=>u.includes('/api/reference-history')).length,0);
+  await load.click();const ref=panel.locator('.reference-history');await ref.waitFor();assert.equal(await ref.getAttribute('open'),null);
+  await ref.locator(':scope > summary').focus();await p.keyboard.press('Enter');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();
+  await ref.locator('[data-reference-asset=btc]').waitFor();assert.equal(await ref.locator('.macro-records li').count(),30);
+  assert.match(await ref.innerText(),/不支持 Short90m/);assert.match(await ref.innerText(),/不能证明当时已知/);
+  assert.equal(await ref.getByRole('link',{name:'CC BY-NC 4.0',exact:true}).getAttribute('href'),'https://creativecommons.org/licenses/by-nc/4.0/');
+  await ref.getByLabel('日频资产',{exact:true}).selectOption('eth');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await ref.locator('[data-reference-asset=eth]').waitFor();assert.equal(await ref.locator('.macro-records li').count(),30);
+  assert.equal(app.requests.filter(u=>u.includes('/api/reference-history')).length,3);
+  if(name==='desktop'){
+   report.publishedHttpTiming=await p.evaluate(async()=>{const catalog=await(await fetch('/api/reference-history')).json();const s=catalog.series[0],params=new URLSearchParams({asset:s.asset,from:String(s.range.from),cutoff:String(s.range.cutoff),version:s.version}),times=[];let bytes=0;for(let i=0;i<5;i++){const start=performance.now();const r=await fetch('/api/reference-history?'+params);const text=await r.text();if(!r.ok)throw Error('MEASUREMENT_QUERY_FAILED');times.push(performance.now()-start);bytes=new TextEncoder().encode(text).length;}return {environment:'isolated local workerd + headless Edge; no provider traffic',samplesMs:times,bodyBytes:bytes,notProductionLatency:true};});
+   const postStatus=await p.evaluate(async()=> (await fetch('/api/reference-history',{method:'POST'})).status);assert.equal(postStatus,405);
+   let release,seen,first=true;const received=new Promise(r=>seen=r);
+   await p.route('**/api/reference-history?**',async route=>{if(first){first=false;const response=await route.fetch();seen();await new Promise(r=>release=r);await route.fulfill({response}).catch(()=>{});}else await route.continue();});
+   await ref.getByLabel('日频资产',{exact:true}).selectOption('btc');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await received;
+   await ref.getByLabel('日频资产',{exact:true}).selectOption('eth');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await ref.locator('[data-reference-asset=eth]').waitFor();release();await pause(100);assert.equal(await ref.locator('.reference-result').getAttribute('data-reference-asset'),'eth');await p.unroute('**/api/reference-history?**');
+   for(const status of [503,409]){
+    await p.route('**/api/reference-history?**',route=>route.fulfill({status,json:{error:status===409?'资料版本已变化，请重新加载日频资料。':'FIXTURE_REFERENCE_FAILURE'}}));
+    await ref.getByLabel('日频资产',{exact:true}).selectOption('btc');await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await ref.locator('[role=alert]').waitFor();assert.equal(await ref.locator('.reference-result').getAttribute('data-reference-asset'),'eth');assert.match(await ref.innerText(),/上次成功查询/);await p.unroute('**/api/reference-history?**');
+   }
+   await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await ref.locator('[data-reference-asset=btc]').waitFor();
+   let held;const started=new Promise(r=>held=r);let unblock;
+   await p.route('**/api/reference-history?**',async route=>{const response=await route.fetch();held();await new Promise(r=>unblock=r);await route.fulfill({response}).catch(()=>{});});
+   await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await started;await ref.locator(':scope > summary').click();unblock();await pause(100);await p.unroute('**/api/reference-history?**');
+   await ref.locator(':scope > summary').click();assert.equal(await ref.getByRole('button',{name:'查询日频价格',exact:true}).isEnabled(),true);
+   report.checks.push('published desktop: POST denied; old response discarded; 503/409 retain explicit prior identity; retry/collapse cancellation');
+  }
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  for(const target of [ref.locator(':scope > summary'),ref.getByLabel('日频资产',{exact:true}),ref.getByRole('button',{name:'查询日频价格',exact:true})])assert.ok((await target.boundingBox()).height>=44);
+  await ref.scrollIntoViewIfNeeded();await p.screenshot({path:output+'/published-'+name+'.png'});await ref.locator('.macro-records li').first().evaluate(el=>el.scrollIntoView({block:'center',behavior:'instant'}));await pause(100);const priceBox=await ref.locator('.macro-records li p.numeric').first().boundingBox();assert.ok(priceBox.y>=64 && priceBox.y+priceBox.height<=height-72,JSON.stringify({name,priceBox,height}));await p.screenshot({path:output+'/published-'+name+'-prices.png'});
+  await panel.getByRole('link',{name:'返回实时图表',exact:true}).click();await p.locator('.price-chart').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
+  assert.deepEqual(app.errors,[]);report.viewports.push({name,width,height});report.checks.push('published '+name+': explicit load only, 3 initial HTTP requests, actual BTC/ETH 30 each, license/limitations, keyboard/44px/no overflow, manual range preserved');await app.context.close();
+ }
+ for(const motionPreference of ['system','normal','reduced']){
+  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',motionPreference,watchlist:['NVDA']}),p=app.page;
+  await p.clock.setFixedTime(Date.now());await p.setViewportSize({width:390,height:844});await p.goto(base+'/#radar',{waitUntil:'networkidle'});
+  assert.equal(await p.evaluate(()=>document.documentElement.dataset.motion),motionPreference==='normal'?'normal':'reduced');
+  const panel=p.locator('.history-workspace');await panel.locator(':scope > summary').click();await panel.getByRole('button',{name:'加载已发布日频资料',exact:true}).click();
+  const ref=panel.locator('.reference-history');await ref.locator(':scope > summary').click();await ref.getByRole('button',{name:'查询日频价格',exact:true}).click();await ref.locator('[data-reference-asset=btc]').waitFor();
+  assert.equal(await ref.locator('.macro-records li').count(),30);await panel.getByRole('button',{name:'返回实时 Radar',exact:true}).click();assert.equal(await panel.getAttribute('open'),null);
+  assert.equal(await p.evaluate(()=>document.documentElement.dataset.motion),motionPreference==='normal'?'normal':'reduced');assert.deepEqual(app.errors,[]);await app.context.close();
+  report.checks.push('published '+motionPreference+': real daily query and return under system reduced preference');
+ }
+
+}
+
 async function referenceChecks(browser,report){
  const token='fixture-only-reference-browser-session', expected=Number(process.env.RADAR_REFERENCE_EXPECTED??'0'), simulated=process.env.RADAR_REFERENCE_FIXTURE==='1', days=Number(process.env.RADAR_REFERENCE_DAYS??'30');
  report.dataIdentity=simulated?'All reference data/quotes/auth are fixtures; no actual source coverage':'Actual Coin Metrics approved archive query; live quotes/auth isolated fixtures; error/delay injection local only';
@@ -716,6 +772,7 @@ async function visualCapture(browser, phase) {
   if(process.env.RADAR_REFINEMENT_PHASE){await refinementChecks(browser,report,process.env.RADAR_REFINEMENT_PHASE);return;}
   if(process.env.RADAR_VISUAL_PHASE){await visualCapture(browser,process.env.RADAR_VISUAL_PHASE);return;}
   if(process.env.RADAR_POST_RELEASE==='1'){await postReleaseChecks(browser,report);fs.writeFileSync(`${output}/post-release-extra.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
+  if(process.env.RADAR_PUBLISHED_REFERENCE_ONLY==='1'){await publishedReferenceChecks(browser,report);fs.writeFileSync(output+'/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_REFERENCE_ONLY==='1'){await referenceChecks(browser,report);fs.writeFileSync(output+'/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_HISTORY29_ONLY==='1'){await history29Checks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_HISTORY28_ONLY==='1'){await history28Checks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}

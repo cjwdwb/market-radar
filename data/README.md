@@ -16,3 +16,11 @@ FED元数据沿用已核验的来源范围及归属：[官方使用说明](https
 模拟文件生成：`node --experimental-strip-types scripts/prepare-history28-example.mjs`。脚本只创建这一份明确的示例，真实generated/exportedAt取执行时钟，不伪造过去的采集时间。不会修改任何数据库或真实来源。文件可通过 `parseHistoryPackage` 校验。
 
 **保管限制：** 项目内文件不等于异地备份或持续历史服务。请为本地数据库设置项目目录之外的备份目标与保留期限；本轮没有这些条件，不能称正式恢复/长期保管完成。个人名单、合法价格来源、费用和真实回补仍由原2.8任务跟踪。
+
+## 获准真实日频网站资料（本地候选，未部署）
+
+[data/published/coinmetrics-sep2026.json](published/coinmetrics-sep2026.json) 为 Coin Metrics Community API 的 BTC/ETH、USD/PriceUSD/1d，2026-09-01 至09-30各30条；reconstructed/current_vintage，真实取得于2026-10-03，不是原生OHLC或历史当时可知资料。Data: [Coin Metrics](https://gitbook-docs.coinmetrics.io/packages/coin-metrics-community-data)，[CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/)，免费非商业署名展示；仅提取日期/价格、筛选批准月份，许可与代码分开，无来源担保。
+
+此6445bytes发布包只有公开原响应、原版本及导出时间，服务端固定只读查询；不含个人名单/提醒/数据库/密钥。导出命令：node --experimental-strip-types --import ./scripts/register-types.mjs scripts/publish-reference.mjs（依赖本机批准库；无参数、无联网、重复验证不覆盖不同版本）。数据库和完整账本不入Git。详情见[本片任务](../tasks/MR-29-PUBLIC-REFERENCE.md)。
+
+本轮已额外存一份项目外同机副本并空库恢复，未落实异地位置/保留期限；不能将这次恢复演练写成长期保管或持续服务完成。

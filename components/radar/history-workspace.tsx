@@ -6,6 +6,7 @@ import { historyNavigation, type ArchiveAnalysis, type ArchiveCatalog, type Arch
 import { HistoryResult } from "./history-result";
 import { HistoryNavigation } from "./history-navigation";
 import { ReferenceHistory } from "./reference-history";
+import { PublishedReferenceHistory } from "./published-reference-history";
 import type { ReferenceCatalog, ReferenceQuery } from "@/lib/history/reference";
 
 const inputTime = (at: number) => new Date(at).toISOString().slice(0, 16);
@@ -28,6 +29,7 @@ type SavedRecord = { id: string; identity: string; question: string; correctionO
 
 /** 已接受结果与正在编辑的请求分离；失败和旧响应不能把旧事实标成新选择的成功。 */
 export function HistoryWorkspace() {
+  const [historyOpen, setHistoryOpen] = useState(false);
   const isLocal = useSyncExternalStore(subscribe, localHost, () => false);
   const [accepted, setAccepted] = useState<Accepted | null>(null), [mode, setMode] = useState<"file" | "archive">("file");
   const [asOf, setAsOf] = useState(""), [error, setError] = useState(""), [loading, setLoading] = useState(false), [page, setPage] = useState(0);
@@ -133,9 +135,10 @@ export function HistoryWorkspace() {
   const fileBars = accepted?.mode === "file" ? accepted.data.bars.filter(b => b.time + accepted.data.intervalMs <= accepted.replay.asOf) : [];
   const displayedBars = accepted?.mode === "archive" ? accepted.analysis.prices.records : fileBars.slice(page * 20, (page + 1) * 20), pages = Math.max(1, Math.ceil(fileBars.length / 20));
   function leave() { invalidate(); if (panel.current) { panel.current.open = false; panel.current.querySelector("summary")?.focus(); } }
-  return <details ref={panel} className="panel macro-timeline history-workspace" style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+  return <details ref={panel} onToggle={e => { if (e.target === e.currentTarget) setHistoryOpen(e.currentTarget.open); }} className="panel macro-timeline history-workspace" style={{ minWidth: 0, overflowWrap: "anywhere" }}>
     <summary>历史回放与研究 <span>独立于实时</span></summary>
     <p>按固定版本查看历史。分钟回放与研究仍为模拟数据；已连接的真实日频参考价在独立入口展示，不参与分钟方法。查询不会启动采集。</p>
+    {historyOpen && !catalog?.reference && <PublishedReferenceHistory/>}
     {isLocal && <details className="history-connect"><summary>连接本地归档数据库</summary><p>先显式启动本地查询服务。使用独立本地会话密钥，仅在本页内存保留；网站访问码不授予数据库权限。</p>
       <form className="macro-filter" onSubmit={e => { e.preventDefault(); void connect(); }}><label>本地会话密钥<input type="password" autoComplete="off" value={keyInput} onChange={e => { invalidate(); setKeyInput(e.target.value); }} aria-label="本地归档会话密钥"/></label><button className="btn" type="submit" disabled={loading || !keyInput}>连接归档</button></form>
     </details>}

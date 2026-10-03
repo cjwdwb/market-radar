@@ -56,3 +56,13 @@ schema1不变，只新增白名单May profile：[2026-05-01,2026-05-25) UTC / BT
 查询附derivation：offline_reextract、derivedAt、parentBatch/parentSnapshot/parentVersion、有界parentEvidence；原receivedAt不改，父checksum不是签名/PIT证明。restore必须保留BTC/ETH两份来源和父请求账本，允许合法价格缺值；完整内存验证、pending库关闭/fsync后独占新目标发布，不覆盖原库，不修改旧逻辑snapshot格式。实际May46/48、Sep0/60，价格精度原文保留。
 
 仅新增离线操作员extract-may/may-status/may-query/may-backup；生产接口与实时行情/State/提醒协议不变。五月公开展示许可已核对，不等于本轮部署了公开查询服务。
+
+### CM-API-SEP2026-002 固定Community API profile
+
+2026-10-03：同schema1/snapshot-v1，固定btc/eth USD PriceUSD/1d、UTC sourceDate [2026-09-01,2026-10-01)。新增api-collect/api-status/api-query/api-backup本地操作；原CSV/May命令及接口保持。官方Community无key单页固定URL，4尝试/30s/成功体128KiB/串行持久1s冷却，后页拒绝。API provenance使用transport=community_api/响应SHA/实际receivedAt；不伪造commit/blobSHA。流超限oversized记录真实已交付字节，预留不等于实际消耗。
+
+reference-query固定完整序列与内容版本，API和CSV来源在现有UI区分；日频不支持分钟状态/研究，查询不启动采集。实际新九月60/60见HISTORY_STAGE_A，原0/60是旧CSV批次。无新增生产路由/迁移/部署。
+
+
+### CM日频网站只读快照（2026-10-03，本地候选未部署）
+GET /api/reference-history 经原worker accessGate；无参数返回reference-catalog-v1；完整且仅asset/from/cutoff/version返回原ReferenceQuery。仅批准BTC/ETH/PriceUSD/USD/1d、[2026-09-01,2026-10-01)UTC完整日的子范围。额外/重复/非法参数400，旧版本409，发布包非法503；POST405，所有响应private,no-store。没有DB、provider请求、采集入口、用户配置或计时器。data/published/coinmetrics-sep2026.json是6445bytes构建输入，校验<=32KiB、原始来源解析与原archiveVersion；不在public直接暴露文件。旧/__archive接口及分钟规则不变。

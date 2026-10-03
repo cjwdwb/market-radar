@@ -1,5 +1,9 @@
 # MR-29-REAL-DATA-WORKFLOW — 唯一历史数据主台账
 
+2026-10-03后续推进：[网站日频只读切片](MR-29-PUBLIC-REFERENCE.md)已本地实现验证，BTC/ETH九月60值经固定版本同源API接入现有历史面板；新五视口及三档动效10检查、旧本机入口6检查、356Node通过/1权限跳过。新增项目外同机备份及新进程恢复，不等于异地长期保管。分钟公开来源仍缺必要许可/历史范围，完整2.9未完成；本轮未上传或部署，生产仍v29。
+
+2026-10-03最新覆盖：新CM-API-SEP2026-002已实取BTC/ETH各30条9月1–30日USD/PriceUSD/1d（60/60），实际2请求/5171响应体bytes；逐值、版本、重跑0请求及新空恢复/五视口查询验证，旧CSV九月0/60与五月46/48原档案保持。见[任务](archive/MR-29-SEPTEMBER-GAP.md)和[Stage A报告](../docs/HISTORY_STAGE_A.md)。下表原A/B/C价格0描述为原生分钟研究链路/旧交接；不是现在日频参考价仍0。长期OHLC/分钟等目标未达，不自动关闭，未部署。
+
 2026-10-02。承接 MR-WATCHLIST-INFORMATION-HISTORY-27、MR-HISTORICAL-INTELLIGENCE-28 的未完需求；原任务保留为历史证据。用户后续明确启动Stage B与C，A真实条件仍未满足，不因版本/阶段改变关闭旧需求。协调者单写 ACTIVE。
 
 基线：GitHub main / 本地 `31702c45c653e5e33bac258c110f159d432d5b87`，本轮只读核对 main CI `37004484343` success；历史生产 Sites v29 / `2ad04ee645ee588b16ede15c43fb093ed395419e`。发布记录与本轮产品/数据验收分开。
@@ -74,3 +78,14 @@ A任务：[MR-29-A-REAL-DATA-PILOT](MR-29-A-REAL-DATA-PILOT.md)。B任务：[MR-
 本批0新HTTP/0网络bytes/0新收费；继承父源2请求/4604229bytes，预算不重置。46值逐项核对原CSV，restore/new-process/repeat真实实测；备份29997bytes/库57344bytes、固定读版本和原receivedAt/derivedAt分离。当前保存work/state27/coinmetrics-may2026及隔离恢复目录，仍非项目外长期保管。真实网页路径已本地验证，生产未发布；分钟回放/研究不适用，真实分钟及成熟研究仍0。详情/测试/审计见[Stage A](../docs/HISTORY_STAGE_A.md)。
 
 未运行连续调度；没有自动下一批。默认长期日线/OHLC、小时、分钟、资讯、宏观vintage目标继续开放，日频参考价试点不等于B分层目标达标。
+
+### CM-API-SEP2026-002 实际批次交接
+
+BTC/ETH / Coin Metrics Community / USD PriceUSD原生1d，批准sourceDate [2026-09-01,2026-10-01) UTC；两资产各30值/0缺日/0空值，日终为次日00:00。官方Community CC BY-NC4非商业署名展示；reconstructed/current_vintage，10月3日实际收到，不是九月在线观察/PIT。
+
+2HTTP/5171响应体bytes，能力试读另2HTTP/270bytes，无购买/云资源；本地SQLite32768bytes，备份10775bytes、新空恢复60值与固定版本一致、跨进程可读、重跑0新请求。原五月46/48/原CSV九月0/60证据hash不变。代码与真实日频查询本轮已验证、覆盖仅此批准月份；生产仍v29，未上传/部署/启用调度，外部长期备份仍待安排。分钟回放/forward30方法不适用，不制造研究结果。详细版本/来源/验证/命令见Stage A新章节。
+
+### 2026-10-03 完成度与条件发布复核
+用户授权完整约定范围检查通过后上传部署；[本轮核查](MR-29-RELEASE-READINESS.md)与独立审计确认，九月日频60/60已完成，但A真实分钟/C真实研究的准入仍fixture-only，B长期覆盖/项目外保管仍缺，现有日频本地查询不会随部署变成线上服务。未删除分层目标、未升格既有Deferred方法。现有Sites v29重新读回succeeded；本轮未上传/部署，条件授权保留，阶段版范围变更待用户决定。
+
+2026-10-03后续发布决定：用户确认先发布已验证日频这一批；按MR-PUBLISH-REFERENCE29执行，完整2.9未达目标继续开放，不能将先前条件限制误读为仍需重复发布授权。

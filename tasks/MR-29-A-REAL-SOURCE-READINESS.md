@@ -1,5 +1,7 @@
 # MR-29-A-REAL-SOURCE-READINESS — 公开历史展示来源核查
 
+2026-10-03后续任务更新：[MR-29-SEPTEMBER-GAP](archive/MR-29-SEPTEMBER-GAP.md)已用官方免费Community API补得BTC/ETH九月30+30真实日频参考值，完成本地查询/恢复。下方“九月0/许可待核”保留为当时调查记录；原CSV库不改。分钟与长期目标、外部保管及生产发布仍另列开放。
+
 2026-10-03；承接 [唯一主台账](MR-29-REAL-DATA-WORKFLOW.md)。本轮 PLANNER / 来源权限调查，不关闭 A/B/C 真实交付缺口。
 
 ## 用户决定与当前范围

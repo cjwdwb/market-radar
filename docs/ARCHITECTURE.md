@@ -36,3 +36,5 @@ Yahoo 缓存：1d/15m 为 10 秒，其余为 240 秒；进程内缓存与在途�
 Yahoo 与 OKX 429 遵守 Retry-After 且至少等待 60 秒；OKX 按路径记录限流、按完整请求键合并在途请求。两者仍使用各自的缓存策略，传输时限与验证见 RELIABILITY.md。
 UI 文案描述云端每分钟执行；这里只确认 scheduled 处理器存在，没有验证线上 cron。
 UI 视觉约束按需读取 mobile-design.md、motion-design.md；历史研究见 project-references.md。
+
+2026-10-03日频补充：Coin Metrics Community PriceUSD/USD/1d已独立准入有限本地参考价库（五月46值、新API九月60值）；由现有loopback工作台只读查询到日频面板。上文fixture-only指分钟包/回放/研究输入，日频参考价不转换成这些输入。collector/coinmetrics-api.mjs负责固定官方来源解析，coinmetrics-archive.mjs复用schema1/有界备份，未迁移实时行情或生产D1，未启用自动采集。详见HISTORY_STAGE_A。
