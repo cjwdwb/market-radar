@@ -24,3 +24,5 @@ FED元数据沿用已核验的来源范围及归属：[官方使用说明](https
 此6445bytes发布包只有公开原响应、原版本及导出时间，服务端固定只读查询；不含个人名单/提醒/数据库/密钥。导出命令：node --experimental-strip-types --import ./scripts/register-types.mjs scripts/publish-reference.mjs（依赖本机批准库；无参数、无联网、重复验证不覆盖不同版本）。数据库和完整账本不入Git。详情见[本片任务](../tasks/MR-29-PUBLIC-REFERENCE.md)。
 
 本轮已额外存一份项目外同机副本并空库恢复，未落实异地位置/保留期限；不能将这次恢复演练写成长期保管或持续服务完成。
+
+2026-10-03更新：上述批准九月日频网站查询已随Sites v30/source749c727上线；本机原库、完整备份未上传，分钟研究/长期目标未完成。[发布记录](../tasks/archive/MR-PUBLISH-REFERENCE29.md)。

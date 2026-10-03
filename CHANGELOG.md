@@ -1,10 +1,10 @@
 # Changelog
 
-## 2.9 日频历史阶段 — 发布候选 — 2026-10-03
+## 2.9 日频历史阶段 — Sites v30 已发布 — 2026-10-03
 
 - 九月BTC/ETH各30条Coin Metrics USD日终参考价，经已有访问门禁在网站按资产/日期/固定版本查询；原数据精度、取得时间、来源/许可保持。
 - 新接口无供应商请求、采集或数据库写入；已有本机历史工具保留。
-- 本地356测试通过/1Windows权限跳过，五视口与三档动效共10条新入口检查、6条旧入口检查、独立GPT VERIFY；本次GitHub CI与Sites结果待实测记录。
+- 本地356测试通过/1Windows权限跳过，五视口与三档动效共10条新入口检查、6条旧入口检查、独立GPT VERIFY；本次PR/main CI各357/357通过，部署源码749c727，Sites v30原生succeeded/env revision3。详见[发布记录](tasks/archive/MR-PUBLISH-REFERENCE29.md)。
 - 分钟历史及真实分钟研究、长期覆盖和异地保管仍未完成；此阶段不代表完整2.9已验收。
 
 本文件记录 Market Radar 的可识别产品里程碑。完整发布来源、验证范围和回退注意事项见 [docs/VERSIONS.md](docs/VERSIONS.md)。

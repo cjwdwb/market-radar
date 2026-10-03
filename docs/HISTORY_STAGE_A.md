@@ -292,3 +292,5 @@ node --experimental-strip-types --import ./scripts/register-types.mjs scripts/co
 ## 后续网站只读交付切片
 
 2026-10-03新增 /api/reference-history 与现有历史UI显式加载，真实固定九月BTC/ETH60条，原日期/美元小数/来源/版本不变；本地生产构建HTTP与五视口通过，尚未部署。详情、同机额外恢复、新测/历史区别见[tasks/MR-29-PUBLIC-REFERENCE](../tasks/MR-29-PUBLIC-REFERENCE.md)。分钟方法不适用；原九月CSV0与五月46归档仍原位保留。
+
+2026-10-03更新：上述批准九月日频网站查询已随Sites v30/source749c727上线；本机原库、完整备份未上传，分钟研究/长期目标未完成。[发布记录](../tasks/archive/MR-PUBLISH-REFERENCE29.md)。

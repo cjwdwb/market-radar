@@ -89,3 +89,5 @@ BTC/ETH / Coin Metrics Community / USD PriceUSD原生1d，批准sourceDate [2026
 用户授权完整约定范围检查通过后上传部署；[本轮核查](MR-29-RELEASE-READINESS.md)与独立审计确认，九月日频60/60已完成，但A真实分钟/C真实研究的准入仍fixture-only，B长期覆盖/项目外保管仍缺，现有日频本地查询不会随部署变成线上服务。未删除分层目标、未升格既有Deferred方法。现有Sites v29重新读回succeeded；本轮未上传/部署，条件授权保留，阶段版范围变更待用户决定。
 
 2026-10-03后续发布决定：用户确认先发布已验证日频这一批；按MR-PUBLISH-REFERENCE29执行，完整2.9未达目标继续开放，不能将先前条件限制误读为仍需重复发布授权。
+
+2026-10-03阶段发布结果：用户批准分批交付后，Sites v30已部署成功，源码749c727；PR/main CI各357/357。完整2.9仍开放。[发布归档](archive/MR-PUBLISH-REFERENCE29.md)。此前未发布/等待完整版本为当时记录，不代表本阶段仍未上线。

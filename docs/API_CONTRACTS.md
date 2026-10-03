@@ -66,3 +66,5 @@ reference-query固定完整序列与内容版本，API和CSV来源在现有UI区
 
 ### CM日频网站只读快照（2026-10-03，本地候选未部署）
 GET /api/reference-history 经原worker accessGate；无参数返回reference-catalog-v1；完整且仅asset/from/cutoff/version返回原ReferenceQuery。仅批准BTC/ETH/PriceUSD/USD/1d、[2026-09-01,2026-10-01)UTC完整日的子范围。额外/重复/非法参数400，旧版本409，发布包非法503；POST405，所有响应private,no-store。没有DB、provider请求、采集入口、用户配置或计时器。data/published/coinmetrics-sep2026.json是6445bytes构建输入，校验<=32KiB、原始来源解析与原archiveVersion；不在public直接暴露文件。旧/__archive接口及分钟规则不变。
+
+2026-10-03更新：上述批准九月日频网站查询已随Sites v30/source749c727上线；本机原库、完整备份未上传，分钟研究/长期目标未完成。[发布记录](../tasks/archive/MR-PUBLISH-REFERENCE29.md)。

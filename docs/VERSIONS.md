@@ -1,5 +1,9 @@
 # 版本与回退索引
 
+当前生产（2026-10-03）：**Market Radar 2.9 日频历史阶段 / Sites v30**，源码 `749c7270fc14f6bd1440c86e9f871b48a6b19409`，原生succeeded，环境revision3。BTC/ETH九月USD日终参考价各30条已通过网站只读查询；原版本/精度/来源及CC BY-NC4归属保留。GitHub PR#2正常合并，PR/main各357/357 CI通过；部署复用同源本地与独立审计证据。分钟历史、真实分钟研究、长期覆盖及异地保管仍未完成。[发布记录](../tasks/archive/MR-PUBLISH-REFERENCE29.md)。后续文档提交不再次部署。
+
+以下v29及更早条目为历史发布记录。
+
 当前生产（2026-10-02）：**Market Radar 2.8 Foundation · P0维护 / Sites v29**，源码 `2ad04ee645ee588b16ede15c43fb093ed395419e`，平台succeeded，环境revision3。发布标签 `sites-v29` 指向该源码；保留原 `radar-v2.8-foundation` 与 `sites-v28`，不移动旧标签或新增产品版本号。修复归档SQLite生命周期、CLI路径与模拟生成差异；main CI 288/288、独立审计及复核完成。[发布记录](../tasks/archive/MR-PUBLISH-HISTORY28-P0.md)。后续发布说明提交不重新部署，完整真实数据/保管/研究边界保持。
 
 以下v28及更早记录为历史发布：
