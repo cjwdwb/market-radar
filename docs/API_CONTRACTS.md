@@ -69,7 +69,7 @@ GET /api/reference-history 经原worker accessGate；无参数返回reference-ca
 
 2026-10-03更新：上述批准九月日频网站查询已随Sites v30/source749c727上线；本机原库、完整备份未上传，分钟研究/长期目标未完成。[发布记录](../tasks/archive/MR-PUBLISH-REFERENCE29.md)。
 
-### 长期日频发布包（2026-10-03候选）
+### 长期日频发布包（2026-10-03，Sites v31已发布）
 
 同一GET路由改读`coinmetrics-long20261003.json`，批准范围为BTC/ETH、PriceUSD/USD/1d、[2021-10-01,2026-10-03) UTC。无参数返回目录；查询仍须完整asset/from/cutoff/version，单响应最多31日，page.nextFrom用于固定版本续页。queryRange保留请求范围，coverageRange及coverage仅描述本页。400/409/503、405、原门禁与private,no-store不变。
 

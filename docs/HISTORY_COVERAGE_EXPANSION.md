@@ -1,5 +1,7 @@
 # 2.9 长历史真实交付 — CM-LONG-20261003-001
 
+后续发布（2026-10-03）：本报告数据现已随GitHub PR#3/main源码c28de66与Sites v31上线，查询每页31日，118页与本地SQLite一致；新公开适配/五视口/CI/独立审计记录见[发布卡](../tasks/archive/MR-PUBLISH-LONG-REFERENCE29.md)。以下“未发布/v30”及测试数字保留为采集开发阶段当时记录，不能覆盖此后发布事实。分钟/异地保管等未完成范围保持。
+
 2026-10-03；任务 [MR-29-HISTORICAL-COVERAGE-EXPANSION](../tasks/MR-29-HISTORICAL-COVERAGE-EXPANSION.md)。本轮长期日频已实际入库、查询、恢复；真实分钟仍 BLOCKED。未宣称完整 2.9 完成。
 
 ## 基线与执行对象

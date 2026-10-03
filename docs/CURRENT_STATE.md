@@ -1,5 +1,7 @@
 # 当前状态
 
+当前生产（2026-10-03 10:00 UTC）：**Market Radar 2.9 长期日频历史 / Sites v31**，源码`c28de66a26237d760d67f839fecbbecfc3eb4a4e`，平台succeeded、环境revision3。BTC/ETH各1828个真实USD日终参考价，2021-10-01至2026-10-02，共3656值已通过网站固定版本31日分页提供。GitHub PR#3合并，PR/main各374/374 CI通过；本地五视口15组、build/typecheck/lint及独立GPT VERIFY通过。生产登录后/真机本轮NOT RUN，平台成功不替代这两项。分钟来源/真实研究、异地保管与完整2.9继续开放；没有云采集或调度。[发布记录](../tasks/archive/MR-PUBLISH-LONG-REFERENCE29.md)。后续文档提交不重新部署；下方未发布/v30为对应历史阶段记录。
+
 2026-10-03最新本地候选：[2.9历史覆盖扩展](HISTORY_COVERAGE_EXPANSION.md)完成BTC/ETH各1828个真实PriceUSD/USD/1d值（2021-10-01至2026-10-02），14HTTP/314495bytes；固定版本查询、有限手动增量、全量逐值恢复、新进程和项目外同机副本已验证。Node368PASS+1权限skip、Node22专项49PASS、build/typecheck/lint、长历史五视口11组+旧入口10组及本地性能通过，独立GPT最终VERIFY PASS，无确认finding。分钟真实源/研究、异地保管及完整2.9仍开放；本批已交接停止。**本轮未上传/部署；现有生产Sites v30仍为九月切片**。下文按时间保留旧记录。
 
 当前生产（2026-10-03）：**Market Radar 2.9 日频历史阶段 / Sites v30**，源码 `749c7270fc14f6bd1440c86e9f871b48a6b19409`，原生succeeded，环境revision3。BTC/ETH九月USD日终参考价各30条已通过网站只读查询；原版本/精度/来源及CC BY-NC4归属保留。GitHub PR#2正常合并，PR/main各357/357 CI通过；部署复用同源本地与独立审计证据。分钟历史、真实分钟研究、长期覆盖及异地保管仍未完成。[发布记录](../tasks/archive/MR-PUBLISH-REFERENCE29.md)。后续文档提交不再次部署。

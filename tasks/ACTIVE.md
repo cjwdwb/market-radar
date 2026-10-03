@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-PUBLISH-LONG-REFERENCE29 — 已授权接入网站并发布
+## MR-PUBLISH-LONG-REFERENCE29 — 已上传/部署，发布卡归档
 
-用户“弄吧”承接先上线长期日频；[任务卡](MR-PUBLISH-LONG-REFERENCE29.md)。保留前轮归档与全部成果，扩展既有只读公开查询→相关验证/独立审计→GitHub正常PR/CI→Sites；不购买分钟源、不改访问设置或启用调度。生产当前仍v30，未提前填上线。
+PR#3正常合并，源码c28de66a26237d760d67f839fecbbecfc3eb4a4e，PR/main各374/374 CI；Sites v31原生succeeded/env revision3。BTC/ETH五年3656值已接入网站31日分页；本地五视口15组与独立GPT VERIFY通过。[发布卡](archive/MR-PUBLISH-LONG-REFERENCE29.md)。生产登录后/真机本轮未测，真实分钟/异地保管等继续开放；没有购买、迁移、调度或访问设置变更。下方“未发布”是前轮记录。
 
 ## MR-29-HISTORICAL-COVERAGE-EXPANSION — 本批交接，分钟来源仍阻塞
 

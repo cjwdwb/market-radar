@@ -2,7 +2,9 @@
 
 面向桌面和手机的中文行情工作台：查看市场 → 发现异常 → 理解证据 → 进入图表 → 关注与跟踪。黑白主调、低饱和涨跌色，支持加密货币、美股、A股与港股。
 
-**当前发布：2.9 日频历史阶段 / Sites v30**（2026-10-03），部署源码 `749c727`。九月BTC/ETH各30条真实USD日终参考价已可按日期查询；保留来源、版本、精度和许可说明。完整2.9的分钟研究、长期覆盖及异地保管仍开放。[发布记录](tasks/archive/MR-PUBLISH-REFERENCE29.md)。
+**当前发布：2.9 长期日频历史 / Sites v31**（2026-10-03），部署源码 `c28de66`。BTC、ETH各1828条真实USD日终参考价，覆盖2021-10-01至2026-10-02；支持按日期查询、31日分页、固定版本及逐条来源说明。真实分钟历史/研究、其他资产与异地保管仍开放，完整2.9未判完成。[发布记录](tasks/archive/MR-PUBLISH-LONG-REFERENCE29.md)。
+
+使用入口：**Radar → 历史回放与研究 → 加载已发布日频资料 → 日频参考价格**。选择BTC/ETH与UTC日期后查询；截止日期不包含在结果中。日频参考价不支持分钟State/Replay/Research，也不替代实时行情。
 
 [打开网站](https://market-radar-rex.swt-aether.chatgpt.site) · [文档导航](docs/README.md) · [数据与示例](data/README.md) · [版本记录](docs/VERSIONS.md) · [更新日志](CHANGELOG.md)
 

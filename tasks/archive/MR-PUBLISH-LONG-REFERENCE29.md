@@ -37,3 +37,21 @@ main重新读取仍da1b2ed33f067dc65600ab0d3e256a64046e6e26；Sites原生active/
 - 本轮0新增行情HTTP、0新增订阅费用；14请求/314495来源字节属于上一轮已完成实际采集，本轮只从原库导出。公开数据文件不等于异地数据库保管。
 - 证据：outputs/publish-long29/{export.json,node-full.log,node22.log,build.log,typecheck.log,lint.log,browser/verification.json及截图}；Git不包含原库和原始日志。原长库恢复/增量及组合负载证据沿用docs/HISTORY_COVERAGE_EXPANSION.md，清楚区分前轮/本轮。
 - CI / GitHub合并 / Sites原生发布：待执行后填实值。生产登录后及iPhone真机本轮NOT RUN。分钟许可/分钟Replay/Research、异地保管仍未完成。
+
+## GitHub与候选复核
+
+独立GPT Auditor最终VERIFY PASS，无确认finding；9文件摘要和公开包SHA未变，复核118页/3656值、15组浏览器与报告，查看320px截图。其结论仅覆盖本地稳定候选，未冒充之后的远端CI或部署。
+
+候选`d0d2620750b057ccba7826b9d8c556884d9bed99`经[PR #3](https://github.com/cjwdwb/market-radar/pull/3)正常合并为`c28de66a26237d760d67f839fecbbecfc3eb4a4e`；两个tree均为`8c81926caaacd9c74d51a4779e592bf4b02cb167`。PR CI run37114543235/job111178673462与main CI run37114639457/job111178952077，Ubuntu/Node22.15完整npm ci→npm test各374/374、0失败/跳过；既有Node action runtime弃用提示及>500kB chunk警告保留，不改变金融逻辑或更新频率。
+
+上传曾误选官方workflow配置的origin（Sites远端），交互等待后取消，未发送额外凭据；之后使用已配置github远端成功推送，不改全局配置。第一次发布准备被自动审批拒绝：source交接SHA仍为旧da1b2ed；未绕过，取消未输入流程并核对clean HEAD及tree，官方open重新生成c28de66记录后再获准执行。官方源码同步成功；Windows官方package-site的Bash命令不能启动，未产生本机archive。原生save_site_version确认已推送c28de66，使用其允许的无archive远程构建fallback。密钥仅工具内存和隐藏stdin，不入文件。
+
+## 实际发布：COMPLETE — 日频切片已上传/部署
+
+Sites版本31，id `appgprj_6a9b9dc23584819190a31ae417863e7a~appgver_13bb73e45fe081919d0b7124194856ea`；部署`appgdep_6ac0d1921cf48191aa3923d8e59cb237`于2026-10-03T10:00:10.626530+00:00返回**succeeded**，env_set_revision3。正式URL：https://market-radar-rex.swt-aether.chatgpt.site 。实际部署源码c28de66a26237d760d67f839fecbbecfc3eb4a4e，后续文档提交不重新部署。
+
+入口：Radar → 历史回放与研究 → 加载已发布日频资料 → 日频参考价格 → BTC/ETH与UTC日期 → 查询/翻页。范围[2021-10-01,2026-10-03)，截止不含；每资产1828值，共3656。来源是Coin Metrics聚合USD日终参考价，非USDT/OHLC/历史当时可知数据；Short90m/Medium180m/forward30m继续不支持。
+
+本轮新增真实行情请求0、订阅0，无生产DB或迁移、无cron/daemon/通知/偏好上传，未修改秘密/访问设置。公开包仅获准来源字段。生产平台成功、候选本地检查与登录后真实浏览分开：后者及iPhone本轮NOT RUN；没有复用私有会话或绕门禁。没有可用Sites桌面打开工具，直接交付正式链接。固定快照不安排自动化。
+
+完整2.9仍未验收完成：真实原生5m/15m来源、真实分钟State/Research、异地长期保管、更广集合、后续增量批次与前瞻成熟结果保留主台账。旧Sites v30/source749c727可作为既有回退点；未移动旧标签。源库和额外同机备份保留原位，本地验收服务已关闭。下一阶段不自动购买或开启采集。

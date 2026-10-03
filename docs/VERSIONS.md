@@ -1,5 +1,7 @@
 # 版本与回退索引
 
+当前生产（2026-10-03）：**Market Radar 2.9 长期日频历史 / Sites v31**，部署源码`c28de66a26237d760d67f839fecbbecfc3eb4a4e`，原生succeeded、环境revision3；PR#3与main各374/374 CI。BTC/ETH各1828个USD日频参考值覆盖2021-10-01至2026-10-02；31日分页保留来源、版本、精度与旧包。未另增产品版本号或移动标签，回退可选原已保存Sites v30/source749c727。分钟研究和异地保管仍开放；发布后文档提交不重新部署。[发布记录](../tasks/archive/MR-PUBLISH-LONG-REFERENCE29.md)。以下v30及更早记录为历史发布。
+
 当前生产（2026-10-03）：**Market Radar 2.9 日频历史阶段 / Sites v30**，源码 `749c7270fc14f6bd1440c86e9f871b48a6b19409`，原生succeeded，环境revision3。BTC/ETH九月USD日终参考价各30条已通过网站只读查询；原版本/精度/来源及CC BY-NC4归属保留。GitHub PR#2正常合并，PR/main各357/357 CI通过；部署复用同源本地与独立审计证据。分钟历史、真实分钟研究、长期覆盖及异地保管仍未完成。[发布记录](../tasks/archive/MR-PUBLISH-REFERENCE29.md)。后续文档提交不再次部署。
 
 以下v29及更早条目为历史发布记录。

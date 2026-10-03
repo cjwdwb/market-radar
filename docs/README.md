@@ -24,6 +24,7 @@
 | [STATE_INTELLIGENCE](STATE_INTELLIGENCE.md) | 方向/RMS、双窗口、相对表现、Alignment及历史比较 |
 | [HISTORY_FOUNDATION](HISTORY_FOUNDATION.md) | 2.7自选、有限来源、本地SQLite、采集与恢复说明 |
 | [HISTORICAL_INTELLIGENCE](HISTORICAL_INTELLIGENCE.md) | 2.8 Foundation模拟历史包、独立回放、研究规则和待补条件 |
+| [HISTORY_COVERAGE_EXPANSION](HISTORY_COVERAGE_EXPANSION.md) | BTC/ETH五年真实日频批次、来源许可、覆盖/恢复与分钟数据缺口 |
 | [文件与数据索引](../data/README.md) | 可公开示例、本地原始库/备份和证据的位置与身份 |
 
 历史库不取代实时行情；可查询不代表覆盖完整，模拟研究不代表真实预测。
