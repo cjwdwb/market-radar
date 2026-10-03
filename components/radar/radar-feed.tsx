@@ -9,6 +9,7 @@ import { AssetIntelligenceDetails, AssetStateSummary, assetIntelligenceSummary }
 import type { AssetStateV2 as AssetState } from "@/lib/radar/asset-state-v2";
 import { WatchlistState } from "./watchlist-state";
 import { MacroTimeline } from "./macro-timeline";
+import { OfficialInformation } from "./official-information";
 import { HistoryWorkspace } from "./history-workspace";
 
 const severity = { medium: "中等", high: "高优先", critical: "极高" };
@@ -68,6 +69,7 @@ export function RadarFeed({ intelligence, coverage, watchlist, watchStates, onEx
     </div><aside className="radar-sidebar"><section className="panel radar-watchlist"><div className="panel-heading"><h2><Star size={16}/>My Radar <span className="count">{watchlist.length}</span></h2><button className="icon-btn" aria-label="Radar 添加自选" onClick={onAdd}><Plus size={17}/></button></div><p>同源状态 · 保留自选顺序。90 / 180 分钟固定观测，缺失不计为中性。</p><div>{watchlist.map(symbol => <section className="radar-watch-asset" key={symbol}><div className="radar-watch-row"><button onClick={() => onAsset(symbol)}><strong>{displaySymbol(symbol)}</strong><small>{assetFor(symbol).name}</small></button><button className="icon-btn" aria-label={`Radar 移除 ${symbol}`} onClick={() => onRemove(symbol)}><X size={15}/></button></div>{watchStates.has(symbol)&&<WatchlistState state={watchStates.get(symbol)!}/>}</section>)}</div>{!watchlist.length&&<p>尚未添加自选。</p>}<div className="watch-state-export"><button className="btn watch-export" onClick={onExport} disabled={!exportReady}>导出当前自选</button><p className="watch-export-note">仅下载本地名单，不含提醒或设置，不会启用采集。</p></div></section>
       <section className="panel radar-coverage-summary" aria-label="My Radar 覆盖概况"><div className="panel-heading"><h3>覆盖概况</h3><span className={`coverage-state coverage-${coverageSummary.state}`}>{coverageSummary.state === "ready" ? "完整" : coverageSummary.state === "partial" ? "部分" : coverageSummary.state === "waiting" ? "等待" : "—"}</span></div><p>{coverageSummary.total ? `${coverageSummary.ready} 个完整 · ${coverageSummary.partial} 个部分 · ${coverageSummary.waiting} 个等待` : "添加资产后开始监控"}</p></section>
       <details className="panel radar-coverage"><summary>扫描覆盖与限制 <span>{ready}/{coverage.length}</span></summary><ul>{coverage.map(item => <li key={item.symbol}><strong>{item.symbol}</strong><span>{item.reason}</span>{item.relativeReason && <small>相对信号：{item.relativeReason}</small>}</li>)}</ul><p>相对强弱只比较同步、同源、同币种的 15 分钟窗口。缺失 benchmark 时不生成相对事件。</p><p>股票量能、加密 5 分钟与跨设备历史尚未启用。不使用 AI 猜测行情原因。</p></details>
+      <OfficialInformation symbol={assetContext?.symbol ?? assetState?.symbol}/>
       <MacroTimeline/>
 
     </aside></div>

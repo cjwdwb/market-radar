@@ -1,5 +1,9 @@
 # 当前状态
 
+2026-10-03官方资料发布候选：[来源报告](INFORMATION_SOURCES.md)，5个官方项目/产品25条事实＋FED2条资料，真实保存/去重/恢复及五视口23组已验证；Node385PASS/1Windows权限skip、build/typecheck/scoped lint通过。公司财报/新闻仍因访问/许可限制未接入，不称全部资讯。上传部署另记录，下面保留先前阶段状态。
+
+2026-10-03本地信息入口：[交付报告](INFORMATION_DELIVERY.md)。FED官方货币政策资料首次展开直接读取站点审核快照，保留文件导入；修复固定九月起点跨31日失效。真实2请求19,290字节、原2条事实无重复新增，逐表恢复/两新进程一致，采集已关闭。Node376PASS/1Windows权限skip、build/typecheck/scoped lint、五视口与旧导入/动效17组通过，独立GPT产品审计与文档VERIFY PASS，无confirmed finding；[归档卡](../tasks/archive/MR-29-INFORMATION-DELIVERY.md)。未提交/上传/部署，minute29成果保留，现有生产仍为下方Sites v31；不是完整新闻覆盖，真实分钟/异地保管仍开放。
+
 当前生产（2026-10-03 10:00 UTC）：**Market Radar 2.9 长期日频历史 / Sites v31**，源码`c28de66a26237d760d67f839fecbbecfc3eb4a4e`，平台succeeded、环境revision3。BTC/ETH各1828个真实USD日终参考价，2021-10-01至2026-10-02，共3656值已通过网站固定版本31日分页提供。GitHub PR#3合并，PR/main各374/374 CI通过；本地五视口15组、build/typecheck/lint及独立GPT VERIFY通过。生产登录后/真机本轮NOT RUN，平台成功不替代这两项。分钟来源/真实研究、异地保管与完整2.9继续开放；没有云采集或调度。[发布记录](../tasks/archive/MR-PUBLISH-LONG-REFERENCE29.md)。后续文档提交不重新部署；下方未发布/v30为对应历史阶段记录。
 
 2026-10-03最新本地候选：[2.9历史覆盖扩展](HISTORY_COVERAGE_EXPANSION.md)完成BTC/ETH各1828个真实PriceUSD/USD/1d值（2021-10-01至2026-10-02），14HTTP/314495bytes；固定版本查询、有限手动增量、全量逐值恢复、新进程和项目外同机副本已验证。Node368PASS+1权限skip、Node22专项49PASS、build/typecheck/lint、长历史五视口11组+旧入口10组及本地性能通过，独立GPT最终VERIFY PASS，无确认finding。分钟真实源/研究、异地保管及完整2.9仍开放；本批已交接停止。**本轮未上传/部署；现有生产Sites v30仍为九月切片**。下文按时间保留旧记录。

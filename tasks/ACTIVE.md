@@ -1,5 +1,13 @@
 # 当前任务索引
 
+## MR-29-INFORMATION-SOURCES-PUBLISH — 候选已验证，待上传部署
+
+[任务卡](MR-29-INFORMATION-SOURCES-PUBLISH.md)。用户已授权接入币圈项目/公司官方资料并上传部署；复用已验证FED入口。免费来源有限覆盖，真实身份/许可先核对，未授权购买/常驻调度。保留minute29工作，不修改其他项目。
+
+## MR-29-INFORMATION-DELIVERY — 本地交付已验证，归档
+
+[归档卡](archive/MR-29-INFORMATION-DELIVERY.md)，[报告](../docs/INFORMATION_DELIVERY.md)。已接通FED站点快照默认读取，修复31日更新边界；真实2请求19,290字节、2事实原版本保留，恢复一致且采集关闭。Node376PASS/1SKIP、五视口/旧导入/三档动效17组、构建/类型/lint通过，独立GPT审计与最终文档VERIFY PASS，无finding。独立information29工作树，minute29未提交成果保留；未push/deploy/启用调度，Sites v31不变。
+
 ## MR-PUBLISH-LONG-REFERENCE29 — 已上传/部署，发布卡归档
 
 PR#3正常合并，源码c28de66a26237d760d67f839fecbbecfc3eb4a4e，PR/main各374/374 CI；Sites v31原生succeeded/env revision3。BTC/ETH五年3656值已接入网站31日分页；本地五视口15组与独立GPT VERIFY通过。[发布卡](archive/MR-PUBLISH-LONG-REFERENCE29.md)。生产登录后/真机本轮未测，真实分钟/异地保管等继续开放；没有购买、迁移、调度或访问设置变更。下方“未发布”是前轮记录。

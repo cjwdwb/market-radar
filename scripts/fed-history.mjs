@@ -12,7 +12,9 @@ import {parseFedView,viewDigest,VIEW_LIMIT} from '../lib/information/fed-view.mj
 
 const canonicalName='fed-monetary/archive.sqlite';
 export function fedConfig(now,runId=randomUUID()){
-  return {owner:FED.owner,runId,source:FED.source,universeVersion:FED.universeVersion,assets:[FED.asset],from:FED.start,cutoff:now,createdAt:now,identity:'reconstructed',limits:{...FED.limits,requests:1}};
+  // 这是当前RSS快照的有界接续，不是重写旧批次或承诺完成全历史回补。
+  // 原固定九月起点在31日后使合法手动更新失败；保留31日上限和既有事实。
+  return {owner:FED.owner,runId,source:FED.source,universeVersion:FED.universeVersion,assets:[FED.asset],from:Math.max(FED.start,now-31*86400000),cutoff:now,createdAt:now,identity:'reconstructed',limits:{...FED.limits,requests:1}};
 }
 export async function publicView(store,{from,to,exportedAt}){
   const queried=store.query({owner:FED.owner,source:FED.source,asset:FED.asset.id,kind:'information',from,to,limit:200});

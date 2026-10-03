@@ -1,0 +1,10 @@
+export type OfficialFact={id:number;tag:string;url:string;publishedAt:number;sourceUpdatedAt:number;prerelease:boolean};
+export type OfficialRecord={fact:OfficialFact;version:number;contentHash:string;firstSavedAt:number;versionSavedAt:number};
+export type OfficialView={format:'official-information-v1';identity:'reconstructed';vintage:'current';exportedAt:number;viewId:string;sources:{sourceId:string;snapshotId:string|null;checkedAt:number|null;receiptBasis:'reviewed_capture_mtime'|'response_completed'|null;records:OfficialRecord[]}[]};
+export const OFFICIAL_LIMIT:number;
+export const OFFICIAL_SOURCES:readonly {id:string;repo:string;name:string;category:'crypto'|'company';symbols:readonly string[];license:string;licenseFile:string;url:string;rightsUrl:string}[];
+export function officialSource(id:string):typeof OFFICIAL_SOURCES[number]|undefined;
+export function validateOfficialFact(fact:OfficialFact,sourceId:string,receivedAt:number):OfficialFact;
+export function normalizeReleases(sourceId:string,input:unknown,receivedAt:number):OfficialFact[];
+export function parseOfficialView(text:string,now:number):Promise<OfficialView>;
+export function queryOfficialView(view:OfficialView,options?:{symbol?:string;category?:string;page?:number}):{records:(OfficialRecord&{sourceId:string;checkedAt:number})[];total:number;pages:number;covered:boolean;collected:boolean};

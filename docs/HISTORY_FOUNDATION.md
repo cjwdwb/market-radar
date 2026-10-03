@@ -1,5 +1,7 @@
 # 2.7 information / history contracts — local foundation
 
+2026-10-03本地接续：[信息入口交付](INFORMATION_DELIVERY.md)已打通审核后构建快照→原门禁只读API→首次展开默认加载，旧文件导入保留。当前RSS任务from改为max(2026-09-01,cutoff−31日)，旧批次/事实/权限约束不变。本次用户明确授权的隔离副本一次性续跑是操作员例外：保留旧来源账本与冷却，临时启用，2请求19,290字节后finally禁采集，恢复副本也保持禁采集；没有通用enable CLI，常规restore仍query/export-only。下文原C1“只有文件导入”和“没有API”是历史记录，不描述本轮候选；本轮未部署。
+
 Contract `history-foundation-v1`, reviewed 2026-09-22. Status: B0/C0 and B1/C1 local Board macro archive + UI verified; actual owner universe / price archive / research gates remain open. See latest B1/C1 report below; this is not completed2.7. Active card: MR-WATCHLIST-INFORMATION-HISTORY-27. Subsequent authorized release:2.7Foundation/Sitesv25/source5d759a1 on2026-09-23CST; local collectors/data were not deployed as a cloudservice. See tasks/archive/MR-PUBLISH-FOUNDATION27.md; earlier development NOT DEPLOYED remains historical.
 
 ## Source and universe contract
