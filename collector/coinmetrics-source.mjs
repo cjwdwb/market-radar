@@ -122,4 +122,3 @@ export function parseCoinMetricsCsv(bytes, options) {
     analysis: { short90m: 'unsupported_frequency', medium180m: 'unsupported_frequency', forward30m: 'unsupported_frequency' },
   };
 }
-

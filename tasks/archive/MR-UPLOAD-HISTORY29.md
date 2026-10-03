@@ -14,4 +14,12 @@
 - 成功标准：GitHub已存在准确候选commit、草稿PR和实际CI状态；失败如实修复或记录。九月缺口及完整2.9未达项保持开放。
 
 ## 执行结果
-待执行，不预填成功。
+- 已普通上传45文件，源码提交5a06c46a0b7e63fd3fed48d76c8c309fee1f9a52，分支codex/mr-29-c-research-workflow；[草稿PR #2](https://github.com/cjwdwb/market-radar/pull/2)。未合并/打标签/部署。
+- 新测GitHub CI [run37096381509](https://github.com/cjwdwb/market-radar/actions/runs/37096381509)，job111127064533：Ubuntu24.04.5 / Node22.15.0 / npm10.9.2，npm ci→npm test（build/typecheck/Node）成功；344/344，0失败/跳过。实际checkout dcceeeda171b5f2ac70a07ddd27c86e037f01388是GitHub PR测试合并引用，tree cce8b44dabe2c6017b9838a6429c7655a04b5a35与上述源码提交相同；不表示已合并main。
+- 既有>500KB chunk警告、Actions运行时弃用提示仍存在，不把CI成功称为零警告。原Windows1SKIP保留为历史本机限制，Linux344/344单独记录。
+- 45文件上传清单无数据/秘密路径，高置信凭据签名0；原CSV/DB/backup/outputs仍忽略。上传前产品12文件与五月审计指纹一致；GPT独立只读上传审计无新增finding。
+- 完整提交diff检查额外发现新parser文件末尾空白行，已仅去除该空行并新跑parser17/17；不改数据/功能，源字节hash相应变化，不能继续宣称该文件与旧指纹字节完全相同。本收尾提交同时更新上传文档；其独立CI结果以PR最新check为准，不把上一SHA的CI说成本提交已通过。
+- 新官方来源核对：两个CSV路径最新commit均2026-05-24，九月0/60维持；新读取为文档/元数据，不是新增价格采集。没有扩采/购买/云调度。
+- 工具：本机无gh；既有Git认证普通push，连接器创建draft PR并读CI。提升权限执行与原worktree所有者不同，使用本次命令精确safe.directory，不改全局配置；凭据未读取/输出/落盘。
+- 当前上传与2.9完整交付分开：五月46/48在本机可查询，九月/原生分钟/更早覆盖/长期外部保管/真实研究仍开放；生产2.8 Foundation P0/Sitesv29未改变。DS实际0、无Optimizer，无新浏览器/真机或线上验收。
+- 上传任务归档，主数据任务保持开放；最终分支与CI可从上述PR复查。

@@ -202,3 +202,6 @@ DS本片实际调用0。Optimizer跳过，无测量瓶颈，不宣称FPS改善�
 
 ### 2026-10-03 上传前九月来源更新复核
 用户追问九月为什么持续为0。本轮通过官方GitHub commits API分别查询csv/btc.csv、csv/eth.csv最新记录，两者仍为f1a36afb962731c387bb03982758ab0103063da5，提交时间2026-05-24T13:37:39Z；与本机已验证原文件版本一致。此档案没有新增九月记录，不是只因本机锁了旧版本；重复同文件不能补缺。该核对仅2次元数据读取，未重新下载CSV/未新增真实采集批次；不推断其他Coin Metrics API或商业产品没有九月数据。公开展示所需的新来源/用途核查仍待后续，不能改原目标或用五月值替代。上传状态见tasks/MR-UPLOAD-HISTORY29.md；本轮不部署。
+
+### 上传交接
+本地候选源码5a06c46已普通上传GitHub独立分支及[草稿PR #2](https://github.com/cjwdwb/market-radar/pull/2)，首轮Ubuntu24.04.5/Node22.15完整构建、类型及Node344/344通过。后续仅parser末尾1空行整理（专项17/17新测）和上传文档；各commit的CI分开核对。上传记录[tasks/archive/MR-UPLOAD-HISTORY29](../tasks/archive/MR-UPLOAD-HISTORY29.md)。原CSV/DB/备份未上传，网站未部署，本报告原“本地未上传”为当时状态。

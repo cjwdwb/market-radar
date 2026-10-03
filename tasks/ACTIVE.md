@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-UPLOAD-HISTORY29 — 已获准上传，执行中
+## MR-UPLOAD-HISTORY29 — 已上传GitHub草稿PR，未部署
 
-任务[上传卡](MR-UPLOAD-HISTORY29.md)。用户本轮授权GitHub上传；普通独立分支+draft PR+CI，不合并、不部署。官方BTC/ETH文件最新提交复核仍停2026-05-24，九月0/60不变；46个五月日频参考值仅在本机保存。
+归档[上传卡](archive/MR-UPLOAD-HISTORY29.md)。源码5a06c46上传独立分支，[草稿PR #2](https://github.com/cjwdwb/market-radar/pull/2)，首轮Ubuntu/Node22完整CI344/344通过；后续收尾提交仅文档与1行末尾空白，最新CI以PR为准。没有合并/部署。BTC/ETH源文件最新提交仍2026-05-24，九月0/60；本机五月46值不代表数据已上线。下方“未上传”为历史交接状态，本段更新上传状态。
 
 ## MR-29-A-REAL-SOURCE-READINESS — 五月真实日频46/48，九月仍受阻
 
