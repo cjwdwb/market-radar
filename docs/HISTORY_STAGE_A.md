@@ -201,7 +201,7 @@ DS本片实际调用0。Optimizer跳过，无测量瓶颈，不宣称FPS改善�
 2026-10-03：候选12文件指纹1d0058a74da911cdcb826f7777acb8094cf1fa0301dde553202e07efaa201e12，明细candidate.json。修复后全量Node344项343PASS/1既有Windows权限SKIP；Node22专项28/28，真实新空恢复46点与原对象一致。git diff --check通过（仅既有CRLF提示）、暂存为空，其他原A/B/C成果保留。本批两个临时loopback预览进程已主动停止，未留常驻采集。独立GPT history29_source_contract最终只读终审VERIFIED：12文件哈希/候选指纹一致，46/48与0/60、来源/收到及派生时间、继承与新增消耗、真实/fixture/历史证据、未发布与剩余目标均核对一致；本次审计没有写入/联网/重跑全量/生产/真机/断电测试。22个文档本地链接0损坏。
 
 ### 2026-10-03 上传前九月来源更新复核
-用户追问九月为什么持续为0。本轮通过官方GitHub commits API分别查询csv/btc.csv、csv/eth.csv最新记录，两者仍为f1a36afb962731c387bb03982758ab0103063da5，提交时间2026-05-24T13:37:39Z；与本机已验证原文件版本一致。此档案没有新增九月记录，不是只因本机锁了旧版本；重复同文件不能补缺。该核对仅2次元数据读取，未重新下载CSV/未新增真实采集批次；不推断其他Coin Metrics API或商业产品没有九月数据。公开展示所需的新来源/用途核查仍待后续，不能改原目标或用五月值替代。上传状态见tasks/MR-UPLOAD-HISTORY29.md；本轮不部署。
+用户追问九月为什么持续为0。本轮通过官方GitHub commits API分别查询csv/btc.csv、csv/eth.csv最新记录，两者仍为f1a36afb962731c387bb03982758ab0103063da5，提交时间2026-05-24T13:37:39Z；与本机已验证原文件版本一致。此档案没有新增九月记录，不是只因本机锁了旧版本；重复同文件不能补缺。该核对仅2次元数据读取，未重新下载CSV/未新增真实采集批次；不推断其他Coin Metrics API或商业产品没有九月数据。公开展示所需的新来源/用途核查仍待后续，不能改原目标或用五月值替代。上传状态见[上传归档](../tasks/archive/MR-UPLOAD-HISTORY29.md)；本轮不部署。
 
 ### 上传交接
 本地候选源码5a06c46已普通上传GitHub独立分支及[草稿PR #2](https://github.com/cjwdwb/market-radar/pull/2)，首轮Ubuntu24.04.5/Node22.15完整构建、类型及Node344/344通过。后续仅parser末尾1空行整理（专项17/17新测）和上传文档；各commit的CI分开核对。上传记录[tasks/archive/MR-UPLOAD-HISTORY29](../tasks/archive/MR-UPLOAD-HISTORY29.md)。原CSV/DB/备份未上传，网站未部署，本报告原“本地未上传”为当时状态。
