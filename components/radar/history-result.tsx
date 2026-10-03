@@ -19,6 +19,7 @@ const directionText: Record<string, string> = { upward: "窗口偏上", downward
 const volatilityText: Record<string, string> = { higher: "高于此前基线", lower: "低于此前基线", similar: "接近此前基线" };
 const statusText: Record<HistoryResearch["status"], string> = {
   available: "样本可用", insufficient: "样本不足", query_unavailable: "查询不可用",
+  partial: "范围尚未遍历完成",
 };
 const countLabels: [keyof HistoryResearch["counts"], string][] = [
   ["candidates", "候选"], ["invalidFeature", "特征无效"], ["unmatched", "不匹配"], ["immature", "未成熟或进入查询依赖窗口"],
@@ -130,7 +131,7 @@ export function HistoryResult({ replay, research }: { replay: HistoryReplay; res
         {research.statistics ? (
           <p className="numeric">收益率统计（%）：最小 {pct(research.statistics.min)} · 中位 {pct(research.statistics.median)} · 最大 {pct(research.statistics.max)}</p>
         ) : (
-          <p>未提供样本统计（样本不足或查询不可用）。</p>
+          <p>未提供样本统计（样本不足、查询不可用或范围未遍历完成）。</p>
         )}
         <h4>候选样本（最多 10 条）</h4>
         {rows.length ? (
@@ -146,7 +147,7 @@ export function HistoryResult({ replay, research }: { replay: HistoryReplay; res
           <p>没有可展示的候选样本。</p>
         )}
         <p className="numeric">显示 {rows.length} / 保留 {research.counts.retained} 条</p>
-        <p>完整样本不在本页展示，但全部计数已保留如上。样本来自当前取得版本，不构成结果概率或预测准确率主张。</p>
+        <p>{research.status === "partial" ? "以上仅为已遍历部分的计数和候选，不是全范围统计。" : "完整样本不在本页展示，本次检索计数保留如上。"}样本来自当前取得版本，不构成结果概率或预测准确率主张。</p>
       </details>
     </section>
   );

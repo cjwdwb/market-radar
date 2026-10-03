@@ -20,7 +20,7 @@ export function canonical(value) {
   return fail('INVALID_JSON');
 }
 export const digest = value => createHash('sha256').update(canonical(value)).digest('hex');
-function validateConfig(config) {
+export function validateConfig(config) {
   if (!keys(config, ['owner','runId','source','universeVersion','assets','from','cutoff','createdAt','identity','limits']) ||
       ![config.owner, config.runId, config.source, config.universeVersion].every(token) || !(config.identity === 'fixture' && config.source.startsWith('fixture:') || isFedConfig(config))) fail('FIXTURE_SCOPE_REQUIRED');
   if (![config.from,config.cutoff,config.createdAt].every(n => integer(n,1)) || config.from >= config.cutoff || config.cutoff > config.createdAt || config.cutoff - config.from > 31 * DAY) fail('INVALID_RANGE');
@@ -34,7 +34,7 @@ function validateConfig(config) {
   if(isFedConfig(config)&&Object.entries(limits).some(([k,v])=>v>FED.limits[k]))fail('SOURCE_LIMIT');
   return JSON.parse(canonical({...config,limits}));
 }
-function validateFact(record,config,receivedAt) {
+export function validateFact(record,config,receivedAt) {
   if (!keys(record,['asset','kind','occurredAt','payload']) || !config.assets.some(a=>a.id===record.asset) || !['bar','information'].includes(record.kind)) fail('INVALID_RECORD');
   const p=record.payload, asset=config.assets.find(a=>a.id===record.asset);
   const fed=isFedConfig(config);
@@ -202,20 +202,26 @@ export class ArchiveStore {
       return {revision,inserted:inserts.length,duplicates,revisions,traversalDone};
     });
   }
-  query({owner,source,asset,kind,from,to,limit=100,cursor=null}){
+  query({owner,source,asset,kind,from,to,limit=100,cursor=null,intervalMs,readRevision}){
     if(![owner,source,asset].every(token)||!['bar','information'].includes(kind)||!integer(from,1)||!integer(to,from+1)||to-from>31*DAY||!integer(limit,1,200))fail('INVALID_QUERY');
-    const signature=digest({owner,source,asset,kind,from,to,limit});
+    if(intervalMs!==undefined&&(kind!=='bar'||![300000,900000].includes(intervalMs)))fail('INVALID_QUERY_INTERVAL');
+    // 缺省保持旧游标签名；显式周期绑定游标，不能从5m翻页到15m。
+    const signature=digest({owner,source,asset,kind,from,to,limit,...(intervalMs===undefined?{}:{intervalMs})});
     const maximum=this.db.prepare('SELECT revision FROM archive_meta WHERE id=1').get().revision;
-    let position={revision:maximum,afterTime:0,afterId:0,signature};
+    if(readRevision!==undefined&&!integer(readRevision,0,maximum))fail('INVALID_READ_REVISION');
+    let position={revision:readRevision??maximum,afterTime:0,afterId:0,signature};
     if(cursor!==null){
       if(!text(cursor,2000))fail('INVALID_CURSOR');
       try{position=JSON.parse(Buffer.from(cursor,'base64url').toString('utf8'));}catch{fail('INVALID_CURSOR');}
       if(!keys(position,['revision','afterTime','afterId','signature'])||position.signature!==signature||!integer(position.revision,0,maximum)||!integer(position.afterTime)||!integer(position.afterId))fail('INVALID_CURSOR');
+      if(readRevision!==undefined&&readRevision!==position.revision)fail('INVALID_CURSOR');
     }
+    // 版本只选择当时已经入库的修订，不代表该内容在市场历史时点已知。
     const rows=this.db.prepare(`SELECT f.* FROM archive_facts f WHERE f.owner=? AND f.source=? AND f.asset=? AND f.kind=? AND f.revision<=?
+      ${intervalMs===undefined?'':"AND json_extract(f.payload,'$.intervalMs')=?"}
       AND f.sort_at>=? AND f.sort_at<? AND (f.sort_at>? OR (f.sort_at=? AND f.id>?))
       AND NOT EXISTS(SELECT 1 FROM archive_facts n WHERE n.owner=f.owner AND n.source=f.source AND n.asset=f.asset AND n.kind=f.kind AND n.logical_key=f.logical_key AND n.revision<=? AND (n.revision>f.revision OR (n.revision=f.revision AND n.id>f.id)))
-      ORDER BY f.sort_at,f.id LIMIT ?`).all(owner,source,asset,kind,position.revision,from,to,position.afterTime,position.afterTime,position.afterId,position.revision,limit+1);
+      ORDER BY f.sort_at,f.id LIMIT ?`).all(owner,source,asset,kind,position.revision,...(intervalMs===undefined?[]:[intervalMs]),from,to,position.afterTime,position.afterTime,position.afterId,position.revision,limit+1);
     const more=rows.length>limit,items=rows.slice(0,limit),last=items.at(-1);
     const fed=source===FED.source&&owner===FED.owner&&asset===FED.asset.id;
     return {identity:fed?'reconstructed':'fixture',readRevision:position.revision,records:items.map(row=>({...row,payload:JSON.parse(row.payload),sortBasis:row.occurred_at!==null?'source_time':JSON.parse(row.payload).publication.precision==='day'?'publication_day_upper_bound':'first_received'})),

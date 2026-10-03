@@ -1,5 +1,45 @@
 # 当前任务索引
 
+## MR-PUBLISH-REFERENCE29 — 已授权分批发布，执行中
+
+用户“ok”确认先上线已验证日频查询，明确替代此前等待完整2.9的发布顺序；[发布卡](MR-PUBLISH-REFERENCE29.md)。核固定候选→GitHub CI/正常合并→Sites，不新增付费/迁移/调度。下方未发布/等待完整版为此前交接状态，完整2.9剩余任务继续开放。
+
+授权澄清（2026-10-03）：用户再次确认“获准啊”。用户对免费、非商业网站展示及继续推进的授权已明确，不再列为待确认项。Coin Metrics Community已核验日频继续执行；剩余分钟限制按具体来源许可/实际历史窗口登记，不要求用户重复授权，不将用户同意冒记成供应商新增许可。
+
+## MR-29-PUBLIC-REFERENCE — 推进已获准真实日频网站查询
+
+用户要求继续完整2.9；[最小实施契约](MR-29-PUBLIC-REFERENCE.md)。从九月已验证60条只读快照接入现有历史面板，零新增第三方行情采集/资源；本地HTTP新五视口及三档动效10检查+旧入口6检查、356Node通过/1权限跳过，额外同机备份恢复通过。独立GPT最终VERIFY PASS，无未解决finding；分钟公开许可/长期目标/异地保管仍开放，未发布阶段版。
+
+## MR-29-RELEASE-READINESS — 检查完成，完整2.9发布条件未满足
+
+用户已授权验收通过后上传部署；[本轮核查与剩余矩阵](MR-29-RELEASE-READINESS.md)。独立审计确认真实分钟准入/真实研究、长期覆盖/正式保管与线上真实查询仍缺；九月60日频仅本地已交付。当前条件不满足，未新上传或部署；继续原完整2.9范围，未将日频切片视为完整版。既有成果和授权保留。
+
+## MR-29-SEPTEMBER-GAP — 九月日频60/60已本地验证
+
+官方免费Community API新增BTC/ETH各30个USD日终参考价，覆盖9月1–30日；实际2HTTP/5171bytes。原CSV九月零覆盖与五月46值保留，新库/备份/跨进程恢复/五视口查询通过。最终352 Node通过/0失败/1Windows权限跳过，Node22专项39/39；独立GPT审计P2修复VERIFY。归档[任务卡](archive/MR-29-SEPTEMBER-GAP.md)，详情[Stage A](../docs/HISTORY_STAGE_A.md)。未上传/部署，生产仍Sites v29；日频不替代分钟研究/长期目标，项目外备份仍未落实。
+
+## MR-UPLOAD-HISTORY29 — 已上传GitHub草稿PR，未部署
+
+归档[上传卡](archive/MR-UPLOAD-HISTORY29.md)。源码5a06c46上传独立分支，[草稿PR #2](https://github.com/cjwdwb/market-radar/pull/2)，首轮Ubuntu/Node22完整CI344/344通过；后续收尾提交仅文档与1行末尾空白，最新CI以PR为准。没有合并/部署。上传当时BTC/ETH CSV源文件最新提交仍2026-05-24、该批九月0/60；现新增API九月60/60见上段。本机五月46值不代表数据已上线。下方“未上传”为历史交接状态，本段更新上传状态。
+
+## MR-29-A-REAL-SOURCE-READINESS — 五月真实日频46/48；九月新批已补齐
+
+2026-10-03五月批准切片已实际完成：CM-MAY2026-OFFLINE-001 / Coin Metrics BTC、ETH各23个USD日频参考值，共46/48；有效日期5月1–23日，两资产5月24日PriceUSD为空并标missing_value。原九月仍0/60。离线重提/真实有值恢复/新进程读取/页面查询已验证，新增网络请求和字节均0；分钟方法与外部长期保管仍开放；九月日频已由上方API新批60/60补齐。报告[Stage A](../docs/HISTORY_STAGE_A.md)，任务[来源卡](MR-29-A-REAL-SOURCE-READINESS.md)。本地未提交/上传/部署，生产记录仍Sites v29。
+
+以下A/B/C旧交接中的“真实价格0”为其交接时事实；当前新增仅上述日频参考值，不代表分钟数据或研究交付。
+
+## MR-29-C-RESEARCH-WORKFLOW — 本地切片已验证，真实交付仍开放
+
+用户明确启动C；任务tasks/MR-29-C-RESEARCH-WORKFLOW.md，报告docs/HISTORY_STAGE_C.md。A/B未提交成果保留，main31702c45/历史CI37004484343 success本轮重新核对，生产仍Sitesv29。已实现本地受控快照查询、时点导航、原协议流式执行、独立研究登记/结果追加；315 Node/314通过/1既有Windows权限跳过，Node22专项26通过及追加7项结果边界通过，build/typecheck/受影响lint、68条浏览器检查和组合负载实测。独立GPT4项P2、1项P3均已修并VERIFY；2026-10-03最终证据独立只读终审VERIFIED，无新增finding；原2026-10-02测试未重跑，详见C报告。真实价格仍0，正式集合/许可/预算、B覆盖与外部保管、真实研究/成熟结果继续开放；本批交接后停止，无push/merge/tag/deploy/采集/调度。
+
+## MR-29-B-HISTORY-EXPANSION — B-STORAGE-001已验证，真实扩展仍开放
+
+用户明确启动B，本批仅领取一致快照/大容量恢复前置批次。任务tasks/MR-29-B-HISTORY-EXPANSION.md，报告docs/HISTORY_STAGE_B.md。30000根fixture、20062208bytes一致快照，固定版本跨月/跨年查询、新进程恢复/重开、回放与31个模拟样本结果一致；Node22/24各9专项、全量303通过+1Windows权限跳过、build/typecheck/受影响lint通过。独立GPT审计4项P2已修并VERIFY。A未提交成果保留，真实价格仍0，集合/来源/预算和项目外备份条件待答；真实B1/B2/B3、长期保管保持开放。本批交接，不上传/部署/采集/调度，不自动C或下一批。
+
+## MR-29-REAL-DATA-WORKFLOW / MR-29-A-REAL-DATA-PILOT — Stage A进行中
+
+唯一主台账tasks/MR-29-REAL-DATA-WORKFLOW.md承接2.7/2.8真实价格、信息、保管、研究未完项；阶段卡tasks/MR-29-A-REAL-DATA-PILOT.md。基线31702c4/main CI37004484343 success已重新核对；生产仍v29/source2ad04ee。A-Q周期/固定版本查询和导出透传已实现，7专项/全量294通过+1Windows权限跳过、build/typecheck/lint/12历史浏览器旧证据保留，报告docs/HISTORY_STAGE_A.md。正式集合和价格源用途未确认；OKX/Massive当轮官方条款均明确用途限制，已集中询问，真实价格0条。Stage A仍开放，不把前置切片冒称真实链路交付。用户随后明确启动B和C的独立切片，见上项；没有新增上传/发布授权。
+
 ## MR-PUBLISH-HISTORY28-P0 — 上传与发布成功，已归档
 
 用户2026-10-02明确要求“上传部署”。PR #1已正常合并，部署源码2ad04ee645ee588b16ede15c43fb093ed395419e上传GitHub main并发布Sites v29；平台succeeded、环境revision3，public与应用访问码不变。main CI 288/288，原独立审计/复核同源沿用，无新增产品改动或真实采集。归档tasks/archive/MR-PUBLISH-HISTORY28-P0.md；发布标签sites-v29标部署源码，后续文档提交不重新部署。
