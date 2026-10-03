@@ -1,5 +1,27 @@
 # 当前任务索引
 
+## MR-UPLOAD-HISTORY29 — 已获准上传，执行中
+
+任务[上传卡](MR-UPLOAD-HISTORY29.md)。用户本轮授权GitHub上传；普通独立分支+draft PR+CI，不合并、不部署。官方BTC/ETH文件最新提交复核仍停2026-05-24，九月0/60不变；46个五月日频参考值仅在本机保存。
+
+## MR-29-A-REAL-SOURCE-READINESS — 五月真实日频46/48，九月仍受阻
+
+2026-10-03五月批准切片已实际完成：CM-MAY2026-OFFLINE-001 / Coin Metrics BTC、ETH各23个USD日频参考值，共46/48；有效日期5月1–23日，两资产5月24日PriceUSD为空并标missing_value。原九月仍0/60。离线重提/真实有值恢复/新进程读取/页面查询已验证，新增网络请求和字节均0；分钟方法、九月目标与外部长期保管仍开放。报告[Stage A](../docs/HISTORY_STAGE_A.md)，任务[来源卡](MR-29-A-REAL-SOURCE-READINESS.md)。本地未提交/上传/部署，生产记录仍Sites v29。
+
+以下A/B/C旧交接中的“真实价格0”为其交接时事实；当前新增仅上述日频参考值，不代表分钟数据或研究交付。
+
+## MR-29-C-RESEARCH-WORKFLOW — 本地切片已验证，真实交付仍开放
+
+用户明确启动C；任务tasks/MR-29-C-RESEARCH-WORKFLOW.md，报告docs/HISTORY_STAGE_C.md。A/B未提交成果保留，main31702c45/历史CI37004484343 success本轮重新核对，生产仍Sitesv29。已实现本地受控快照查询、时点导航、原协议流式执行、独立研究登记/结果追加；315 Node/314通过/1既有Windows权限跳过，Node22专项26通过及追加7项结果边界通过，build/typecheck/受影响lint、68条浏览器检查和组合负载实测。独立GPT4项P2、1项P3均已修并VERIFY；2026-10-03最终证据独立只读终审VERIFIED，无新增finding；原2026-10-02测试未重跑，详见C报告。真实价格仍0，正式集合/许可/预算、B覆盖与外部保管、真实研究/成熟结果继续开放；本批交接后停止，无push/merge/tag/deploy/采集/调度。
+
+## MR-29-B-HISTORY-EXPANSION — B-STORAGE-001已验证，真实扩展仍开放
+
+用户明确启动B，本批仅领取一致快照/大容量恢复前置批次。任务tasks/MR-29-B-HISTORY-EXPANSION.md，报告docs/HISTORY_STAGE_B.md。30000根fixture、20062208bytes一致快照，固定版本跨月/跨年查询、新进程恢复/重开、回放与31个模拟样本结果一致；Node22/24各9专项、全量303通过+1Windows权限跳过、build/typecheck/受影响lint通过。独立GPT审计4项P2已修并VERIFY。A未提交成果保留，真实价格仍0，集合/来源/预算和项目外备份条件待答；真实B1/B2/B3、长期保管保持开放。本批交接，不上传/部署/采集/调度，不自动C或下一批。
+
+## MR-29-REAL-DATA-WORKFLOW / MR-29-A-REAL-DATA-PILOT — Stage A进行中
+
+唯一主台账tasks/MR-29-REAL-DATA-WORKFLOW.md承接2.7/2.8真实价格、信息、保管、研究未完项；阶段卡tasks/MR-29-A-REAL-DATA-PILOT.md。基线31702c4/main CI37004484343 success已重新核对；生产仍v29/source2ad04ee。A-Q周期/固定版本查询和导出透传已实现，7专项/全量294通过+1Windows权限跳过、build/typecheck/lint/12历史浏览器旧证据保留，报告docs/HISTORY_STAGE_A.md。正式集合和价格源用途未确认；OKX/Massive当轮官方条款均明确用途限制，已集中询问，真实价格0条。Stage A仍开放，不把前置切片冒称真实链路交付。用户随后明确启动B和C的独立切片，见上项；没有新增上传/发布授权。
+
 ## MR-PUBLISH-HISTORY28-P0 — 上传与发布成功，已归档
 
 用户2026-10-02明确要求“上传部署”。PR #1已正常合并，部署源码2ad04ee645ee588b16ede15c43fb093ed395419e上传GitHub main并发布Sites v29；平台succeeded、环境revision3，public与应用访问码不变。main CI 288/288，原独立审计/复核同源沿用，无新增产品改动或真实采集。归档tasks/archive/MR-PUBLISH-HISTORY28-P0.md；发布标签sites-v29标部署源码，后续文档提交不重新部署。

@@ -79,6 +79,14 @@
 .macro-timeline p{color:var(--text-secondary);margin-block:10px}.macro-timeline input{min-height:44px;max-width:100%;width:100%;border:1px solid var(--line-subtle);border-radius:var(--radius-control);padding:8px;background:var(--surface-panel);color:var(--text-primary);font-size:13px}.macro-timeline input[type=file]{padding:8px 0;border:0}
 .macro-filter{display:grid;gap:10px;margin-block:14px}.macro-filter label{display:grid;gap:5px}.macro-records{list-style:none;padding:0}.macro-records>li{border-top:1px solid var(--line-subtle);padding-block:14px}.macro-records time{font-size:12px;color:var(--text-secondary)}.macro-records h3{font-size:14px;font-weight:500;line-height:1.6;margin-top:6px}.macro-records a{display:block;min-height:44px;align-content:center}.macro-records details{margin-top:8px}.macro-pages{display:flex;gap:8px;justify-content:space-between}.macro-pages .btn{min-height:44px}
 .macro-timeline :is(summary,a,input,button):focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}.macro-notice,.macro-coverage{border-left:2px solid var(--line-strong);padding-left:10px}
+.history-workspace .macro-pages{flex-wrap:wrap;justify-content:flex-start}
+.history-workspace .macro-filter{align-items:end}.history-workspace .macro-filter .btn{min-height:44px}
+.history-workspace label{display:grid;gap:6px;min-width:0}
+.history-workspace :is(input,select){min-width:0;font-size:16px;max-width:100%}
+.history-workspace select{width:100%;min-height:44px;padding:8px;border:1px solid var(--line-subtle);border-radius:var(--radius-control);background:var(--surface-panel);color:var(--text-primary)}
+.history-workspace select:focus-visible{outline:2px solid var(--focus-color);outline-offset:2px}
+.history-controls{margin-block:16px}.history-current-context{border-left:2px solid var(--line-strong);padding-left:10px}
+.history-view{margin-block:16px}.history-view h3{margin-block:12px}.history-horizon{padding-block:8px;border-bottom:1px solid var(--line-subtle)}
 @media(max-width:1100px){.radar-feed{grid-template-columns:1fr}.radar-layout{grid-template-columns:minmax(0,1fr) 270px}}
 @media(max-width:900px){.radar-layout{grid-template-columns:1fr}.radar-intro{gap:20px}.radar-scan-status{min-width:180px;padding-left:20px}.radar-sidebar{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}.radar-coverage{margin-top:0}.mobile-dock:has(a[href='#radar']){grid-template-columns:repeat(5,1fr)}}
 @media(max-width:600px){

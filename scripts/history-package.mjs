@@ -6,7 +6,7 @@ import { ArchiveStore } from '../collector/store.mjs';
 import { localFile } from './history-local.mjs';
 import { BAR_LIMIT, PACKAGE_LIMIT, packageDigest, parseHistoryPackage } from '../lib/history/package.ts';
 
-export async function exportHistoryPackage(store, { owner, source, asset, from, to, exportedAt }) {
+export async function exportHistoryPackage(store, { owner, source, asset, from, to, exportedAt, intervalMs, readRevision }) {
   if (typeof source !== 'string' || !source.startsWith('fixture:')) throw Error('PRICE_SOURCE_NOT_APPROVED');
   let p;
   // 分页在同一读事务内完成，并固定readRevision，避免导出时混入其他写入版本。
@@ -15,7 +15,7 @@ export async function exportHistoryPackage(store, { owner, source, asset, from, 
     let cursor = null, identity = null, interval = null, revision = null;
     const bars = [];
     do {
-      const page = store.query({ owner, source, asset, kind: 'bar', from, to, limit: 200, cursor });
+      const page = store.query({ owner, source, asset, kind: 'bar', from, to, limit: 200, cursor, intervalMs, readRevision });
       revision ??= page.readRevision;
       if (revision !== page.readRevision || page.identity !== 'fixture') throw Error('MIXED_READ_VERSION');
       for (const row of page.records) {

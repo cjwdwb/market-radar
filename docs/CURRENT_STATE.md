@@ -1,5 +1,10 @@
 # 当前状态
 
+2026-10-03接续：用户已批准五月独立离线试点，BTC/ETH各23个真实USD日频参考值已保存、查询和恢复验证；目标5月1–24日，5月24日两源价格为空，覆盖46/48。原九月仍0/60，未修改目标或旧库；新增0请求/0网络字节。报告[HISTORY_STAGE_A](HISTORY_STAGE_A.md)。当前候选未提交/上传/部署；分钟研究/完整2.9及外部长期保管仍开放。下段为此前C交接时状态，生产记录不变。
+
+
+2026-10-02本地2.9 Stage C：未提交候选`codex/mr-29-c-research-workflow`保留A/B成果，新增固定快照本地查询→既有历史UI、精确时点导航、原协议流式研究、独立研究账本和手动结果追加；模拟验证与真实交付分开。报告[HISTORY_STAGE_C.md](HISTORY_STAGE_C.md)、唯一主台账tasks/MR-29-REAL-DATA-WORKFLOW.md。真实价格仍0，正式名单/许可/预算与外部长期保管未落实；A/B目标和真实C研究仍开放。2026-10-03已补完成独立交接证据终审VERIFIED，核心哈希不变；本次仅核对记录与更新文档，不将原测试记作新测。本轮未push/merge/tag/deploy，不改变以下生产记录。
+
 当前生产（2026-10-02）：**2.8 Foundation · P0维护 / Sites v29**，实际部署源码 `2ad04ee645ee588b16ede15c43fb093ed395419e`。用户明确授权上传部署后，PR #1正常合入main；该源码main CI run37003666727完整npm ci→npm test成功，288/288、0失败/跳过。Sites deployment appgdep_6abf9c2244988191abab6a6709a5ff03于11:59:09 UTC确认succeeded，环境revision3、public及应用访问码不变。发布记录tasks/archive/MR-PUBLISH-HISTORY28-P0.md；后续文档提交不重新部署。完整2.8真实价格/正式保管/研究未完成项继续开放，未新增真实采集/数据库/调度。本轮不重复生产登录后或真机验收。
 
 以下为P0开发/隔离与v28及更早阶段事实，不代表当前生产仍未发布：
