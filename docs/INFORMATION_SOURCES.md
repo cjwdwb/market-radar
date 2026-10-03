@@ -1,6 +1,8 @@
 # 官方项目与公司产品资料
 
-2026-10-03，[任务卡](../tasks/MR-29-INFORMATION-SOURCES-PUBLISH.md)。在已验证的[FED入口](INFORMATION_DELIVERY.md)之上新增有限官方资料。基线main `2ad86814abf5a0f40c50d7ad463d1de6633a859f`，CI run37115019039成功；发布前生产Sites v31/source c28de66。实际发布另记，不把本地测试当生产验收。
+2026-10-03正式发布：**Market Radar 2.9 官方资料 / Sites v32**，源码 `4a4b7fb66ac4fc10663087b42a09e08c55804e2a`，平台succeeded，环境revision3。原网址 https://market-radar-rex.swt-aether.chatgpt.site 。[PR #4](https://github.com/cjwdwb/market-radar/pull/4)正常合并，PR/main CI各386/386通过。新增5个官方项目/产品25条资料，加FED2条；财报/媒体新闻仍未覆盖，实时行情/访问设置不变，无持续采集。后续文档提交不重新部署；生产登录后与iPhone本轮NOT RUN。[发布记录](../tasks/archive/MR-29-INFORMATION-SOURCES-PUBLISH.md)。
+
+2026-10-03，[任务卡](../tasks/archive/MR-29-INFORMATION-SOURCES-PUBLISH.md)。在已验证的[FED入口](INFORMATION_DELIVERY.md)之上新增有限官方资料。基线main `2ad86814abf5a0f40c50d7ad463d1de6633a859f`，CI run37115019039成功；发布前生产Sites v31/source c28de66。实际发布另记，不把本地测试当生产验收。
 
 ## 实际覆盖
 

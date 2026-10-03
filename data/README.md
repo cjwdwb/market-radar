@@ -1,5 +1,7 @@
 # 数据与验收文件索引
 
+已发布官方资料：[`official-information.json`](published/official-information.json)为5个官方项目/产品25条版本事实，[`fed-monetary.json`](published/fed-monetary.json)为2条FED货币政策元数据。只含已审核公开字段，保留来源链接和current-vintage时间；非新闻全集、非财报。Sites v32上线，原库和备份不上传；[许可/覆盖/维护](../docs/INFORMATION_SOURCES.md)。
+
 已发布长期日频：[coinmetrics-long20261003.json](published/coinmetrics-long20261003.json)，360699bytes，BTC/ETH各1828个真实USD日终参考价，2021-10-01至2026-10-02。沿用下方Coin Metrics / CC BY-NC4署名、非商业用途和current_vintage身份；实际取得于2026-10-03。仅公开批准的原响应与来源版本，不含SQLite、私有配置或凭据。既有命令加`long`可从本地归档重新校验导出，118页与SQLite完整对象一致；旧九月/五月批次不覆盖。已随Sites v31/sourcec28de66上线，公开包不等于原库的异地保管。详情见[当前状态](../docs/CURRENT_STATE.md)。
 
 项目内保管与公开发布分开。可公开的两份示例位于 `public/examples`，随仓库/网站发布；原始数据库和备份仍在被Git忽略的本地目录。没有将真实价格变成fixture，也没有启用云端同步。

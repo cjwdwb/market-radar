@@ -1,5 +1,9 @@
 # 当前状态
 
+2026-10-03正式发布：**Market Radar 2.9 官方资料 / Sites v32**，源码 `4a4b7fb66ac4fc10663087b42a09e08c55804e2a`，平台succeeded，环境revision3。原网址 https://market-radar-rex.swt-aether.chatgpt.site 。[PR #4](https://github.com/cjwdwb/market-radar/pull/4)正常合并，PR/main CI各386/386通过。新增5个官方项目/产品25条资料，加FED2条；财报/媒体新闻仍未覆盖，实时行情/访问设置不变，无持续采集。后续文档提交不重新部署；生产登录后与iPhone本轮NOT RUN。[发布记录](../tasks/archive/MR-29-INFORMATION-SOURCES-PUBLISH.md)。
+
+以下本地候选/未发布说明为此前阶段记录。
+
 2026-10-03官方资料发布候选：[来源报告](INFORMATION_SOURCES.md)，5个官方项目/产品25条事实＋FED2条资料，真实保存/去重/恢复及五视口23组已验证；Node385PASS/1Windows权限skip、build/typecheck/scoped lint通过。公司财报/新闻仍因访问/许可限制未接入，不称全部资讯。上传部署另记录，下面保留先前阶段状态。
 
 2026-10-03本地信息入口：[交付报告](INFORMATION_DELIVERY.md)。FED官方货币政策资料首次展开直接读取站点审核快照，保留文件导入；修复固定九月起点跨31日失效。真实2请求19,290字节、原2条事实无重复新增，逐表恢复/两新进程一致，采集已关闭。Node376PASS/1Windows权限skip、build/typecheck/scoped lint、五视口与旧导入/动效17组通过，独立GPT产品审计与文档VERIFY PASS，无confirmed finding；[归档卡](../tasks/archive/MR-29-INFORMATION-DELIVERY.md)。未提交/上传/部署，minute29成果保留，现有生产仍为下方Sites v31；不是完整新闻覆盖，真实分钟/异地保管仍开放。

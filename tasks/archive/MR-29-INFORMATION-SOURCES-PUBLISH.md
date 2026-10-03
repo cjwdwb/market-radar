@@ -1,6 +1,6 @@
 # MR-29-INFORMATION-SOURCES-PUBLISH
 
-2026-10-03，独立VERIFY通过，进入上传发布。用户明确要求把币圈项目和公司信息也接入，并上传部署；仅限Market Radar。允许既有免费官方来源的有限采集/保存/展示、GitHub PR/CI/正常合并及原Sites发布；不购买、不创建新账户/调度、不修改秘密/访问策略。
+2026-10-03，COMPLETE — 有限官方资料已上传发布。用户明确要求把币圈项目和公司信息也接入，并上传部署；仅限Market Radar。允许既有免费官方来源的有限采集/保存/展示、GitHub PR/CI/正常合并及原Sites发布；不购买、不创建新账户/调度、不修改秘密/访问策略。
 
 ## 基线和保留
 
@@ -48,4 +48,12 @@ SEC三个标准文档/数据入口403，停止访问，不换身份/代理绕过
 
 ## 最终本地候选
 
-详见[来源交付报告](../docs/INFORMATION_SOURCES.md)。真实25条新官方版本资料与既有2条FED资料；新调查24HTTP/1353312bytes，复用响应不重复下载。385PASS/1Windows权限SKIP，专项12PASS，build/typecheck/scoped lint通过；最终五视口23组PASS。独立审计P2子根路径、P3 Geth许可标签均修，最终VERIFY PASS。审计者独立20项只读负向路径检查通过，25暂存文件与报告核对一致；未重跑完整测试/浏览器，不冒称远端CI/生产通过。旧production v31未在本地阶段改动，GitHub/部署待下阶段记录。
+详见[来源交付报告](../../docs/INFORMATION_SOURCES.md)。真实25条新官方版本资料与既有2条FED资料；新调查24HTTP/1353312bytes，复用响应不重复下载。385PASS/1Windows权限SKIP，专项12PASS，build/typecheck/scoped lint通过；最终五视口23组PASS。独立审计P2子根路径、P3 Geth许可标签均修，最终VERIFY PASS。审计者独立20项只读负向路径检查通过，25暂存文件与报告核对一致；未重跑完整测试/浏览器，不冒称远端CI/生产通过。旧production v31未在本地阶段改动，GitHub/部署待下阶段记录。
+
+## GitHub与实际部署
+
+候选887ae99e36ac3b5317a6ef9ab69dd1fd3a3704a9，经PR #4正常合并为4a4b7fb66ac4fc10663087b42a09e08c55804e2a；tree均25e4ad5a509f16783b6890d1943eb780ad73bf7b。PR run37128514255/job111218688183，main run37128599240/job111218938679，Ubuntu/Node22.15执行npm ci→npm test各386PASS/0FAIL/0SKIP。既有chunk警告保留。
+
+Sites官方workflow重新open取得当前SHA，再同步源码成功；Windows package-site无法启动，本机未生成archive。按原生工具允许的无archive远端构建fallback保存v32：appgprj_6a9b9dc23584819190a31ae417863e7a~appgver_6214008f5bdc819183abf31245e0891f。deployment appgdep_6ac10cdc5044819187b34baa7345f0b3于2026-10-03T14:12:26.019948Z返回succeeded，env revision3，https://market-radar-rex.swt-aether.chatgpt.site 。凭据仅隐藏stdin/内存，没有写文件；未修改访问策略、秘密、调度或生产数据库。后续文档提交不重新部署。
+
+入口：Radar → 项目与公司更新 / 官方宏观资料。是已保存官方事实快照，不是自动新闻流；刷新仅读取发布包。25+2条真实资料可用，财报/媒体申报受许可/访问限制仍开放。完整2.9真实分钟、真实分钟研究、异地保管等不因本片发布关闭。生产登录后/真机NOT RUN，平台成功不替代。

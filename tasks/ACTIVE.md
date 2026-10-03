@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-29-INFORMATION-SOURCES-PUBLISH — 候选已验证，待上传部署
+## MR-29-INFORMATION-SOURCES-PUBLISH — 已上传部署，有限覆盖归档
 
-[任务卡](MR-29-INFORMATION-SOURCES-PUBLISH.md)。用户已授权接入币圈项目/公司官方资料并上传部署；复用已验证FED入口。免费来源有限覆盖，真实身份/许可先核对，未授权购买/常驻调度。保留minute29工作，不修改其他项目。
+[任务卡](archive/MR-29-INFORMATION-SOURCES-PUBLISH.md)，[来源报告](../docs/INFORMATION_SOURCES.md)。PR#4/source 4a4b7fb66ac4fc10663087b42a09e08c55804e2a，PR/main CI各386/386；独立审计两项finding修复后VERIFY PASS；Sites v32原生succeeded/env revision3。5源25条项目/公司产品版本事实与FED2条，五视口23组通过。财报/媒体新闻仍未接入，完整2.9分钟/异地保管仍开放；无新调度/秘密/生产DB改动。下段为前轮FED本地交付历史，现已一并发布。
 
 ## MR-29-INFORMATION-DELIVERY — 本地交付已验证，归档
 

@@ -1,5 +1,7 @@
 # 官方信息入口交付（2026-10-03）
 
+后续发布说明：本报告记载的FED本地成果已于2026-10-03随Sites v32/source 4a4b7fb66ac4fc10663087b42a09e08c55804e2a上线；[联合交付与限制](INFORMATION_SOURCES.md)。以下“本轮未发布”保留原阶段事实。
+
 任务[MR-29-INFORMATION-DELIVERY](../tasks/archive/MR-29-INFORMATION-DELIVERY.md)已本地验证归档；独立 `codex/mr-29-information-delivery` 工作树，源码基线 `2ad86814abf5a0f40c50d7ad463d1de6633a859f`，本轮未提交。现有生产仍为 **Sites v31 / c28de66a26237d760d67f839fecbbecfc3eb4a4e**；本轮未 push、部署、开通资源或启用调度。minute29 未提交成果未改动；不关闭真实分钟历史等 2.9 待办。
 
 ## 使用与来源边界
