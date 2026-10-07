@@ -1,5 +1,7 @@
 # 当前状态
 
+2026-10-07后续上传：用户另行授权“上传吧”，3.0A产品已上传独立分支，commit `15535d600b9a9eadc1f80c57698c98c5dd7c8857`、[PR#5](https://github.com/cjwdwb/market-radar/pull/5)。首轮Ubuntu/Node22.15 CI37632197422执行npm test（build/typecheck及418/418 Node）成功。后续文档记录不改产品；最新PR head/checks见GitHub。[上传归档](../tasks/archive/MR-UPLOAD-AI30A.md)。未合并main、未部署Sites；真实模型仍关闭，现有生产Sitesv32不变。下方“未上传/CI NOT RUN”为开发阶段记录。
+
 2026-10-07 新路线：2.9 按 **Real Data & Research Foundation** 已交付范围收口，[承接表](FOUNDATION29_HANDOFF.md)保留能力边界；真实分钟等原目标归 [Data Track](../tasks/DATA-MINUTE-HISTORY.md)，不再阻塞 3.0A Foundation。下方历史未完成/受阻记录原样保留。3.0A [本地Foundation完成](AI_FOUNDATION.md)：运行时Context、fixture Provider、结构/引用校验、共享按需解释UI、32定向/417全量PASS（1权限skip）、五视口及独立GPT VERIFY。真实模型不启用，候选远端CI、本轮生产登录后与真机NOT RUN。本輪未上传、合并或部署；现有生产仍 Sites v32 / source4a4b7fb。
 
 2026-10-03正式发布：**Market Radar 2.9 官方资料 / Sites v32**，源码 `4a4b7fb66ac4fc10663087b42a09e08c55804e2a`，平台succeeded，环境revision3。原网址 https://market-radar-rex.swt-aether.chatgpt.site 。[PR #4](https://github.com/cjwdwb/market-radar/pull/4)正常合并，PR/main CI各386/386通过。新增5个官方项目/产品25条资料，加FED2条；财报/媒体新闻仍未覆盖，实时行情/访问设置不变，无持续采集。后续文档提交不重新部署；生产登录后与iPhone本轮NOT RUN。[发布记录](../tasks/archive/MR-29-INFORMATION-SOURCES-PUBLISH.md)。

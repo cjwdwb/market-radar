@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-UPLOAD-AI30A — 上传执行中
+## MR-UPLOAD-AI30A — 已上传 GitHub，未合并或部署
 
-用户已明确授权上传3.0A Foundation。[上传卡](MR-UPLOAD-AI30A.md)限定独立分支/PR/既有CI，不合并main、不部署网站；原分钟成果保留。远端结果按实际完成补记，不预填成功。
+用户已明确授权上传3.0A Foundation。[归档卡](archive/MR-UPLOAD-AI30A.md)：产品15535d60，独立分支codex/mr-30-ai-foundation，[PR#5](https://github.com/cjwdwb/market-radar/pull/5)。远端tree与本地index一致；Ubuntu/Node22.15首轮PR CI37632197422执行build/typecheck及418/418测试通过。后续仅补记录，产品不变，最新checks见PR。main未合并、网站未部署，原分钟26文件保留。
 
 ## MR-30-AI-FOUNDATION — 本地 Foundation 完成，归档
 

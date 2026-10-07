@@ -2,6 +2,8 @@
 
 2026-10-07，本地隔离候选。规则与证据解释基础，不是预测系统或真实模型上线。
 
+后续上传（用户另行授权）：产品 `15535d600b9a9eadc1f80c57698c98c5dd7c8857`已到GitHub独立分支，[PR#5](https://github.com/cjwdwb/market-radar/pull/5)；tree `d1e29458dacf8b163c0a740d78f705143b29a6c2`与本地index一致。首轮[Ubuntu/Node22.15 CI](https://github.com/cjwdwb/market-radar/actions/runs/37632197422)执行npm test（含build/typecheck）418/418 PASS，0SKIP。后续仅补记录，产品不变；最新PR head/checks见GitHub。[上传归档](../tasks/archive/MR-UPLOAD-AI30A.md)。未合并main、未部署，真实模型继续关闭。下文“未上传、CI NOT RUN”等保留开发阶段时间与证据边界。
+
 ## 基线与路线
 
 工作树 `worktrees/ai30a`、分支 `codex/mr-30-ai-foundation`，源码基线 `de6eb05a0f6ba716c3c75f6e5db788c47feecb71`。本轮读取 GitHub main 同 SHA，既有 CI37128997504 completed/success；不是本轮候选 CI。Sites 平台新读取 active/latest32；部署源码按发布记录 `4a4b7fb66ac4fc10663087b42a09e08c55804e2a`。未登录生产或使用真机，本輪未上传、合并或部署。

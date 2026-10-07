@@ -16,4 +16,10 @@ main/本地基线 `de6eb05a0f6ba716c3c75f6e5db788c47feecb71`，本轮GitHub连�
 
 ## Execution
 
-状态 READY_TO_UPLOAD。本地origin指向现有Git代理并缺少认证，未修改remote或凭据；使用已连接GitHub的原生提交/分支/PR工具完成授权范围。此为认证不可用的正常替代，不涉及审批拒绝。
+状态 UPLOADED / CI_VERIFIED。本地origin指向现有Git代理并缺少认证，未修改remote或凭据；使用已连接GitHub的原生提交/分支/PR工具完成授权范围。此为认证不可用的正常替代，不涉及审批拒绝。
+
+产品提交 `15535d600b9a9eadc1f80c57698c98c5dd7c8857`，远端tree与本地规范化index完全一致：`d1e29458dacf8b163c0a740d78f705143b29a6c2`，30个批准文件。通过只读公开Git fetch取得同一对象，本地独立分支快进至同SHA，未reset/改remote/混入原工作树。
+
+[PR #5](https://github.com/cjwdwb/market-radar/pull/5)，base仍de6eb05a；既有[CI run37632197422](https://github.com/cjwdwb/market-radar/actions/runs/37632197422)/job112829052408成功。Ubuntu24.04/Node22.15执行npm ci → npm test（包含build/typecheck）418PASS/0FAIL/0SKIP；不是Windows历史证据。PR测试合成merge ref，不是已合并main；既有chunk/工具deprecated警告保留。
+
+原两分钟工作树26文件指纹全部一致。没有产品修复、模型调用、数据采集、push main、merge、tag、deploy或配置变更。后续仅补本次上传文档，产品内容不变；最终PR head/checks以GitHub记录为准。新代码本地测试不重复执行；本轮新增证据为远端CI。原开发审计及限制见[报告](../../docs/AI_FOUNDATION.md)。
