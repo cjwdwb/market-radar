@@ -2,8 +2,10 @@
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 import { accessGate, privateResponse, type AccessSecrets } from "./access-gate";
+import { handleInterpretation } from "./ai-interpretation";
 
 interface Env extends AccessSecrets {
+  AI_FIXTURE_ENABLED?: string;
   ASSETS: Fetcher;
   DB: D1Database;
   IMAGES: {
@@ -35,6 +37,7 @@ const worker = {
     }
     const accessResponse = await accessGate(request, env);
     if (accessResponse) return accessResponse;
+    if (url.pathname === "/api/interpretation") return privateResponse(await handleInterpretation(request, env));
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];

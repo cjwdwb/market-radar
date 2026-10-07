@@ -1,5 +1,7 @@
 # API 契约索引
 
+2026-10-07 本地 3.0A：`/api/interpretation` 在原 Worker 门禁之后。GET仅返回fixture/unconfigured，真实Provider始终false；POST仅同源JSON、16KiB，严格固定symbol/scenario。fixture只在loopback且服务端开关开启，生产503不回退演示；拒绝客户端Context/权限/model/Prompt/URL/key。返回严格fixture Result / 受控error码，private/no-store；无外部API/行情/数据库/采集。完整契约与预算见 [AI Foundation](AI_FOUNDATION.md)。本轮未发布，原线上协议不变。
+
 2026-10-03本地信息入口新增（未部署）：`GET /api/information`经原Worker accessGate，仅返回已审核构建输入的fed-monetary-view-v1。无参数；任何非空query400，非法发布包503，原门禁401/未支持方法405；private,no-store（Worker补max-age=0）。固定FED货币政策元数据、1MiB/200条/31日原校验、reconstructed/current-vintage；不接受URL/路径/SQL、不读数据库、不网络采集、不包含owner/run/账本。UI首次展开懒加载，保留本地文件导入和失败旧视图。准备方式与证据见[信息入口交付](INFORMATION_DELIVERY.md)。
 
 基线 87925c4；修改接口时同时核对这里指向的实现和调用方。下表是现状摘要，不是新协议。

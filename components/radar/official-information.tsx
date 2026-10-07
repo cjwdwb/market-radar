@@ -2,10 +2,11 @@
 import {useEffect,useMemo,useRef,useState} from "react";
 import {OFFICIAL_LIMIT,OFFICIAL_SOURCES,officialSource,parseOfficialView,queryOfficialView,type OfficialView} from "@/lib/information/official.mjs";
 const time=(at:number)=>new Date(at).toISOString().replace('T',' ').slice(0,19)+' UTC';
-export function OfficialInformation({symbol}:{symbol?:string}){
+export function OfficialInformation({symbol,onView}:{symbol?:string;onView?:(view:OfficialView)=>void}){
  const [view,setView]=useState<OfficialView|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(false),[mode,setMode]=useState('context'),[page,setPage]=useState(0),[checkedAt,setCheckedAt]=useState(0);
  const generation=useRef(0),attempted=useRef(false),controller=useRef<AbortController|null>(null);
  useEffect(()=>()=>{generation.current++;controller.current?.abort();},[]);
+ useEffect(()=>{if(view)onView?.(view);},[view,onView]);
  // 换资产只改变本地筛选，不产生新请求；页码随身份重置。
  const selection=mode==='context'?(symbol??'all'):mode;
  const [pageIdentity,setPageIdentity]=useState(selection);

@@ -1,5 +1,13 @@
 # 当前任务索引
 
+## MR-UPLOAD-AI30A — 上传执行中
+
+用户已明确授权上传3.0A Foundation。[上传卡](MR-UPLOAD-AI30A.md)限定独立分支/PR/既有CI，不合并main、不部署网站；原分钟成果保留。远端结果按实际完成补记，不预填成功。
+
+## MR-30-AI-FOUNDATION — 本地 Foundation 完成，归档
+
+2026-10-07 新路线决定：[2.9 Foundation 收口](../docs/FOUNDATION29_HANDOFF.md)，原未完目标转 [DATA-MINUTE-HISTORY](DATA-MINUTE-HISTORY.md)，原证据不改写。[3.0A 归档卡](archive/MR-30-AI-FOUNDATION.md)与[报告](../docs/AI_FOUNDATION.md)：独立 `worktrees/ai30a` / `codex/mr-30-ai-foundation`，基线 de6eb05a，实现 Context / fixture Provider / 验证 / 按需 UI。32定向、417全量PASS/1权限skip、build/typecheck、新代码lint、五视口6组及独立GPT最终VERIFY PASS；两个P2取消/超时finding均修复。真实模型关闭、生产/真机/候选CI NOT RUN；未上传、合并或部署。现有生产 Sites v32 继续运行。原 minute29 / minute-gate29 的26文件保留，未混入本轮候选。
+
 ## MR-29-INFORMATION-SOURCES-PUBLISH — 已上传部署，有限覆盖归档
 
 [任务卡](archive/MR-29-INFORMATION-SOURCES-PUBLISH.md)，[来源报告](../docs/INFORMATION_SOURCES.md)。PR#4/source 4a4b7fb66ac4fc10663087b42a09e08c55804e2a，PR/main CI各386/386；独立审计两项finding修复后VERIFY PASS；Sites v32原生succeeded/env revision3。5源25条项目/公司产品版本事实与FED2条，五视口23组通过。财报/媒体新闻仍未接入，完整2.9分钟/异地保管仍开放；无新调度/秘密/生产DB改动。下段为前轮FED本地交付历史，现已一并发布。

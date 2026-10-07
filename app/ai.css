@@ -1,0 +1,13 @@
+.ai-interpretation{width:100%;min-width:0;margin-top:16px;border-top:1px solid var(--line-subtle);font-size:14px;line-height:1.7}
+.ai-interpretation>summary{min-height:44px;display:flex;align-items:center;gap:12px;cursor:pointer;font-weight:500;list-style:revert}
+.ai-interpretation>summary span{font-size:12px;color:var(--text-secondary);font-weight:400}
+.ai-body,.ai-result{min-width:0}.ai-body p{margin:8px 0;color:var(--text-secondary)}
+.ai-actions{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}.ai-actions .btn{min-height:44px}
+.ai-scenario{display:flex;align-items:center;gap:12px;margin:12px 0}.ai-scenario select{min-width:0;max-width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--line-strong);border-radius:var(--radius-control);background:var(--surface-raised);color:var(--text-primary);font:inherit}
+.ai-result{margin-top:16px;padding-top:12px;border-top:1px solid var(--line-subtle);overflow-wrap:anywhere}.ai-result-heading{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px}.ai-result-heading small,.ai-basis{font-size:12px;color:var(--text-secondary)}
+.ai-body .ai-summary{font-size:16px;color:var(--text-primary);font-weight:500}.ai-body h4{font-size:14px;font-weight:500;margin:12px 0 4px}.ai-body ul{margin:8px 0;padding-left:20px}.ai-body li{margin:4px 0}
+.ai-body details{margin-top:12px}.ai-body details>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;color:var(--text-primary)}
+.ai-evidence>section{padding:12px 0;border-bottom:1px solid var(--line-subtle)}.ai-evidence dl{margin:8px 0}.ai-evidence dl>div{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}.ai-evidence dd{margin:0;font-variant-numeric:tabular-nums}.ai-evidence small{color:var(--text-secondary)}
+.ai-feedback{padding:8px 0}.ai-local-context{border-top:1px solid var(--line-subtle);padding-top:4px;overflow-wrap:anywhere}.ai-classic-link{margin-top:8px;min-height:44px;white-space:normal}
+.ai-reference{display:inline-flex;align-items:center;min-height:44px;padding:4px 8px;margin-left:8px;font-size:12px;color:var(--text-secondary);border:1px solid var(--line-subtle);border-radius:var(--radius-control);background:transparent;cursor:pointer;overflow-wrap:anywhere}.ai-reference:focus-visible{outline:2px solid var(--text-primary);outline-offset:2px}
+@media(max-width:600px){.ai-interpretation>summary{align-items:flex-start;justify-content:center;flex-direction:column;gap:0;padding:8px 0}.ai-body{font-size:14px}.ai-scenario select{font-size:16px}}

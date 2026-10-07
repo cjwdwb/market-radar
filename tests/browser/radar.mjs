@@ -870,10 +870,39 @@ async function visualCapture(browser, phase) {
  }
  fs.writeFileSync(`${folder}/measurements.json`,JSON.stringify(measures,null,2));fs.writeFileSync(`${folder}/console.json`,JSON.stringify({browser:browser.version(),warnings:observedWarnings},null,2));console.log(JSON.stringify(measures));
 }
+async function aiFoundationChecks(browser,report){
+ for(const [name,width,height,pref] of [['desktop',1440,1000,'normal'],['tablet',768,1024,'system'],['mobile',390,844,'reduced'],['narrow',320,740,'system'],['landscape',844,390,'normal']]){
+  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',motionPreference:pref}),p=app.page,aiRequests=[];
+  p.on('request',r=>{if(new URL(r.url()).pathname==='/api/interpretation')aiRequests.push({method:r.method(),body:r.postData()});});
+  await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.candle-canvas').waitFor();
+  assert.equal(aiRequests.length,0);await p.locator('.asset-radar-awareness').click();const ai=p.locator('.ai-interpretation');
+  assert.equal(await ai.getAttribute('open'),null);await ai.locator(':scope>summary').focus();await p.keyboard.press('Enter');assert.equal(await ai.getAttribute('open'),'');assert.equal(aiRequests.length,0);
+  const started=performance.now();await ai.getByRole('button',{name:'查看解释',exact:true}).click();await ai.locator('.ai-result').waitFor();
+  const latency=performance.now()-started;assert.match(await ai.innerText(),/演示结果 \/ 未调用真实模型/);assert.match(await ai.innerText(),/不解释当前实时行情/);
+  assert.equal(aiRequests.filter(r=>r.method==='POST').length,1);assert.deepEqual(Object.keys(JSON.parse(aiRequests.find(r=>r.method==='POST').body)).sort(),['scenario','symbol']);
+  await ai.getByRole('button',{name:'重新查看演示'}).click();await p.waitForFunction(()=>document.querySelector('.ai-result-heading')?.textContent.includes('缓存'));
+  const id=await ai.locator('.ai-result').getAttribute('data-context-id');
+  await ai.getByRole('button',{name:'核对证据 short.direction',exact:true}).click();assert.equal(await ai.locator('.ai-evidence').getAttribute('open'),'');assert.match(await ai.locator('.ai-evidence').innerText(),/净变化|窗口净变化/);assert.match(await ai.locator('.ai-evidence').innerText(),/fixture:/);assert.equal(await p.evaluate(()=>document.activeElement?.id),'ai-evidence-short.direction');await ai.locator('.ai-evidence>summary').click();
+  for(const button of await ai.locator('.ai-actions button').all())assert.ok((await button.boundingBox()).height>=44);
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await ai.locator('.ai-result').evaluate(el=>{el.scrollIntoView({block:'start',behavior:'instant'});window.scrollBy({top:-85,behavior:'instant'});});await pause(100);await p.screenshot({path:`${output}/ai-${name}.png`});
+  await ai.getByRole('button',{name:'返回图表',exact:true}).click();await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
+  const beforeNavigation=aiRequests.length;await p.locator('.ai-classic-link').click();assert.equal(await ai.locator('.ai-result').getAttribute('data-context-id'),id);assert.equal(aiRequests.length,beforeNavigation);
+  await ai.getByRole('button',{name:'返回图表',exact:true}).click();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
+  assert.deepEqual(app.errors,[]);report.viewports.push({name,width,height,motionPreference:pref,os:'reduce',synthetic:true,interpretationLatencyMs:latency});
+  report.checks.push(`${name}: collapsed/keyboard/on-demand POST/server fixture/validated references/cache/44px/no overflow/shared result/week return`);report.errors.push(...app.errors);await app.context.close();
+ }
+ const app=await fixture(browser,{mode:'state26-gentle'}),p=app.page;await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.asset-radar-awareness').click();const ai=p.locator('.ai-interpretation');await ai.locator(':scope>summary').click();
+ await p.route('**/api/interpretation',async r=>{if(r.request().method()==='POST')await pause(600);await r.continue().catch(()=>{});});
+ await ai.getByRole('button',{name:'查看解释',exact:true}).click();await ai.getByRole('button',{name:'取消解释'}).click();await pause(750);assert.equal(await ai.locator('.ai-result').count(),0);assert.match(await ai.innerText(),/已取消/);
+ await ai.getByRole('button',{name:'查看解释',exact:true}).click();await p.locator('.radar-watch-row').filter({hasText:'NVDA'}).locator('button').first().click();await pause(750);await p.locator('.asset-radar-awareness').click();assert.equal(await ai.getAttribute('data-ai-symbol'),'NVDA');assert.equal(await ai.locator('.ai-result').count(),0);
+ await p.unroute('**/api/interpretation');await p.route('**/api/interpretation',r=>r.fulfill({json:{mode:'unconfigured',realProviderEnabled:false}}));if(!await ai.getAttribute('open'))await ai.locator(':scope>summary').click();await ai.getByRole('button',{name:'查看解释',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.ai-feedback')?.textContent.includes('尚未配置'));assert.equal(await ai.locator('.ai-result').count(),0);
+ report.checks.push('cancel releases UI; late old BTC request does not cover NVDA; unconfigured stays local');assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);await app.context.close();
+}
 (async()=>{
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={browser:browser.version(),viewports:[],checks:[],errors:[],warnings:observedWarnings};let page;
  try{
+  if(process.env.RADAR_AI30_ONLY==='1'){await aiFoundationChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_STATE26_REFINEMENT_PHASE){await state26RefinementChecks(browser,report,process.env.RADAR_STATE26_REFINEMENT_PHASE);return;}
   if(process.env.RADAR_REFINEMENT_PHASE){await refinementChecks(browser,report,process.env.RADAR_REFINEMENT_PHASE);return;}
   if(process.env.RADAR_VISUAL_PHASE){await visualCapture(browser,process.env.RADAR_VISUAL_PHASE);return;}

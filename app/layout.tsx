@@ -4,6 +4,7 @@ import "./mono.css";
 import "./motion.css";
 import "./mobile.css";
 import "./radar.css";
+import "./ai.css";
 import { MotionExperience } from "@/components/motion-experience";
 import { MOTION_BOOTSTRAP } from "@/lib/motion-preference";
 
