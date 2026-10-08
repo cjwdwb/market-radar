@@ -1,6 +1,10 @@
 "use client";
 
 import { memo, useState } from "react";
+import { AIInterpretation } from "./ai-interpretation";
+import type { InterpretationController } from "./use-interpretation";
+import type { MarketIntelligenceContext } from "@/lib/ai/contracts";
+import type { OfficialView } from "@/lib/information/official.mjs";
 import { ArrowUpRight, Plus, ScanLine, Star, X } from "lucide-react";
 import { assetFor, displaySymbol, MARKET_LABELS, type Market } from "@/lib/market";
 import type { AssetIntelligenceContext, RadarCoverage, RadarEvidenceItem, RadarIntelligence, RadarIntelligenceEvent } from "@/lib/radar/types";
@@ -46,9 +50,10 @@ type Props = {
   watchStates: ReadonlyMap<string, AssetState>; onExport: () => void; exportReady: boolean;
   scanning: boolean; loading: boolean; online: boolean;
   assetContext?: AssetIntelligenceContext; assetState?: AssetState; onClearContext: () => void; priceAlertCounts: ReadonlyMap<string, number>;
+  interpretation?: InterpretationController; aiContext?: MarketIntelligenceContext | null; onInformationView?: (view:OfficialView)=>void;
   onAsset: (event: RadarIntelligenceEvent | string) => void; onWatch: (symbol: string) => void; onAlert: (symbol: string) => void; onAdd: () => void; onRemove: (symbol: string) => void;
 };
-export function RadarFeed({ intelligence, coverage, watchlist, watchStates, onExport, exportReady, scanning, loading, online, onAsset, onWatch, onAlert, onAdd, onRemove, assetContext, assetState, onClearContext, priceAlertCounts }: Props) {
+export function RadarFeed({ intelligence, coverage, watchlist, watchStates, onExport, exportReady, scanning, loading, online, onAsset, onWatch, onAlert, onAdd, onRemove, assetContext, assetState, interpretation, aiContext, onInformationView, onClearContext, priceAlertCounts }: Props) {
   const [filter, setFilter] = useState("all"), [showHistory, setShowHistory] = useState(false);
   const ready = coverage.filter(item => item.eligible).length;
   const scopedReady = coverage.some(item => item.eligible && (assetContext ? item.symbol === assetContext.symbol : filter === "watchlist" ? watchlist.includes(item.symbol) : filter === "all" || filter === "priority" || assetFor(item.symbol).market === filter));
@@ -61,6 +66,7 @@ export function RadarFeed({ intelligence, coverage, watchlist, watchStates, onEx
   return <section className="radar-experience" id="radar" aria-label="Radar 市场事件">
     <div className="radar-intro"><div><span className="radar-eyebrow">LET THE MARKET COME TO YOU.</span><h2>少一点噪声。<br/>理解值得关注的变化。</h2><p>同步基准、结构化证据和组合事件，让异常更容易判断。</p></div><div className="radar-scan-status" role="status"><ScanLine size={21}/><strong>{headline}</strong><span>{ready} / {coverage.length} 个标的基线可用</span><small>仅扫描当前自选、市场概览与已加载的标的</small></div></div>
     {assetContext && <section className="radar-asset-context" data-symbol={assetContext.symbol} data-freshness={assetContext.freshness.state} aria-label={`${assetContext.symbol} 的 Radar 上下文`}><div><span className="context-label">FROM CLASSIC</span><h2>{displaySymbol(assetContext.symbol)} <small>{assetContext.symbol}</small></h2><p>{assetIntelligenceSummary(assetContext)}</p></div><div className="context-actions"><button className="btn" onClick={()=>onAsset(assetContext.symbol)}>返回图表</button><button className="btn" onClick={onClearContext}>退出资产筛选</button></div>{assetState?.symbol === assetContext.symbol && <AssetStateSummary state={assetState}/>}<AssetIntelligenceDetails context={assetContext} state={assetState} onReturn={()=>onAsset(assetContext.symbol)}/></section>}
+    {assetContext && interpretation && <AIInterpretation controller={interpretation} context={aiContext ?? null} onChart={()=>onAsset(assetContext.symbol)}/>}
     {!assetContext && summary.activeEvents > 0 && <section className="radar-summary" aria-labelledby="radar-summary-title"><div><span>LAST 60 MINUTES</span><h2 id="radar-summary-title">{summary.watchlistAssets ? `${summary.watchlistAssets} 个自选标的需要关注` : `${summary.activeEvents} 个市场事件`}</h2><p>{summary.priorityEvents} 个高优先事件 · 已按自选、组合证据与可信度排序</p></div><ol>{summary.highlights.map(event => <li key={event.id}><button onClick={() => onAsset(event)}><strong>{displaySymbol(event.symbol)}</strong><span>{event.title}</span><small>{event.metric}</small></button></li>)}</ol></section>}
     <div className="radar-layout"><div className="radar-feed-column"><div className="radar-feed-toolbar"><div><h2>市场情报 <span className="count">{filtered.length}</span></h2><p>原始信号保留 · 相关事件已组合 · 当前页面会话记录</p></div><label className="radar-history-toggle"><input type="checkbox" checked={showHistory} onChange={event => setShowHistory(event.target.checked)}/>包含历史</label></div>
       <div className="radar-filter-wrap" hidden={!!assetContext}><div className="radar-filters" aria-label="筛选 Radar">{filters.map(([key, label]) => <button key={key} className="btn" aria-pressed={filter === key} onClick={() => setFilter(key)}>{label}</button>)}</div><span className="radar-filter-hint">横向滑动查看更多筛选</span></div>
@@ -69,7 +75,7 @@ export function RadarFeed({ intelligence, coverage, watchlist, watchStates, onEx
     </div><aside className="radar-sidebar"><section className="panel radar-watchlist"><div className="panel-heading"><h2><Star size={16}/>My Radar <span className="count">{watchlist.length}</span></h2><button className="icon-btn" aria-label="Radar 添加自选" onClick={onAdd}><Plus size={17}/></button></div><p>同源状态 · 保留自选顺序。90 / 180 分钟固定观测，缺失不计为中性。</p><div>{watchlist.map(symbol => <section className="radar-watch-asset" key={symbol}><div className="radar-watch-row"><button onClick={() => onAsset(symbol)}><strong>{displaySymbol(symbol)}</strong><small>{assetFor(symbol).name}</small></button><button className="icon-btn" aria-label={`Radar 移除 ${symbol}`} onClick={() => onRemove(symbol)}><X size={15}/></button></div>{watchStates.has(symbol)&&<WatchlistState state={watchStates.get(symbol)!}/>}</section>)}</div>{!watchlist.length&&<p>尚未添加自选。</p>}<div className="watch-state-export"><button className="btn watch-export" onClick={onExport} disabled={!exportReady}>导出当前自选</button><p className="watch-export-note">仅下载本地名单，不含提醒或设置，不会启用采集。</p></div></section>
       <section className="panel radar-coverage-summary" aria-label="My Radar 覆盖概况"><div className="panel-heading"><h3>覆盖概况</h3><span className={`coverage-state coverage-${coverageSummary.state}`}>{coverageSummary.state === "ready" ? "完整" : coverageSummary.state === "partial" ? "部分" : coverageSummary.state === "waiting" ? "等待" : "—"}</span></div><p>{coverageSummary.total ? `${coverageSummary.ready} 个完整 · ${coverageSummary.partial} 个部分 · ${coverageSummary.waiting} 个等待` : "添加资产后开始监控"}</p></section>
       <details className="panel radar-coverage"><summary>扫描覆盖与限制 <span>{ready}/{coverage.length}</span></summary><ul>{coverage.map(item => <li key={item.symbol}><strong>{item.symbol}</strong><span>{item.reason}</span>{item.relativeReason && <small>相对信号：{item.relativeReason}</small>}</li>)}</ul><p>相对强弱只比较同步、同源、同币种的 15 分钟窗口。缺失 benchmark 时不生成相对事件。</p><p>股票量能、加密 5 分钟与跨设备历史尚未启用。不使用 AI 猜测行情原因。</p></details>
-      <OfficialInformation symbol={assetContext?.symbol ?? assetState?.symbol}/>
+      <OfficialInformation symbol={assetContext?.symbol ?? assetState?.symbol} onView={onInformationView}/>
       <MacroTimeline/>
 
     </aside></div>

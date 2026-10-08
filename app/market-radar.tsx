@@ -27,6 +27,8 @@ import { buildWatchlistState } from "@/lib/radar/watchlist-state";
 import { browserWatchlistExport, type WatchlistOrigin } from "@/lib/radar/watchlist-export";
 import { WatchlistState } from "@/components/radar/watchlist-state";
 import { useRadar } from "@/components/radar/use-radar";
+import { useInterpretation } from "@/components/radar/use-interpretation";
+import type { OfficialView } from "@/lib/information/official.mjs";
 import { experienceForHash } from "@/lib/radar/navigation";
 import { benchmarkSymbols } from "@/lib/radar/engine";
 import { buildAssetIntelligenceContext, chartRangeForEvent, enabledPriceAlertCounts, resolveRadarEvent, type RadarEventReference } from "@/lib/radar/workflow";
@@ -74,6 +76,7 @@ export default function MarketRadar(){
   const [quotes,setQuotes]=useState<Record<string,Quote>>({});
   const [errors,setErrors]=useState<Record<string,string>>({});
   const [loading,setLoading]=useState(true);
+  const [officialView,setOfficialView]=useState<OfficialView|null>(null);
   const [lastFetched,setLastFetched]=useState<number>();
   const [auto,setAuto]=useState(true);
   const [visible,setVisible]=useState(true);
@@ -179,6 +182,19 @@ export default function MarketRadar(){
   const selectedRadar=useMemo(()=>buildAssetIntelligenceContext({events:radar.intelligence.events,coverage:radar.coverage,symbol:selected,now,enabled:hydrated&&mayRun,online,isWatched:watchlist.includes(selected),enabledAlertCount:priceAlertCounts.get(selected)??0}),[radar.intelligence.events,radar.coverage,selected,now,hydrated,mayRun,online,watchlist,priceAlertCounts]);
   const watchStates=useMemo(()=>buildWatchlistState({snapshot:radarSnapshot,watchlist,selected,now,enabled:!hydrated||mayRun,online}),[radarSnapshot,watchlist,selected,now,hydrated,mayRun,online]);
   const selectedState=watchStates.states.get(selected)!;
+  const interpretation=useInterpretation(selected);
+  const [aiContextModule,setAiContextModule]=useState<typeof import("@/lib/ai/context")|null>(null);
+  useEffect(()=>{
+    if(!radarAssetFocus||marketMode!=="radar"||aiContextModule)return;
+    let active=true;
+    void import("@/lib/ai/context").then(module=>{if(active)setAiContextModule(module);}).catch(()=>{});
+    return()=>{active=false;};
+  },[radarAssetFocus,marketMode,aiContextModule]);
+  const aiContext=useMemo(()=>{
+    if(now===undefined||!aiContextModule)return null;
+    try{return aiContextModule.buildMarketContext({symbol:selected,quote:quotes[selected],state:selectedState,radar:selectedRadar,now,online,enabled:mayRun,information:aiContextModule.loadedInformationFacts(officialView,selected)});}
+    catch{return null;}
+  },[selected,quotes,selectedState,selectedRadar,now,online,mayRun,officialView,aiContextModule]);
   function exportWatchlist(){
     if(!hydrated)return;
     let url:string|undefined;
@@ -364,7 +380,7 @@ export default function MarketRadar(){
         <button className="runtime-link" onClick={()=>setSettingsOpen(true)}><Layers size={15}/>{backgroundTabs?"标签页后台已启用":"仅前台运行"}<ChevronRight size={14}/></button>
         <label className="refresh-label"><Switch checked={auto} onCheckedChange={setAuto} aria-label="自动刷新与提醒"/>自动监控</label>
       </section>
-      <div className="radar-view" hidden={marketMode!=="radar"}><RadarFeed intelligence={radar.intelligence} coverage={radar.coverage} watchlist={watchlist} watchStates={watchStates.states} onExport={exportWatchlist} exportReady={hydrated} scanning={mayRun} loading={loading} online={online} onAsset={viewAsset} onWatch={toggleRadarWatch} onAlert={openRadarAlert} priceAlertCounts={priceAlertCounts} assetContext={radarAssetFocus?selectedRadar:undefined} assetState={selectedState} onClearContext={()=>setRadarAssetFocus(false)} onAdd={()=>{setCandidate("");setAddOpen(true);}} onRemove={removeAsset}/></div>
+      <div className="radar-view" hidden={marketMode!=="radar"}><RadarFeed intelligence={radar.intelligence} coverage={radar.coverage} watchlist={watchlist} watchStates={watchStates.states} onExport={exportWatchlist} exportReady={hydrated} scanning={mayRun} loading={loading} online={online} onAsset={viewAsset} onWatch={toggleRadarWatch} onAlert={openRadarAlert} priceAlertCounts={priceAlertCounts} assetContext={radarAssetFocus?selectedRadar:undefined} assetState={selectedState} interpretation={interpretation} aiContext={aiContext} onInformationView={setOfficialView} onClearContext={()=>setRadarAssetFocus(false)} onAdd={()=>{setCandidate("");setAddOpen(true);}} onRemove={removeAsset}/></div>
       <div className="classic-experience" hidden={marketMode!=="classic"}>
       <div className="overview-wrap"><section className="overview" aria-label="市场概览">
         {OVERVIEW.map(symbol=>{const a=assetFor(symbol),q=quotes[symbol];return <button key={symbol} className={`overview-card ${selected===symbol?"is-selected":""}`} aria-pressed={selected===symbol} onClick={()=>selectAsset(symbol)} aria-label={`查看${a.name}走势`}><div className="overview-top"><AssetIcon asset={a} small/><span>{a.name}</span><span className="unit">{symbol.startsWith("^")?"指数":q?.currency??(symbol.endsWith("-USDT")?"USDT":"USD")}</span></div>{!q&&loading?<Skeleton className="skeleton-price"/>:<div className="overview-price numeric"><PricePulse value={q?.price} text={price(q?.price,q?.currency,false)} identity={symbol}/></div>}<div className="overview-bottom"><div><Change value={q?.changePercent}/><span className="overview-caption">{symbol.endsWith("-USDT")?"24 小时":"较前收"}</span></div><Sparkline points={trends[symbol]?.points??q?.points} change={q?.changePercent}/></div>{errors[symbol]&&<div className="error-text">{q?"更新失败 · 上次报价":"暂未取得行情"}</div>}</button>;})}
@@ -377,6 +393,7 @@ export default function MarketRadar(){
             <div className="chart-market-summary"><span>{selected.endsWith("-USDT")?"24h 高":"日内最高"}<b>{price(quote?.high,quote?.currency,false)}</b></span><span>{selected.endsWith("-USDT")?"24h 低":"日内最低"}<b>{price(quote?.low,quote?.currency,false)}</b></span><span>{activeAsset.market==="crypto"?"成交额":"成交量"}<b>{compact(quote?.volume)} <small>{activeAsset.market==="crypto"?quote?.currency:"股 / 份"}</small></b></span><span className="summary-freshness">{quoteStatus}<b>{formatTime(quote?.timestamp)} <small>本地时间</small></b></span></div>
             {radarOrigin?.symbol===selected?<RadarOriginContext symbol={selected} event={radarContext} onReturn={returnToRadar} onDismiss={()=>setRadarOrigin(null)}/>:<AssetRadarAwareness context={selectedRadar} onOpen={openRelatedRadar}/>}
             <AssetStateSummary state={selectedState} onOpen={openRelatedRadar}/>
+            {interpretation.result && <button className="btn ai-classic-link" onClick={openRelatedRadar}>查看 {selected} 的解释演示 · 未调用真实模型</button>}
             <Tabs value={range} onValueChange={value=>setRange(value as Range)}>
               <div className="period-tabs"><TabsList className="range-list" aria-label="走势时间范围">{PERIODS.map(p=><TabsTrigger key={p.value} value={p.value} className="range-trigger">{p.label}</TabsTrigger>)}</TabsList><span className="chart-legend"><span className="line-swatch" style={{background:chartColor}}/>{range==="15m"?"K 线 + 成交量":"价格走势"}</span></div>
               <TabsContent value={range}>

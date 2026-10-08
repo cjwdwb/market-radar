@@ -17,7 +17,7 @@ export async function archive(count=7,padded=false,label='Fixture'){
  const view={...body,viewId:await viewDigest(body)},json=JSON.stringify(view),buffer=Buffer.from(json+' '.repeat(padded?1048576-Buffer.byteLength(json):0));
  return {view,file:{name:label+'.json',mimeType:'application/json',buffer}};
 }
-export async function fixture(browser,base,{width=1440,height=1000,watchlist=watches,probe=true,intro=true}={}){
+export async function fixture(browser,base,{width=1440,height=1000,watchlist=watches,probe=true,intro=true,interpretation=false}={}){
  const origin=new URL(base);if(!['127.0.0.1','localhost'].includes(origin.hostname))throw Error('Loopback only');
  const context=await browser.newContext({viewport:{width,height},reducedMotion:'no-preference'});
  await context.addCookies([{name:'__Host-radar_access',value:createAccessSession({ACCESS_CODE_HASH:accessCodeHash('perf-fixture-only'),ACCESS_SESSION_SECRET:'perf-fixture-only-not-a-production-secret-275'}),url:base.replace('http:','https:'),secure:true,httpOnly:true,sameSite:'Lax'}]);
@@ -33,6 +33,7 @@ export async function fixture(browser,base,{width=1440,height=1000,watchlist=wat
  await context.route('**/*',async route=>{
   const url=new URL(route.request().url());if(url.origin!==origin.origin){await route.abort();return;}
   if(!url.pathname.startsWith('/api/')){await route.continue();return;}
+  if(interpretation&&url.pathname==='/api/interpretation'){await route.continue();return;}
   const now=Date.now(),key=url.pathname+url.search,n=counts.get(key)||0;counts.set(key,n+1);const stage=n===0?0:n===1?0:n===2?1:2;
   requests.push({at:now-started,path:url.pathname,query:url.search,stage,failed:control.fail});
   if(control.fail&&url.pathname==='/api/quotes'){await route.fulfill({status:503,json:{error:'Isolated temporary fixture failure'}});return;}
