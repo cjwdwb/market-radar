@@ -2,6 +2,8 @@
 
 2026-10-08。离线适配、故障回归和独立审计收尾；真实 Luna 合成试点尚未运行。本报告不是当前市场解释或生产启用声明。
 
+2026-10-10后续上传（用户另行授权）：候选 `411ae1bd3084470b7dd5b9b1f5374547fc85b4cf` 已上传独立分支，[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)；tree `02faccf8f16cedc72ade605909275f933e6cc181` 与本地一致。首轮[Ubuntu/Node22.15 CI](https://github.com/cjwdwb/market-radar/actions/runs/38058677276)实际运行npm test（build/typecheck与449/449Node），0FAIL/0SKIP；产品内容与此前审计一致，上传包装另经GPT只读VERIFIED。后续仅补记录，最新PR head/checks见GitHub。[上传归档](../tasks/archive/MR-UPLOAD-AI30B.md)。没有合并main、部署Sites或启用真实模型。下方“未提交/未上传/候选CI NOT RUN”保留开发阶段的时间边界，不代表当前上传失败。
+
 ## 基线与实际阶段
 
 独立工作树 `worktrees/ai30b`，分支 `codex/mr-30b-real-provider-pilot`，未提交候选的基线为 `7d2d30f6fe466a4e746ade2b3db231b2cb13b2d4`。PR #5 于 2026-10-08 08:38:33 UTC 合并；main CI [37751192029](https://github.com/cjwdwb/market-radar/actions/runs/37751192029) success 已重新核对。418/418 是原 Foundation 的远端证据，不计本轮候选新测。

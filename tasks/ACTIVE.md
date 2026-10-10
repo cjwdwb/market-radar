@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-UPLOAD-AI30B — 上传已授权，执行中
+## MR-UPLOAD-AI30B — 已上传草稿PR，CI已验证
 
-2026-10-10用户明确“上传吧”；[上传卡](MR-UPLOAD-AI30B.md)。仅将下述已审计离线候选提交独立分支、建立草稿PR并验证CI；没有合并/部署或模型启用授权。下方“不上传”为开发交接时记录，后续上传结果按本卡登记。
+2026-10-10用户明确“上传吧”；[归档卡](archive/MR-UPLOAD-AI30B.md)。产品411ae1bd已上传codex/mr-30b-real-provider-pilot，[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端tree与本地一致；Ubuntu24.04.5/Node22.15首轮CI38058677276构建/typecheck及449/449测试通过。独立GPT包装审计VERIFIED，后续只补文档，最新head/checks见PR。未合并main、未部署、未调用真实模型；主试点仍待Key/质量/真实输入准入。下方“不上传”为开发交接时记录。
 
 ## MR-30B-REAL-PROVIDER-PILOT — 本地有限真实 Provider 试点
 

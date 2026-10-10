@@ -18,4 +18,10 @@
 
 ## Execution
 
-状态 PREPARED；提交/远端PR/CI结果待实际执行后登记。不会把上传完成写成真实模型启用或整个3.0B完成。
+状态 UPLOADED / CI_VERIFIED。使用既有github remote成功push，没有修改remote、凭据或仓库设置。
+
+产品提交 `411ae1bd3084470b7dd5b9b1f5374547fc85b4cf`，tree `02faccf8f16cedc72ade605909275f933e6cc181`。本地/远端branch SHA和跟踪tree一致；main仍为上述7d2d30f。上传前独立GPT包装审计VERIFIED：19文件严格在允许范围，产品/测试与此前已审计版本一致，敏感模式扫描无命中，未上传被排除的数据或日志。
+
+[草稿PR #6](https://github.com/cjwdwb/market-radar/pull/6)；该产品提交的[CI run38058677276](https://github.com/cjwdwb/market-radar/actions/runs/38058677276) / job114232286179 completed/success。Ubuntu24.04.5、Node22.15.0、npm10.9.2实际执行npm ci与npm test（含build/typecheck）；449PASS/0FAIL/0SKIP。此为本轮新远端证据，Windows/浏览器/原独立产品审计复用10月8日同内容结果，没有重复执行；既有chunk和工具警告不隐去。
+
+上传后仅补本卡及任务/报告的上传记录，产品不变；最新PR head/checks以GitHub为准。没有合并main、标签、部署、模型API调用、密钥/访问设置变更或新增DS调用。真实模型合成质量、实际市场输入及生产仍待后续准入，不因上传归档而关闭MR-30B-REAL-PROVIDER-PILOT。
