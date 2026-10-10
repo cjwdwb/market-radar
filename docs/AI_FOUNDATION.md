@@ -2,6 +2,8 @@
 
 2026-10-07，本地隔离候选。规则与证据解释基础，不是预测系统或真实模型上线。
 
+2026-10-08接续核对：[PR#5](https://github.com/cjwdwb/market-radar/pull/5)已合并，main `7d2d30f6fe466a4e746ade2b3db231b2cb13b2d4`，main CI37751192029 success；下段“未合并”为上传时记录。3.0B[本地Provider试点](AI_PROVIDER_PILOT.md)继承v1并新增独立受限综合/持久预算；真实合成调用获准但Key待配置，实际请求0，生产仍Sitesv32、未启用真实模型。本文件的3.0A测试不冒充3.0B新测。
+
 后续上传（用户另行授权）：产品 `15535d600b9a9eadc1f80c57698c98c5dd7c8857`已到GitHub独立分支，[PR#5](https://github.com/cjwdwb/market-radar/pull/5)；tree `d1e29458dacf8b163c0a740d78f705143b29a6c2`与本地index一致。首轮[Ubuntu/Node22.15 CI](https://github.com/cjwdwb/market-radar/actions/runs/37632197422)执行npm test（含build/typecheck）418/418 PASS，0SKIP。后续仅补记录，产品不变；最新PR head/checks见GitHub。[上传归档](../tasks/archive/MR-UPLOAD-AI30A.md)。未合并main、未部署，真实模型继续关闭。下文“未上传、CI NOT RUN”等保留开发阶段时间与证据边界。
 
 ## 基线与路线
