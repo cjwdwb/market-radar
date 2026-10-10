@@ -1,5 +1,7 @@
 # 当前状态
 
+2026-10-08重新核对：3.0A PR#5已合并main，HEAD `7d2d30f6fe466a4e746ade2b3db231b2cb13b2d4`，CI37751192029 success。3.0B独立本地候选见[受控Provider试点报告](AI_PROVIDER_PILOT.md)：固定Luna/Standard/none、项目UTC月$8/派发$7、合成试点20次/$0.25；持久预留/严格输出/snapshot契约离线验证，31专项、448全量PASS/1既有权限skip、build/typecheck/scoped lint、五视口8组通过。用户已允许合成真实试点，Key仍未配置，真实请求0；模型质量NOT RUN，真实行情用途及生产关闭。审计两项P2已修并VERIFY，最终18文件/证据独立复核VERIFIED PASS。本轮未提交上传或部署；现有Sitesv32继续运行。下面未合并等描述保留当时状态。
+
 2026-10-07后续上传：用户另行授权“上传吧”，3.0A产品已上传独立分支，commit `15535d600b9a9eadc1f80c57698c98c5dd7c8857`、[PR#5](https://github.com/cjwdwb/market-radar/pull/5)。首轮Ubuntu/Node22.15 CI37632197422执行npm test（build/typecheck及418/418 Node）成功。后续文档记录不改产品；最新PR head/checks见GitHub。[上传归档](../tasks/archive/MR-UPLOAD-AI30A.md)。未合并main、未部署Sites；真实模型仍关闭，现有生产Sitesv32不变。下方“未上传/CI NOT RUN”为开发阶段记录。
 
 2026-10-07 新路线：2.9 按 **Real Data & Research Foundation** 已交付范围收口，[承接表](FOUNDATION29_HANDOFF.md)保留能力边界；真实分钟等原目标归 [Data Track](../tasks/DATA-MINUTE-HISTORY.md)，不再阻塞 3.0A Foundation。下方历史未完成/受阻记录原样保留。3.0A [本地Foundation完成](AI_FOUNDATION.md)：运行时Context、fixture Provider、结构/引用校验、共享按需解释UI、32定向/417全量PASS（1权限skip）、五视口及独立GPT VERIFY。真实模型不启用，候选远端CI、本轮生产登录后与真机NOT RUN。本輪未上传、合并或部署；现有生产仍 Sites v32 / source4a4b7fb。

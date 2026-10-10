@@ -1,5 +1,15 @@
 # 当前任务索引
 
+## MR-UPLOAD-AI30B — 上传已授权，执行中
+
+2026-10-10用户明确“上传吧”；[上传卡](MR-UPLOAD-AI30B.md)。仅将下述已审计离线候选提交独立分支、建立草稿PR并验证CI；没有合并/部署或模型启用授权。下方“不上传”为开发交接时记录，后续上传结果按本卡登记。
+
+## MR-30B-REAL-PROVIDER-PILOT — 本地有限真实 Provider 试点
+
+[任务卡](MR-30B-REAL-PROVIDER-PILOT.md)、[报告](../docs/AI_PROVIDER_PILOT.md)：承接已合并3.0A，固定Luna/Standard/none；项目UTC月$8、派发$7、合成试点20次或$0.25。离线31专项/448全量PASS（1既有skip）、build/typecheck/scoped lint、五视口8组已新测；独立GPT两项P2修复VERIFY，最终18文件/证据复核VERIFIED PASS。DS获具体文字授权后实际辅助一次。用户已允许合成试点，Key待安全配置，真实请求0；B真实输入用途/生产保持关闭，不归档全部完成、不上传发布。
+
+2026-10-08核对：PR#5已合并，main7d2d30f、CI37751192029 success。下面“未合并”为各历史交接时事实，不改写；本轮未部署，现有Sitesv32不变。
+
 ## MR-UPLOAD-AI30A — 已上传 GitHub，未合并或部署
 
 用户已明确授权上传3.0A Foundation。[归档卡](archive/MR-UPLOAD-AI30A.md)：产品15535d60，独立分支codex/mr-30-ai-foundation，[PR#5](https://github.com/cjwdwb/market-radar/pull/5)。远端tree与本地index一致；Ubuntu/Node22.15首轮PR CI37632197422执行build/typecheck及418/418测试通过。后续仅补记录，产品不变，最新checks见PR。main未合并、网站未部署，原分钟26文件保留。

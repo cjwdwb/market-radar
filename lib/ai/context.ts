@@ -43,7 +43,8 @@ export function buildMarketContext(input: ContextInput): MarketIntelligenceConte
   for (const [horizon, entries] of Object.entries(state.transitions)) for (const [dimension, t] of Object.entries(entries)) add({ id: `${horizon}.${dimension}.transition`, kind: "transition", source: t.current?.source ?? "unavailable", startAt: t.previousWindow?.observation.closeStartAt ?? now, endAt: t.currentWindow?.observation.closeEndAt ?? now, availability: t.availability, classification: t.status, metrics: [], detail: t.message });
   const active = radar?.activeEvents.filter(e => e.symbol === symbol && e.status === "active") ?? [];
   for (const event of active.slice(0, 3)) add({ id: `signal.${event.id}`, kind: "signal", source: event.signals[0]?.source ?? "unavailable", startAt: event.detectedAt, endAt: event.updatedAt, availability: "available", classification: event.direction, metrics: [], detail: `${event.title}；${event.metric}；事件可信度 ${event.confidence.level}（不是整体解释的可信度）`,provenance:{confidence:event.confidence.level,signalIds:event.signals.map(s=>s.id).slice(0,8)} });
-  if (!active.length) limitations.push("当前上下文没有活跃事件；不代表平静、低风险或没有方向结构");
+  if (!radar) limitations.push("事件快照未纳入（not_included）；不能据此声称没有活跃事件");
+  else if (!active.length) limitations.push("当前上下文没有活跃事件；不代表平静、低风险或没有方向结构");
   const information = (input.information ?? []).filter(f => f.symbol === symbol);
   for (const f of information.slice(0, 3)) add({ id: `information.${f.id}`, kind: "information", source: f.source, startAt: f.publishedAt, endAt: f.publishedAt, availability: "available", classification: "official_product_fact", metrics: [{ id: "receivedAt", value: f.receivedAt, unit: "UTC_ms" }], detail: f.title, dataVersion: f.version });
   if (!information.length) limitations.push("本上下文未加载相关官方资料，不代表近期没有重要事件");

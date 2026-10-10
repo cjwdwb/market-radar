@@ -9,16 +9,19 @@ export function claimFor(e: Evidence): Claim {
   return { kind, text, evidenceRefs: [e.id], metricRefs: e.metrics.map(m => `${e.id}:${m.id}`) };
 }
 export function requiredClaims(context: ProviderSafeContext) { return context.evidence.filter(e => e.availability !== "available").map(claimFor); }
+export function validateEvidenceUnits(context: ProviderSafeContext) {
+  for(const e of context.evidence)for(const m of e.metrics){
+    const unit=m.id==="price"||m.id==="path"?context.asset.currency:m.id.endsWith("At")?"UTC_ms":m.id.includes("PercentagePoints")?"percentage_points":m.id.includes("Percent")?"%":"ratio";
+    if(m.unit!==unit)throw new InterpretationError("unsupported_claim");
+  }
+}
 export function validateOutput(raw: string, context: ProviderSafeContext): InterpretationOutput {
   if (new TextEncoder().encode(raw).length > AI_LIMITS.outputBytes) throw new InterpretationError("output_limit");
   let result: InterpretationOutput;
   try { result = OutputSchema.parse(JSON.parse(raw)); } catch { throw new InterpretationError("invalid_output"); }
   const index = new Map(context.evidence.map(e => [e.id, e]));
   if(index.size!==context.evidence.length)throw new InterpretationError("duplicate_evidence");
-  for(const e of context.evidence)for(const m of e.metrics){
-    const unit=m.id==="price"||m.id==="path"?context.asset.currency:m.id.endsWith("At")?"UTC_ms":m.id.includes("PercentagePoints")?"percentage_points":m.id.includes("Percent")?"%":"ratio";
-    if(m.unit!==unit)throw new InterpretationError("unsupported_claim");
-  }
+  validateEvidenceUnits(context);
   const claims = [result.summary, result.primaryObservation, ...result.supportingEvidence, ...result.conflictingEvidence, ...result.stateChange, ...result.historicalContext, ...result.informationContext, ...result.limitations];
   for (const claim of claims) {
     if (claim.evidenceRefs.length !== 1) throw new InterpretationError("unsupported_claim");

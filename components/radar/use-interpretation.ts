@@ -4,7 +4,7 @@ import type { InterpretationResult } from "@/lib/ai/contracts";
 import { AI_LIMITS } from "@/lib/ai/limits";
 
 export const interpretationErrors: Record<string, string> = {
-  provider_not_configured: "真实 Provider 尚未配置；当前行情与确定性情报仍可使用。", budget_exhausted: "本地演示预算已用完。", busy: "已有解释任务进行中，请稍后操作。",
+  provider_not_configured: "真实 Provider 尚未配置；当前行情与确定性情报仍可使用。", budget_exhausted: "本次解释预算已用完，未继续派发；行情与确定性情报仍可使用。", budget_unavailable: "无法安全读取或保存预算，真实解释已停止。", busy: "已有解释任务进行中，请稍后操作。",
   timeout: "解释超时，未自动重试。", cancelled: "已取消解释。", refusal: "Provider 拒绝生成此次解释。", incomplete: "Provider 输出未完成，未展示截断内容。",
   data_permission_unavailable: "输入资料尚无模型外发许可。", invalid_output: "解释未通过结构校验。", unsupported_claim: "解释没有得到所引证据支持。", network_error: "解释暂时无法读取；原行情保持可用。",
 };

@@ -897,6 +897,17 @@ async function aiFoundationChecks(browser,report){
  await ai.getByRole('button',{name:'查看解释',exact:true}).click();await p.locator('.radar-watch-row').filter({hasText:'NVDA'}).locator('button').first().click();await pause(750);await p.locator('.asset-radar-awareness').click();assert.equal(await ai.getAttribute('data-ai-symbol'),'NVDA');assert.equal(await ai.locator('.ai-result').count(),0);
  await p.unroute('**/api/interpretation');await p.route('**/api/interpretation',r=>r.fulfill({json:{mode:'unconfigured',realProviderEnabled:false}}));if(!await ai.getAttribute('open'))await ai.locator(':scope>summary').click();await ai.getByRole('button',{name:'查看解释',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.ai-feedback')?.textContent.includes('尚未配置'));assert.equal(await ai.locator('.ai-result').count(),0);
  report.checks.push('cancel releases UI; late old BTC request does not cover NVDA; unconfigured stays local');assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);await app.context.close();
+ if(process.env.RADAR_AI30B==='1'){
+  const local=await fixture(browser,{mode:'state26-gentle',motionPreference:'reduced'}),p=local.page;await p.setViewportSize({width:390,height:844});
+  await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.asset-radar-awareness').click();const ai=p.locator('.ai-interpretation');await ai.locator(':scope>summary').click();
+  for(const [code,message] of [['budget_exhausted','预算已用完'],['budget_unavailable','无法安全读取或保存预算']]){
+   await p.route('**/api/interpretation',r=>r.fulfill({status:r.request().method()==='GET'?200:429,json:r.request().method()==='GET'?{mode:'fixture',realProviderEnabled:false}:{error:code}}));
+   await ai.getByRole('button',{name:'查看解释',exact:true}).click();await p.waitForFunction(text=>document.querySelector('.ai-feedback')?.textContent.includes(text),message);
+   assert.equal(await ai.locator('.ai-result').count(),0);await ai.getByRole('button',{name:'返回图表',exact:true}).click();await p.locator('.candle-canvas').waitFor();
+   await p.locator('.asset-radar-awareness').click();if(await ai.getAttribute('open')===null)await ai.locator(':scope>summary').click();await p.unroute('**/api/interpretation');report.checks.push(`mobile synthetic ${code}: fails closed and chart/return preserved`);
+  }
+  assert.deepEqual(local.errors,[]);report.errors.push(...local.errors);await local.context.close();
+ }
 }
 (async()=>{
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
