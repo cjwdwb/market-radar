@@ -1,5 +1,7 @@
 # Market Radar 3.0B — 受控 Provider 试点交接
 
+2026-10-13后续上传：用户明确授权后，DeepSeek候选`36f3f0a4b8a4b337d0619cb6a3447ff42eeb6aff`已正常推送原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，tree `3f1e324324d086c4bf3b56b893b30feb81bebcff`与本地相同。独立上传包装VERIFIED；新[CI38349103530](https://github.com/cjwdwb/market-radar/actions/runs/38349103530)实际Ubuntu24.04.5/Node22.15/npm10.9.2、npm ci→npm test，build/typecheck与491/491Node PASS、0FAIL/0SKIP。原chunk/Actions提示保留。归档[上传卡](../tasks/archive/MR-UPLOAD-AI30B-DEEPSEEK.md)，后续仅补文档，最新head/checks见PR。未合并/部署/新增模型消费，原始回复/预算库/Key未上传；A1连通PASS/A2质量FAIL不因CI通过改变。下面未上传/当前CI未跑等为开发交接时事实。
+
 ## 2026-10-13 真实合成试点：接口连通PASS，质量FAIL，后续场景停止
 
 用户在Windows账户变量中配置专用`MARKET_RADAR_DEEPSEEK_API_KEY`后，先重新核对9个代码/测试哈希与上轮审计一致、原账本0次/$0，独立GPT只读预检通过。初次存在性检查尚未找到；后续同一登录账户用户变量已存在，读取到当前CLI进程，执行后清除子进程变量；未复用通用开发Key，未写配置文件/秘密/生产。当前HEAD仍`62a01775558fb8afb7536f35148df14406e548d6`，成果是原PR#6上的本地未提交差异。

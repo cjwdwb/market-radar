@@ -18,4 +18,10 @@
 
 ## Execution
 
-待上传前暂存审查、push、PR说明更新与CI。当前生产仍Sitesv32；本次上传授权不扩展为发布。
+状态：UPLOADED / CI_VERIFIED。产品提交`36f3f0a4b8a4b337d0619cb6a3447ff42eeb6aff`，Git tree `3f1e324324d086c4bf3b56b893b30feb81bebcff`；本地HEAD、远端原分支及跟踪tree一致。正常push，无force；main仍7d2d30f，无合并。
+
+上传前独立GPT包装VERIFIED PASS：index正好15个白名单，9个产品/测试文件与执行交接hash一致，无未暂存或非忽略额外文件；敏感扫描只命中测试mock值，没有真实秘密/数据库/outputs进入index。暂存diff SHA256 `58c69780810b62d0bb6b0573bc3fe8f32d4479dc8c7f3723c1ffee8609bd0779`，格式检查通过。未重复产品审计或付费调用。
+
+原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)标题/说明已按DeepSeek实际scope更新，明确A1 PASS/A2 FAIL/9类NOT RUN。产品提交的[CI38349103530](https://github.com/cjwdwb/market-radar/actions/runs/38349103530)及job115137189295 completed/success；Ubuntu24.04.5、Node22.15.0、npm10.9.2实际npm ci→npm test（build/typecheck/Node），491PASS/0FAIL/0SKIP。本轮新远端证据，不以旧488/449结果代替。既有>500kB chunk与Actions旧Node运行时提示保留，不扩为重构。
+
+上传后仅补本归档卡和任务索引/报告的上传事实，产品代码不变；最新文档head/checks见PR。CI成功不代表模型质量通过。现有Sitesv32不变，没有部署、标签、模型消费、密钥或生产配置变更；主试点质量Gate继续开放。

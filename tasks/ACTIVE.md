@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-UPLOAD-AI30B-DEEPSEEK — 2026-10-13 上传原草稿PR
+## MR-UPLOAD-AI30B-DEEPSEEK — 2026-10-13 已上传，CI通过
 
-用户另行明确“上传”。[上传卡](MR-UPLOAD-AI30B-DEEPSEEK.md)：将已审计DeepSeek适配与真实合成失败结论上传原PR#6分支，核对远端内容并完成现有CI；不合并/部署/再发模型请求。下方主任务“不上传”是此前执行阶段边界，现仅上传获得新授权，A2质量FAIL保留。
+用户另行明确“上传”。[归档卡](archive/MR-UPLOAD-AI30B-DEEPSEEK.md)：产品36f3f0a已正常push原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，本地/远端tree相同；独立包装审计VERIFIED PASS，新Ubuntu/Node22.15 CI38349103530构建/typecheck与491/491Node通过。后续仅文档记录，最新head/checks见PR。未合并/部署/再发模型请求；下方“不上传”是此前执行阶段边界，A2质量FAIL与9类NOT RUN保持。
 
 ## MR-30B-REAL-PROVIDER-PILOT — 2026-10-13 实际连通，合成质量未通过
 
