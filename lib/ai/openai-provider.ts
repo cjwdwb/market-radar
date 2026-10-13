@@ -1,12 +1,13 @@
 import { InterpretationError, boundedJson, type ProviderSafeContext } from "./contracts";
 import { REAL_AI } from "./real-config";
 import { synthesisCatalog, SYNTHESIS_JSON_SCHEMA, SYNTHESIS_PROMPT } from "./real-output";
+import { requestResponseJson } from "./responses-transport";
 
 export type RealUsage = { inputTokens: number; outputTokens: number; cachedTokens: number | null; reasoningTokens: number | null };
-export type RealReply = { status: "completed" | "refusal" | "incomplete" | "invalid_response" | "model_mismatch" | "billing_identity_unknown"; json: string | null; usage: RealUsage | null; responseId: string | null; returnedModel: string | null; returnedServiceTier: string | null };
+export type RealReply = { status: "completed" | "refusal" | "incomplete" | "failed" | "configuration_mismatch" | "invalid_response" | "model_mismatch" | "billing_identity_unknown"; json: string | null; usage: RealUsage | null; responseId: string | null; returnedModel: string | null; returnedServiceTier: string | null; provider?: "deepseek"; billingProfile?: string; adapterVersion?: string; failureReason?: string | null };
 const object = (v: unknown): Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v) ? v as Record<string, unknown> : {};
 const integer = (v: unknown): v is number => typeof v === "number" && Number.isSafeInteger(v) && v >= 0;
-function parseUsage(raw: unknown): RealUsage | null {
+export function parseUsage(raw: unknown): RealUsage | null {
   const u = object(raw), input = u.input_tokens, output = u.output_tokens;
   if (!integer(input) || !integer(output) || u.total_tokens !== undefined && (!integer(u.total_tokens) || u.total_tokens !== input + output)) return null;
   const cached = object(u.input_tokens_details).cached_tokens, reasoning = object(u.output_tokens_details).reasoning_tokens;
@@ -55,19 +56,7 @@ export function createOpenAIProvider(key: string, transport: typeof fetch = fetc
   if (!key || /\s/.test(key)) throw new InterpretationError("provider_not_configured");
   return { kind: "openai" as const, model: REAL_AI.model,
     async generate(body: string, signal: AbortSignal): Promise<RealReply> {
-      if (signal.aborted) throw new InterpretationError("cancelled");
-      let response: Response;
-      try { response = await transport(REAL_AI.endpoint, { method: "POST", headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" }, body, signal, redirect: "error" }); }
-      catch { throw new InterpretationError(signal.aborted ? "cancelled" : "transport_error"); }
-      // 错误正文可能包含反射输入/供应商敏感内容，不透传、不记日志，也不重试。
-      if (!response.ok) { await response.body?.cancel().catch(() => {}); throw new InterpretationError(response.status === 429 ? "rate_limited" : response.status === 401 || response.status === 403 ? "provider_access_denied" : "provider_http_error"); }
-      const reader = response.body?.getReader(); if (!reader) throw new InterpretationError("invalid_response");
-      let size = 0; const chunks: Uint8Array[] = [];
-      try { while (true) { const { done, value } = await reader.read(); if (done) break; size += value.length; if (size > REAL_AI.responseBytes) throw new InterpretationError("response_limit"); chunks.push(value); } }
-      catch (e) { throw e instanceof InterpretationError ? e : new InterpretationError(signal.aborted ? "cancelled" : "transport_error"); }
-      finally { await reader.cancel().catch(() => {}); }
-      const bytes = new Uint8Array(size); let offset = 0; for (const c of chunks) { bytes.set(c, offset); offset += c.length; }
-      try { return parseResponses(JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes))); } catch { throw new InterpretationError("invalid_response"); }
+      return parseResponses(await requestResponseJson(REAL_AI.endpoint, key, body, signal, transport));
     },
   };
 }

@@ -1,5 +1,43 @@
 # MR-30B-REAL-PROVIDER-PILOT
 
+## 2026-10-13 真实合成首例与一次限定修正计划
+
+用户已安全配置专用产品Key；仅在用户变量读入当前CLI进程，不读取通用开发Key。9个代码/测试哈希与上轮审计一致；原账本预检0次/$0。首个aligned真实HTTP200、模型deepseek-flash、input3628/output174/cached0/reasoning0，完成响应但原校验拒绝missing_conflict：模型把insufficient alignment错误放入conflictRefs。证据outputs/ai30b/synthetic-1791866444335-aligned-rYvgU8，失败请求不删除；高峰用量估算$0.0012972，2倍含费预算占用$0.0025944，billedCost仍null。真实连通已发生，不等于质量通过。
+
+沿用原任务“最多一次依据明确的修正”：只在lib/ai/deepseek-provider.ts补明确的引用集合边界（conflictRefs仅kind=alignment且classification=mixed且available，无则空；不可判断只进入limitations，不凭空变为分歧），lib/ai/real-config.ts递增DeepSeek prompt版本，tests/ai30b-deepseek.test.mjs补正反例。原SYNTHESIS_PROMPT/OpenAI、schema、validator、fixture、金融分类、模型、费率及预算不改。先定向mock/lint/typecheck与独立GPT复核，之后只用原aligned新时效manifest验证一次；成功才逐例继续原名单，失败停止，不继续修Prompt或换模型。每个调用仍先预留、同原pilot/月预算。仅增加本卡/报告/索引及忽略的执行证据；无真实市场外发、上传或部署。
+
+本轮实际结果：73/73专项、typecheck/局部lint及独立GPT限定修正VERIFY PASS后，发第二次原aligned合成请求。HTTP200，input3720/output205/reasoning0；conflictRefs已正确，但第一句删除原catalog固定前缀，原validator拒绝unsupported_claim。2次累计预算占用$0.0053184、unknown/reserved0，未对账账单。A1连通PASS、A2质量FAIL；剩余9场景NOT RUN，一次修正额度已用，停止继续调用和修Prompt。原失败manifest/账本完整保留；没有真实金融数据外发，不上传部署。详见报告2026-10-13节；旧“待Key/0请求”仅历史。
+
+最终独立GPT VERIFY PASS：9代码/测试hash及6份执行证据hash一致，正式库与交接统计相符；唯一文档措辞精确化已修，无剩余confirmed finding。没有新增请求或改变A2 FAIL。当前任务以“真实试点质量未达标、停止剩余场景”交接，不归档成3.0B全部完成。
+
+## 2026-10-12 DeepSeek切换补充（当前执行）
+
+继续同一PR#6/HEAD62a0177及上轮未提交五文件成果，不重建Foundation。用户明确允许向DeepSeek官方发送自有合成场景并计入原共享预算；产品凭据使用`MARKET_RADAR_DEEPSEEK_API_KEY`，通用`DEEPSEEK_API_KEY`已明确不是本次产品Key，不读取复用。用户确认DeepSeek账户有额度，美元含税附加费不超过官方高峰未缓存费用2倍；产品专用变量待配置，未到位不调用。
+
+官方2026-10-12契约：POST api.deepseek.com/responses，deepseek-flash，none，instructions为固定规则、user为不可信Context；developer被当user，禁止照搬。支持text.format json_schema但strict属性/完整keyword子集未获文档证明；发送schema而不声称供应商严格保证，原本地证据/冲突/限制校验不变。返回模型只接受deepseek-flash、opaque response ID有界、object=response；usage按Responses字段校验，incomplete/failed/未知计费身份失败关闭。无OpenAI service_tier断言。高峰未缓存输入$0.30/M、输出$1.20/M；缓存/低峰不用于预留或结算优惠，账单金额仍null。
+
+允许路径：lib/ai/{real-config,openai-provider,deepseek-provider,responses-transport,real-service}.ts、lib/ai/product-budget.mjs、scripts/ai30b-pilot.mjs、tests/ai30b-*.test.mjs、现有任务卡/ACTIVE、docs/{AI_PROVIDER_PILOT,CURRENT_STATE,API_CONTRACTS}.md及忽略的outputs/ai30b证据。不改State/证据校验/UI/生产权限，不新增依赖。固定两个profile供原OpenAI适配保留与当前DeepSeek执行，非通用路由或自动回退。
+
+账本最小添加式兼容：同一SQLite、同一pilotID和月/试点门槛不变；新增request_profiles记录每次provider/model/adapter/price/billing profile及原费率/倍率，metadata标v2。旧requests金额、状态、时间和ID逐列原样保留，旧记录赋已知OpenAI历史profile而不重新计价。显式一次迁移、事务提交，inspect不自动迁移；先临时v1副本演练迁移/重开/混合预算/失败原子性，独立审计后才备份并迁移正式本地账本。旧代码遇v2身份须失败关闭，禁止回滚旧备份绕过新消耗。原在途/unknown不清除。新结算用预留时固定费率，模型不符保留未知全额。
+
+实施顺序：最小适配→mock/迁移与取消/诊断/单例专项→typecheck/必要构建与全量Node→GPT独立审计→符合条件时迁移原库→首个aligned合成请求→GPT同输入模板/usage/语义核对→按结果逐例继续。Key未到位不阻止本地工作；不进行未获准的真实市场外发、购买充值、上传合并或部署。实际DS产品调用与开发DS Worker分别报告。
+
+当前实施结果：71/71隔离专项、489项全量（488PASS/0FAIL/1既有Windows权限SKIP）、build/typecheck/受影响lint通过。独立GPT迁移前代码审计VERIFIED PASS、无confirmed finding；审计员另在临时库以Node24.19验证6/6，本轮主验证使用Node22.15.0。正式原库已一致备份至data/local/ai-budget-before-profiles-y7DGYV并事务迁移v2，新进程逐列/哈希/quick_check一致，0请求/0占用不变。专用Key仍未检测到，不读取通用开发Key、不发探针或模型请求。实现和迁移不代表A1/A2实际调用或质量通过；具体证据、当前命令及历史边界见报告最上方DeepSeek节。
+
+最终独立GPT复核VERIFIED PASS：9个代码/测试文件与审计版本哈希相同，正式库/备份只读逐列哈希和trigger验证通过，最新DeepSeek离线manifest来源与Context哈希匹配，文档准确区分历史/模拟/真实。没有confirmed finding或真实请求；不以该复核声称账户/API或模型质量已验证。任务保持开放，仅待产品专用Key后按原单例停点继续。
+
+## 2026-10-12 单例执行补正（DeepSeek切换前历史）
+
+继续 PR#6 / `62a01775558fb8afb7536f35148df14406e548d6`，不重新开发 Foundation。工作区起点干净；PR仍为草稿、未合并，候选CI38058872444 success为历史证据。原账本重新只读核对：2026-10月与固定试点均0次、占用0，未初始化或重置。用户本轮确认账户无可用API额度；A1 BLOCKED、A2 NOT RUN。Key存在性检查为false，不要求现在输入Key、不发付费请求、不充值。
+
+最小 Builder scope：仅 `scripts/ai30b-pilot.mjs`、`tests/ai30b-cli.test.mjs`、本卡、`tasks/ACTIVE.md`、`docs/AI_PROVIDER_PILOT.md`。补单例白名单停点、逐例新建原始fixture、不可覆盖manifest、有界失败取证及区分HTTP/预留计数；Provider、校验、预算、场景定义与金融语义不改。保留原案例清单和固定pilotId，CLI取消初始化入口。每次只执行一个指定case，首次aligned后由GPT人工审阅才续跑，不能自动循环。
+
+验证用隔离临时mock账本/transport；实际Key即使存在也不能触达网络。重点覆盖未知case拒绝、预算不重置、独立manifest、故意stale拒绝、失败仍计费/保留预留、HTTP与累计预留分离。仅运行受影响测试及脚本lint；CLI/文档变更不重跑历史449项CI、全量构建或浏览器。独立GPT只读审计稳定diff和本轮证据，必要FIX/VERIFY。无实测性能瓶颈不进入Optimizer；本轮无适合DS外发的新任务。
+
+本轮已完成单例补正。独立GPT两项P3（错误码遗漏及前置失败错误退出0）已最小修复，新增反例后52/52定向mock与局部lint通过；最终VERIFY PASS，审计员另以Node24.19运行7项修复mock通过，无剩余confirmed finding。首次3项测试失败仅为JSON省略undefined字段的比较问题，修正测试序列化后通过，原fixture未改。正式账本再次只读核对仍0次/0占用；最终离线manifest已保存，真实HTTP0。具体命令/证据和新旧测试边界见报告2026-10-12节。
+
+真实执行仍需账户可用额度、费用上界与安全Key输入；旧合成消费授权保留，无须重问预算。当前不传真实行情、不上传、不合并、不部署；既有Sites v32保持原状。本段为当前续接状态，下方2026-10-08交接为历史记录。
+
 2026-10-08，承接3.0A，不重建Foundation。阶段：离线实现/验证与独立审计完成；真实合成试点已获准，Key待用户安全配置，任务保持开放。[本轮报告与运行手册](../docs/AI_PROVIDER_PILOT.md)。
 
 ## 基线与边界

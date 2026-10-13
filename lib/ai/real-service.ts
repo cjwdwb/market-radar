@@ -1,20 +1,25 @@
 import { AI_VERSIONS, InterpretationError, type MarketIntelligenceContext, type ProviderSafeContext } from "./contracts";
 import { projectProviderContext } from "./context";
 import { buildResponsesRequest, type RealReply, type RealUsage } from "./openai-provider";
+import { buildDeepSeekRequest } from "./deepseek-provider";
 import { validateSynthesis, type SynthesisOutput } from "./real-output";
-import { REAL_AI, SYNTHETIC_PILOT_ID } from "./real-config";
+import { REAL_AI, DEEPSEEK_AI, SYNTHETIC_PILOT_ID, type ProductAIProfile } from "./real-config";
 
-type Ledger = { feeMultiplier: number; reserve(input: { now: number; pilot: string; maximumNano: number }): { id: string; reservedNano: number; month: string }; settle(id: string, input: { now: number; usageCostNano: number; usage: RealUsage; outcome: string; responseId: string | null }): number; unknown(id: string, now: number, outcome: string): void; inspect(now: number, pilot: string): unknown };
-type Provider = { generate(body: string, signal: AbortSignal): Promise<RealReply> };
+type Ledger = { feeMultiplier: number; reserve(input: { now: number; pilot: string; maximumNano: number; model: string; provider: string }): { id: string; reservedNano: number; month: string }; settle(id: string, input: { now: number; usageCostNano: number; usage: RealUsage; outcome: string; responseId: string | null }): number; unknown(id: string, now: number, outcome: string): void; inspect(now: number, pilot: string): unknown };
+type Provider = { kind?: "openai" | "deepseek"; generate(body: string, signal: AbortSignal): Promise<RealReply> };
 export type RealInterpretation = {
-  provider: "openai"; inputIdentity: "synthetic"; inputTrust: "fixture"; deploymentMode: "local_pilot";
-  requestedModel: string; returnedModel: string; returnedServiceTier: string; responseId: string; requestId: string; context: ProviderSafeContext;
+  provider: "openai" | "deepseek"; inputIdentity: "synthetic"; inputTrust: "fixture"; deploymentMode: "local_pilot";
+  requestedModel: string; returnedModel: string; returnedServiceTier: string | null; responseId: string; requestId: string; context: ProviderSafeContext;
+  adapterVersion: string; priceVersion: string; billingProfile: string; costBasis: "configured_peak_or_cache_write_bound";
   asOf: number; generatedAt: number; cacheHit: boolean; promptVersion: string; outputVersion: string; validationVersion: string;
   usage: RealUsage; usageIdentity: "provider_reported"; usageCalculatedNano: number; budgetChargedBoundNano: number; billedCost: null;
   output: SynthesisOutput; limitations: string[]; oldSnapshot: boolean;
 };
 /** 本地试点服务。旧fixture服务保持原有身份/校验；不给生产注入默认真实transport。 */
-export function createRealPilotService(provider: Provider, ledger: Ledger, options: { now?: () => number; timeoutMs?: number; admit?: (context: MarketIntelligenceContext) => ProviderSafeContext } = {}) {
+export function createRealPilotService(provider: Provider, ledger: Ledger, options: { now?: () => number; timeoutMs?: number; admit?: (context: MarketIntelligenceContext) => ProviderSafeContext; profile?: ProductAIProfile } = {}) {
+  const profile = options.profile ?? REAL_AI;
+  // 只支持两个已审核的固定对象，不接收任意费率/地址或自动回退。
+  if (profile !== REAL_AI && profile !== DEEPSEEK_AI || provider.kind && provider.kind !== profile.provider || profile.provider === "deepseek" && provider.kind !== "deepseek") throw new InterpretationError("billing_identity_unknown");
   const now = options.now ?? Date.now, admit = options.admit ?? projectProviderContext;
   type Flight = { promise: Promise<RealInterpretation>; controller: AbortController; subscribers: Set<symbol>; settled: boolean };
   const flights = new Map<string, Flight>(), cache = new Map<string, { until: number; result: RealInterpretation }>();
@@ -42,14 +47,16 @@ export function createRealPilotService(provider: Provider, ledger: Ledger, optio
     if (signal?.aborted) return Promise.reject(new InterpretationError("cancelled"));
     let safe: ProviderSafeContext;
     try { safe = check(context); } catch (e) { return Promise.reject(e); }
-    const request = buildResponsesRequest(safe), key = JSON.stringify({ safe, body: request.body, permissionVersion: AI_VERSIONS.projection, generation: REAL_AI.generation });
+    const request = profile.provider === "deepseek" ? buildDeepSeekRequest(safe) : buildResponsesRequest(safe);
+    const key = JSON.stringify({ safe, body: request.body, permissionVersion: AI_VERSIONS.projection, generation: profile.generation,
+      provider: profile.provider, model: profile.model, adapter: profile.adapterVersion, price: profile.priceVersion, billing: profile.billingProfile, prompt: profile.prompt });
     const hit = cache.get(key);
     if (hit && hit.until > now()) return Promise.resolve({ ...hit.result, cacheHit: true });
     const previous = flights.get(key); if (previous) return subscribe(previous, signal);
     if (flights.size) return Promise.reject(new InterpretationError("busy"));
     let reservation: ReturnType<Ledger["reserve"]>;
-    try { reservation = ledger.reserve({ now: now(), pilot: SYNTHETIC_PILOT_ID, maximumNano: Math.ceil(request.maximumBaseNano * ledger.feeMultiplier) }); }
-    catch (e) { return Promise.reject(new InterpretationError(e instanceof Error && ["busy", "budget_exhausted"].includes(e.message) ? e.message : "budget_unavailable")); }
+    try { reservation = ledger.reserve({ now: now(), pilot: SYNTHETIC_PILOT_ID, maximumNano: Math.ceil(request.maximumBaseNano * ledger.feeMultiplier), model: profile.model, provider: profile.provider }); }
+    catch (e) { return Promise.reject(new InterpretationError(e instanceof Error && ["busy", "budget_exhausted", "budget_profile_migration_required"].includes(e.message) ? e.message : "budget_unavailable")); }
     const controller = new AbortController();
     const flight: Flight = { controller, subscribers: new Set(), settled: false, promise: Promise.resolve(null as unknown as RealInterpretation) };
     flight.promise = Promise.resolve().then(async () => {
@@ -64,16 +71,18 @@ export function createRealPilotService(provider: Provider, ledger: Ledger, optio
         const reply = await Promise.race([provider.generate(request.body, controller.signal), failed]);
         let outcome = reply.status as string, output: SynthesisOutput | null = null, validationError: unknown;
         if (reply.status === "completed" && reply.json) try { output = validateSynthesis(reply.json, safe); } catch (e) { outcome = "validation_failed"; validationError = e; }
-        if (reply.status === "model_mismatch" || reply.status === "billing_identity_unknown") throw new InterpretationError(reply.status);
+        if (reply.status === "model_mismatch" || reply.status === "billing_identity_unknown" || reply.status === "configuration_mismatch") throw new InterpretationError(reply.status);
+        if (profile.provider === "deepseek" && (reply.provider !== "deepseek" || reply.billingProfile !== profile.billingProfile || reply.adapterVersion !== profile.adapterVersion || reply.returnedModel !== profile.model)) throw new InterpretationError("billing_identity_unknown");
         if (reply.usage && reply.usage.inputTokens <= request.maximumInputTokens && reply.usage.outputTokens <= REAL_AI.outputTokens) {
-          const baseCost = reply.usage.inputTokens * REAL_AI.cacheWriteNanoPerToken + reply.usage.outputTokens * REAL_AI.outputNanoPerToken;
+          const baseCost = reply.usage.inputTokens * profile.cacheWriteNanoPerToken + reply.usage.outputTokens * profile.outputNanoPerToken;
           const charged = ledger.settle(reservation.id, { now: now(), usageCostNano: baseCost, usage: reply.usage, outcome, responseId: reply.responseId }); accounted = true;
           if (controller.signal.aborted || stopped) throw new InterpretationError(stopped ? "disabled" : "cancelled");
           if (validationError) throw validationError;
           if (!output || reply.status !== "completed" || !reply.responseId || !reply.returnedModel) throw new InterpretationError(reply.status);
-          const result: RealInterpretation = { provider: "openai", inputIdentity: "synthetic", inputTrust: "fixture", deploymentMode: "local_pilot", requestedModel: REAL_AI.model, returnedModel: reply.returnedModel,
-            returnedServiceTier: reply.returnedServiceTier!, responseId: reply.responseId, requestId: reservation.id, context: safe, asOf: safe.asOf, generatedAt: now(), cacheHit: false,
-            promptVersion: REAL_AI.prompt, outputVersion: REAL_AI.output, validationVersion: REAL_AI.validation,
+          const result: RealInterpretation = { provider: profile.provider, inputIdentity: "synthetic", inputTrust: "fixture", deploymentMode: "local_pilot", requestedModel: profile.model, returnedModel: reply.returnedModel,
+            returnedServiceTier: reply.returnedServiceTier, responseId: reply.responseId, requestId: reservation.id, context: safe, asOf: safe.asOf, generatedAt: now(), cacheHit: false,
+            adapterVersion: profile.adapterVersion, priceVersion: profile.priceVersion, billingProfile: profile.billingProfile, costBasis: "configured_peak_or_cache_write_bound",
+            promptVersion: profile.prompt, outputVersion: profile.output, validationVersion: profile.validation,
             usage: reply.usage, usageIdentity: "provider_reported", usageCalculatedNano: baseCost, budgetChargedBoundNano: charged, billedCost: null,
             output, limitations: safe.limitations, oldSnapshot: now() - safe.capturedAt >= REAL_AI.cacheTtlMs };
           if (!result.oldSnapshot) cache.set(key, { until: safe.capturedAt + REAL_AI.cacheTtlMs, result });

@@ -1,5 +1,13 @@
 # 当前任务索引
 
+## MR-UPLOAD-AI30B-DEEPSEEK — 2026-10-13 上传原草稿PR
+
+用户另行明确“上传”。[上传卡](MR-UPLOAD-AI30B-DEEPSEEK.md)：将已审计DeepSeek适配与真实合成失败结论上传原PR#6分支，核对远端内容并完成现有CI；不合并/部署/再发模型请求。下方主任务“不上传”是此前执行阶段边界，现仅上传获得新授权，A2质量FAIL保留。
+
+## MR-30B-REAL-PROVIDER-PILOT — 2026-10-13 实际连通，合成质量未通过
+
+[原任务卡](MR-30B-REAL-PROVIDER-PILOT.md)、[当前报告](../docs/AI_PROVIDER_PILOT.md)：专用产品Key已到位，DeepSeek官方Responses/deepseek-flash/none真实合成2次均HTTP200，A1 PASS；首例missing_conflict、一次受限提示澄清后unsupported_claim，A2 FAIL，剩余9场景NOT RUN，停止继续消费。原账本累计2/20，2倍保守费用占用$0.0053184，unknown/reserved均0，billedCost=null，预算不重置。此次prompt v2只明确精确引用边界，原校验/fixture/模型/预算未改；73专项/typecheck/lint及第二次请求前独立VERIFY通过。10月12日全量/build属于历史证据。本轮不上传/合并/部署，不发真实市场资料，不启用生产。下方待Key/零请求与旧测试为此前时点。
+
 ## MR-UPLOAD-AI30B — 已上传草稿PR，CI已验证
 
 2026-10-10用户明确“上传吧”；[归档卡](archive/MR-UPLOAD-AI30B.md)。产品411ae1bd已上传codex/mr-30b-real-provider-pilot，[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端tree与本地一致；Ubuntu24.04.5/Node22.15首轮CI38058677276构建/typecheck及449/449测试通过。独立GPT包装审计VERIFIED，后续只补文档，最新head/checks见PR。未合并main、未部署、未调用真实模型；主试点仍待Key/质量/真实输入准入。下方“不上传”为开发交接时记录。
