@@ -1,5 +1,15 @@
 # 当前状态
 
+2026-10-13后续授权上传：DeepSeek试点候选`36f3f0a4b8a4b337d0619cb6a3447ff42eeb6aff`已推送原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端tree与本地一致；新CI38349103530在Ubuntu24.04.5/Node22.15构建/typecheck及491/491Node全部通过。独立包装审计VERIFIED，归档[上传卡](../tasks/archive/MR-UPLOAD-AI30B-DEEPSEEK.md)。仅上传代码与脱敏报告，原始回复/账本/Key未提交；无新增产品模型请求，未合并main或部署。A1 PASS/A2 FAIL及生产关闭不变。下方“未上传”保留开发时点。
+
+2026-10-13真实合成执行：专用产品Key已配置，DeepSeek官方Responses/deepseek-flash/none两次实际HTTP200，A1连通PASS；首例误列conflictRefs，一次限定prompt v2澄清后仍改写受控原句，A2质量FAIL。原校验/模型/预算未放宽，剩余9场景NOT RUN，已停止继续调用。累计2次、保守2倍含费占用$0.0053184，unknown/reserved0，实际账单未取得。新73专项/typecheck/lint与第二次请求前独立VERIFY通过，旧全量/build不冒称本轮重跑。见[完整证据与限制](AI_PROVIDER_PILOT.md)。未上传/合并/部署，真实市场外发及生产仍未启用；现有Sitesv32不变。下方待Key/零调用为此前记录。
+
+2026-10-12 DeepSeek续接：同PR#6/HEAD62a0177上的未提交候选已完成官方Responses/deepseek-flash/none适配，保留OpenAI；71专项与488全量PASS/1既有SKIP、build/typecheck/lint及独立GPT迁移前审计通过。原共用预算库已一致备份并添加式迁移，0次/$0保留。DeepSeek合成外发、原预算与账户2倍费用上界已确认；专用产品变量MARKET_RADAR_DEEPSEEK_API_KEY待配置，禁止复用通用开发Key，真实产品请求0、合成质量NOT RUN。详见[当前报告](AI_PROVIDER_PILOT.md)；未新上传、合并、部署，现有Sitesv32不变。下方OpenAI配置与CI为历史事实。
+
+2026-10-10后续上传：用户明确授权后，3.0B离线候选 `411ae1bd3084470b7dd5b9b1f5374547fc85b4cf` 已上传独立分支，[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)。本地/远端tree一致；Ubuntu24.04.5/Node22.15首轮CI38058677276运行npm test（含build/typecheck）449/449PASS，0FAIL/0SKIP。上传包装独立审计VERIFIED；后续只补本记录，最新head/checks见PR。[上传归档](../tasks/archive/MR-UPLOAD-AI30B.md)。未合并main/部署/启用真实模型；产品API仍未调用，合成质量和真实市场输入准入继续开放，现有Sitesv32不变。下方未提交/上传及候选CI未测为10月8日的历史状态。
+
+2026-10-08重新核对：3.0A PR#5已合并main，HEAD `7d2d30f6fe466a4e746ade2b3db231b2cb13b2d4`，CI37751192029 success。3.0B独立本地候选见[受控Provider试点报告](AI_PROVIDER_PILOT.md)：固定Luna/Standard/none、项目UTC月$8/派发$7、合成试点20次/$0.25；持久预留/严格输出/snapshot契约离线验证，31专项、448全量PASS/1既有权限skip、build/typecheck/scoped lint、五视口8组通过。用户已允许合成真实试点，Key仍未配置，真实请求0；模型质量NOT RUN，真实行情用途及生产关闭。审计两项P2已修并VERIFY，最终18文件/证据独立复核VERIFIED PASS。本轮未提交上传或部署；现有Sitesv32继续运行。下面未合并等描述保留当时状态。
+
 2026-10-07后续上传：用户另行授权“上传吧”，3.0A产品已上传独立分支，commit `15535d600b9a9eadc1f80c57698c98c5dd7c8857`、[PR#5](https://github.com/cjwdwb/market-radar/pull/5)。首轮Ubuntu/Node22.15 CI37632197422执行npm test（build/typecheck及418/418 Node）成功。后续文档记录不改产品；最新PR head/checks见GitHub。[上传归档](../tasks/archive/MR-UPLOAD-AI30A.md)。未合并main、未部署Sites；真实模型仍关闭，现有生产Sitesv32不变。下方“未上传/CI NOT RUN”为开发阶段记录。
 
 2026-10-07 新路线：2.9 按 **Real Data & Research Foundation** 已交付范围收口，[承接表](FOUNDATION29_HANDOFF.md)保留能力边界；真实分钟等原目标归 [Data Track](../tasks/DATA-MINUTE-HISTORY.md)，不再阻塞 3.0A Foundation。下方历史未完成/受阻记录原样保留。3.0A [本地Foundation完成](AI_FOUNDATION.md)：运行时Context、fixture Provider、结构/引用校验、共享按需解释UI、32定向/417全量PASS（1权限skip）、五视口及独立GPT VERIFY。真实模型不启用，候选远端CI、本轮生产登录后与真机NOT RUN。本輪未上传、合并或部署；现有生产仍 Sites v32 / source4a4b7fb。
