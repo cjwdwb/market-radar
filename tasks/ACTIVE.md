@@ -1,5 +1,13 @@
 # 当前任务索引
 
+## MR-UPLOAD-AI30B-SELECTION — 2026-10-19 授权上传中
+
+用户在受控编号交接后明确“上传”。[上传卡](MR-UPLOAD-AI30B-SELECTION.md)：将已审计候选正常push原草稿PR#6，核对新CI；只上传源码/测试/脱敏报告，不上传原始回复、账本或Key，不再调用模型、不合并/部署。下段“不上传”为此前执行阶段边界，本轮授权只覆盖上传。
+
+## MR-30B-REAL-PROVIDER-PILOT — 2026-10-19 受控编号协议
+
+[任务卡](MR-30B-REAL-PROVIDER-PILOT.md)、[报告](../docs/AI_PROVIDER_PILOT.md)：新受控编号协议本地实现，付费前独立审计4项finding已修VERIFY；原名单9次真实DeepSeek合成请求选择/组织/披露均PASS，stale本地拒绝0HTTP/0预留且模型质量NOT RUN。旧两次FAIL保留。累计原账本11/20次/$0.0344574保守占用、unknown/reserved0；本轮9次占用$0.029139。最终507全量=506PASS/1既有Windows权限SKIP，build/typecheck/局部lint通过。最终证据/原账本集中独立复核VERIFIED PASS，本轮子项完成并停止；模型优于模板仍未证明。没有真实行情外发，PR#6 Draft，本轮不上传/合并/部署，主任务B阶段仍开放。下方为历史时点。
+
 ## MR-UPLOAD-AI30B-DEEPSEEK — 2026-10-13 已上传，CI通过
 
 用户另行明确“上传”。[归档卡](archive/MR-UPLOAD-AI30B-DEEPSEEK.md)：产品36f3f0a已正常push原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，本地/远端tree相同；独立包装审计VERIFIED PASS，新Ubuntu/Node22.15 CI38349103530构建/typecheck与491/491Node通过。后续仅文档记录，最新head/checks见PR。未合并/部署/再发模型请求；下方“不上传”是此前执行阶段边界，A2质量FAIL与9类NOT RUN保持。

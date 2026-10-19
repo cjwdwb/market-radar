@@ -8,10 +8,12 @@ import { ProductBudget } from '../lib/ai/product-budget.mjs';
 import { REAL_AI, DEEPSEEK_AI, ACTIVE_PRODUCT_AI, SYNTHETIC_PILOT_ID } from '../lib/ai/real-config.ts';
 import { fixtureContext } from '../lib/ai/fixture.ts';
 import { projectProviderContext } from '../lib/ai/context.ts';
-import { SYNTHESIS_JSON_SCHEMA, SYNTHESIS_PROMPT, synthesisCatalog, validateSynthesis } from '../lib/ai/real-output.ts';
+import { SYNTHESIS_PROMPT, synthesisCatalog, validateSynthesis } from '../lib/ai/real-output.ts';
+import { createSelectionCatalog, SELECTION_JSON_SCHEMA, SELECTION_PROMPT } from '../lib/ai/claim-selection.ts';
 import { buildDeepSeekRequest, parseDeepSeekResponse, createDeepSeekProvider, DEEPSEEK_SYNTHESIS_INSTRUCTIONS } from '../lib/ai/deepseek-provider.ts';
 import { createRealPilotService } from '../lib/ai/real-service.ts';
 import { parsePilotArgs } from '../scripts/ai30b-pilot.mjs';
+globalThis.fetch = () => { throw new Error('TEST_FORBIDS_NETWORK'); };
 
 const NOW = Date.UTC(2026, 9, 12, 12), ctx = () => fixtureContext('upward', 'BTC-USDT', NOW);
 function selection(c = projectProviderContext(ctx())) {
@@ -20,7 +22,7 @@ function selection(c = projectProviderContext(ctx())) {
 }
 function response(changes = {}) {
   return { object: 'response', id: 'deepseek.opaque:id-1', created_at: NOW / 1000, model: 'deepseek-flash', status: 'completed', reasoning: { effort: 'none' },
-    output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify(selection()) }] }],
+    output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify({ selectedClaimIds: [createSelectionCatalog(projectProviderContext(ctx())).entries.find(e => e.evidenceRefs.includes('short.direction') && e.evidenceRefs.includes('medium.direction')).claimId] }) }] }],
     usage: { input_tokens: 1500, output_tokens: 300, total_tokens: 1800, input_tokens_details: { cached_tokens: 500 }, output_tokens_details: { reasoning_tokens: 0 } }, ...changes };
 }
 function database(t, migrate = true) {
@@ -37,14 +39,13 @@ const reserve = (budget, provider, maximumNano = 20000000) => budget.reserve({ n
 test('DeepSeek fixed request uses trusted instructions, schema and peak non-cached full-payload reserve', () => {
   assert.equal(ACTIVE_PRODUCT_AI, DEEPSEEK_AI);
   const request = buildDeepSeekRequest(projectProviderContext(ctx())), body = JSON.parse(request.body);
-  assert.equal(body.model, 'deepseek-flash'); assert.equal(body.instructions, DEEPSEEK_SYNTHESIS_INSTRUCTIONS);
-  assert.ok(body.instructions.startsWith(SYNTHESIS_PROMPT));
-  assert.ok(body.instructions.includes('没有符合项时输出空数组[]'));
-  assert.equal(DEEPSEEK_AI.prompt, 'bounded-synthesis-v2-deepseek-instructions-v2');
+  assert.equal(body.model, 'deepseek-flash'); assert.equal(body.instructions, SELECTION_PROMPT);
+  assert.ok(DEEPSEEK_SYNTHESIS_INSTRUCTIONS.startsWith(SYNTHESIS_PROMPT)); // 旧prompt仍导出，不在新路径执行。
+  assert.equal(DEEPSEEK_AI.prompt, 'bounded-id-selection-v1');
   assert.equal(body.input.length, 1); assert.equal(body.input[0].role, 'user'); assert.deepEqual(body.reasoning, { effort: 'none' });
   assert.equal(body.stream, false); assert.equal(body.tool_choice, 'none'); assert.equal(body.max_output_tokens, 2048);
   for (const name of ['tools', 'service_tier', 'store', 'background', 'previous_response_id']) assert.equal(name in body, false);
-  assert.deepEqual(body.text.format.schema, SYNTHESIS_JSON_SCHEMA); assert.equal('strict' in body.text.format, false);
+  assert.deepEqual(body.text.format.schema, SELECTION_JSON_SCHEMA); assert.equal('strict' in body.text.format, false);
   assert.equal(request.maximumInputTokens, Buffer.byteLength(request.body) + 2048);
   assert.equal(request.maximumBaseNano, request.maximumInputTokens * 300 + 2048 * 1200);
   assert.equal(REAL_AI.model, 'gpt-6-luna'); assert.equal(REAL_AI.endpoint, 'https://api.openai.com/v1/responses');
@@ -191,7 +192,7 @@ test('DeepSeek validated service reuses strict evidence/cache and settles at pea
 
 test('DeepSeek semantic rejection still charges known usage; identity or usage failure keeps full reserve', async t => {
   for (const [code, changes, settled] of [
-    ['invalid_output', { output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: '{"invented":true}' }] }] }, true],
+    ['invalid_selection_schema', { output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: '{"invented":true}' }] }] }, true],
     ['model_mismatch', { model: 'deepseek-v4-pro' }, false], ['invalid_usage', { usage: null }, false],
     ['configuration_mismatch', { reasoning: { effort: 'high' } }, false],
     ['refusal', { status: 'incomplete', incomplete_details: { reason: 'content_filter' } }, true],

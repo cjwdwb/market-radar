@@ -1,5 +1,23 @@
 # MR-30B-REAL-PROVIDER-PILOT
 
+## 2026-10-19 受控事实编号选择 — Planner 定稿
+
+执行交接：付费前独立GPT审计2项P2/2项P3已修复VERIFY；本轮按原名单逐例9次DeepSeek真实合成HTTP200且选择/最低组织标准/披露均PASS，stale准入拒绝0HTTP/0预留（不是模型PASS）。旧两次FAIL原件6hash与10月13日历史交接一致。新费用占用上界$0.029139，原账本累计11次/$0.0344574，unknown/reserved0，剩余试点9次/$0.2155426；实际账单未知。最终507全量=506PASS/1既有Windows权限SKIP，build/typecheck/lint通过，真实执行后11源码/测试hash与付费前版本相同。证据`outputs/ai30b/selection-execution-handoff.json`；最终集中独立复核VERIFIED PASS，核对39份新证据/6份旧证据、逐例先审阅后调用、原库11条请求和费用，旧原始回复重放仍FAIL。本轮子项已交接并停止；仅本地候选，无上传/部署，真实市场解释与模型增益未获证明，主任务继续开放。
+
+基线 f31ccc12b7547937a51428057b59d0d581fdae0c，原 PR #6 草稿，起始工作区干净。现有两次真实失败原件与 FAIL 保留；原账本本轮只读核对 2 次/$0.0053184、unknown/reserved 0，剩余 18 次/$0.2446816；不迁移/初始化/重置。专用产品 Key 仅确认进程存在，不读取开发 Key。10月19日官方 Responses/none/json_schema 与高峰输入$0.30/M、输出$1.20/M 未变；沿用用户已确认的总费用不超过2倍上界，实际账单仍未知。
+
+范围：仅 DeepSeek 显式启用 claim-selection-v1；原 v1/v2 schema、validator、OpenAI、fixture/State/预算算法不变。一次 projection 后构造完整冻结 Context/目录/请求，服务端保管映射；SHA-256 preimage 包含 Context、全部协议版本、目录与顺序，不含派生ID。回复严格只有1–3个 selectedClaimIds，首项必须具备主观察资格。编号不充当授权，未知/跨上下文/重复/额外字段/不合资格均拒绝，不 trim/修补/回退。固定文案复用 synthesisCatalog，原 metricRefs 精确恢复。
+
+披露：不可用证据、available mixed Alignment、可用短中方向差异、全部 Context.limitations 与 minuteHistoricalResearch 分别有明确来源及稳定ID。Context全局限制没有伪造Evidence引用。选项的 covers 在发前固定；systemAdded 按披露ID差集，不以共享refs/相似句子去重。raw model JSON、modelSelected、systemRequired、systemAdded、renderedResult分存；选择有效性、模型组织质量、完整披露独立判定。
+
+冻结质量规则（只依现有事实，不依case名称）：有短中方向时模型须覆盖两窗方向；仅短窗可用时覆盖短方向；短RMS higher/lower 时同时覆盖其事实；已有方向分歧须有明确分歧命题，或双方方向加已有mixed命题这一等价组合。Alignment不足本身不是冲突。允许任一有资格主项及合理顺序，不要求选满限制，不强求transition成为主项。模型漏重要事实/分歧则组织质量FAIL，即便系统补齐也停止后续消费。确定性基线先取两窗关系（若有），再取短方向/RMS关系或可用金融事实，按新增事实/披露去重并最多3项；无数据不派发。基线仅供比较，不宣称LLM增益；相同输入须同一规则。
+
+盘点限制：aligned/transition/no_events/information_missing/minute_unsupported在固定同一NOW下Context完全相同；所有原场景没有事件/资料正例；aligned的完整Alignment实际不足；stale没有可用主要金融证据，应NOT_DISPATCHED，非质量PASS。测试另覆盖mixed与Alignment不足同时出现等边界，不改变原付费场景。
+
+允许路径：lib/ai/{claim-selection,real-config,deepseek-provider,real-service}.ts、scripts/ai30b-pilot.mjs、tests/ai30b-*.test.mjs、本卡/ACTIVE、docs/AI_PROVIDER_PILOT.md及忽略outputs/ai30b。real-output.ts加入指纹但不改旧契约；不改product-budget/schema、其他工作树、UI/生产配置。CLI先冻结再传相同prepared对象，来源指纹包含新模块和旧validator；缓存绑定完整冻结内容/版本/权限/profile。
+
+测试与执行：离线全部阻断真实fetch，临时账本；编号/不可伪造映射/恢复/披露/质量/预算/取消/晚到/缓存/注入/旧FAIL回归；稳定后全量Node、typecheck/build、局部lint。无UI改动不重复浏览器。GPT独立审计并VERIFY后才aligned单例；逐例冻结/检查后继续原名单，任一质量/身份/usage/费用/诊断问题停止，绝不自动修Prompt重试。请求沿用原总预算与20次/$0.25上限，真实市场/生产关闭。本轮无push/merge/tag/deploy。开发DS不强制，尚未实际调用。
+
 ## 2026-10-13 真实合成首例与一次限定修正计划
 
 用户已安全配置专用产品Key；仅在用户变量读入当前CLI进程，不读取通用开发Key。9个代码/测试哈希与上轮审计一致；原账本预检0次/$0。首个aligned真实HTTP200、模型deepseek-flash、input3628/output174/cached0/reasoning0，完成响应但原校验拒绝missing_conflict：模型把insufficient alignment错误放入conflictRefs。证据outputs/ai30b/synthetic-1791866444335-aligned-rYvgU8，失败请求不删除；高峰用量估算$0.0012972，2倍含费预算占用$0.0025944，billedCost仍null。真实连通已发生，不等于质量通过。

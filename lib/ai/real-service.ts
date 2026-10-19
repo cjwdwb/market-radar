@@ -4,6 +4,22 @@ import { buildResponsesRequest, type RealReply, type RealUsage } from "./openai-
 import { buildDeepSeekRequest } from "./deepseek-provider";
 import { validateSynthesis, type SynthesisOutput } from "./real-output";
 import { REAL_AI, DEEPSEEK_AI, SYNTHETIC_PILOT_ID, type ProductAIProfile } from "./real-config";
+import { validateClaimSelection, type ClaimSelectionResult } from "./claim-selection";
+
+const preparedInputs = new WeakSet<object>();
+function freezeSnapshot<T>(value: T): T {
+  if (value && typeof value === "object") { for (const child of Object.values(value)) freezeSnapshot(child); Object.freeze(value); }
+  return value;
+}
+export function preparePilotRequest(context: MarketIntelligenceContext, profile: ProductAIProfile, admit = projectProviderContext) {
+  if (profile !== REAL_AI && profile !== DEEPSEEK_AI) throw new InterpretationError("billing_identity_unknown");
+  const projected = structuredClone(admit(context));
+  const request = profile.provider === "deepseek" ? buildDeepSeekRequest(projected) : buildResponsesRequest(projected);
+  const safe = "selection" in request ? request.selection.context : projected;
+  const prepared = freezeSnapshot({ safe, request, profile });
+  preparedInputs.add(prepared); return prepared;
+}
+type PreparedRequest = ReturnType<typeof preparePilotRequest>;
 
 type Ledger = { feeMultiplier: number; reserve(input: { now: number; pilot: string; maximumNano: number; model: string; provider: string }): { id: string; reservedNano: number; month: string }; settle(id: string, input: { now: number; usageCostNano: number; usage: RealUsage; outcome: string; responseId: string | null }): number; unknown(id: string, now: number, outcome: string): void; inspect(now: number, pilot: string): unknown };
 type Provider = { kind?: "openai" | "deepseek"; generate(body: string, signal: AbortSignal): Promise<RealReply> };
@@ -13,7 +29,7 @@ export type RealInterpretation = {
   adapterVersion: string; priceVersion: string; billingProfile: string; costBasis: "configured_peak_or_cache_write_bound";
   asOf: number; generatedAt: number; cacheHit: boolean; promptVersion: string; outputVersion: string; validationVersion: string;
   usage: RealUsage; usageIdentity: "provider_reported"; usageCalculatedNano: number; budgetChargedBoundNano: number; billedCost: null;
-  output: SynthesisOutput; limitations: string[]; oldSnapshot: boolean;
+  output: SynthesisOutput | ClaimSelectionResult; limitations: string[]; oldSnapshot: boolean;
 };
 /** 本地试点服务。旧fixture服务保持原有身份/校验；不给生产注入默认真实transport。 */
 export function createRealPilotService(provider: Provider, ledger: Ledger, options: { now?: () => number; timeoutMs?: number; admit?: (context: MarketIntelligenceContext) => ProviderSafeContext; profile?: ProductAIProfile } = {}) {
@@ -24,8 +40,8 @@ export function createRealPilotService(provider: Provider, ledger: Ledger, optio
   type Flight = { promise: Promise<RealInterpretation>; controller: AbortController; subscribers: Set<symbol>; settled: boolean };
   const flights = new Map<string, Flight>(), cache = new Map<string, { until: number; result: RealInterpretation }>();
   let stopped = false;
-  function check(context: MarketIntelligenceContext) {
-    const safe = admit(context), time = now();
+  function check(safe: ProviderSafeContext) {
+    const time = now();
     // 首批只合成；B需要单独已批准的真实权限与接入，不因注入admit回调升权。
     if (safe.trust !== "fixture" || safe.evidence.some(e => !e.source.startsWith("fixture:"))) throw new InterpretationError("data_permission_unavailable");
     if (safe.capturedAt > time || time - safe.capturedAt >= REAL_AI.cacheTtlMs) throw new InterpretationError("context_expired");
@@ -43,13 +59,17 @@ export function createRealPilotService(provider: Provider, ledger: Ledger, optio
     });
   }
   function interpret(context: MarketIntelligenceContext, signal?: AbortSignal): Promise<RealInterpretation> {
+    try { return interpretPrepared(preparePilotRequest(context, profile, admit), signal); } catch (e) { return Promise.reject(e); }
+  }
+  function interpretPrepared(prepared: PreparedRequest, signal?: AbortSignal): Promise<RealInterpretation> {
     if (stopped) return Promise.reject(new InterpretationError("disabled"));
     if (signal?.aborted) return Promise.reject(new InterpretationError("cancelled"));
-    let safe: ProviderSafeContext;
-    try { safe = check(context); } catch (e) { return Promise.reject(e); }
-    const request = profile.provider === "deepseek" ? buildDeepSeekRequest(safe) : buildResponsesRequest(safe);
+    if (!preparedInputs.has(prepared) || prepared.profile !== profile) return Promise.reject(new InterpretationError("catalog_invalid"));
+    const { safe, request } = prepared;
+    try { check(safe); } catch (e) { return Promise.reject(e); }
     const key = JSON.stringify({ safe, body: request.body, permissionVersion: AI_VERSIONS.projection, generation: profile.generation,
-      provider: profile.provider, model: profile.model, adapter: profile.adapterVersion, price: profile.priceVersion, billing: profile.billingProfile, prompt: profile.prompt });
+      provider: profile.provider, model: profile.model, adapter: profile.adapterVersion, price: profile.priceVersion, billing: profile.billingProfile, prompt: profile.prompt,
+      selection: "selection" in request ? request.selection : null });
     const hit = cache.get(key);
     if (hit && hit.until > now()) return Promise.resolve({ ...hit.result, cacheHit: true });
     const previous = flights.get(key); if (previous) return subscribe(previous, signal);
@@ -62,15 +82,18 @@ export function createRealPilotService(provider: Provider, ledger: Ledger, optio
     flight.promise = Promise.resolve().then(async () => {
       let timer: ReturnType<typeof setTimeout> | undefined, removeAbort: (() => void) | undefined, accounted = false;
       try {
-        check(context); if (controller.signal.aborted || stopped) throw new InterpretationError("cancelled");
+        check(safe); if (controller.signal.aborted || stopped) throw new InterpretationError("cancelled");
         const failed = new Promise<never>((_, reject) => {
           const abort = () => reject(new InterpretationError(stopped ? "disabled" : "cancelled"));
           controller.signal.addEventListener("abort", abort, { once: true }); removeAbort = () => controller.signal.removeEventListener("abort", abort);
           timer = setTimeout(() => { reject(new InterpretationError("timeout")); controller.abort(); }, options.timeoutMs ?? REAL_AI.timeoutMs);
         });
         const reply = await Promise.race([provider.generate(request.body, controller.signal), failed]);
-        let outcome = reply.status as string, output: SynthesisOutput | null = null, validationError: unknown;
-        if (reply.status === "completed" && reply.json) try { output = validateSynthesis(reply.json, safe); } catch (e) { outcome = "validation_failed"; validationError = e; }
+        let outcome = reply.status as string, output: SynthesisOutput | ClaimSelectionResult | null = null, validationError: unknown;
+        if (reply.status === "completed" && reply.json) try {
+          output = profile.output === "claim-selection-v1" && "selection" in request ? validateClaimSelection(reply.json, request.selection) : validateSynthesis(reply.json, safe);
+          if ("modelOrganizationQuality" in output && output.modelOrganizationQuality === "FAIL") outcome = "organization_failed";
+        } catch (e) { outcome = "validation_failed"; validationError = e; }
         if (reply.status === "model_mismatch" || reply.status === "billing_identity_unknown" || reply.status === "configuration_mismatch") throw new InterpretationError(reply.status);
         if (profile.provider === "deepseek" && (reply.provider !== "deepseek" || reply.billingProfile !== profile.billingProfile || reply.adapterVersion !== profile.adapterVersion || reply.returnedModel !== profile.model)) throw new InterpretationError("billing_identity_unknown");
         if (reply.usage && reply.usage.inputTokens <= request.maximumInputTokens && reply.usage.outputTokens <= REAL_AI.outputTokens) {
@@ -85,7 +108,7 @@ export function createRealPilotService(provider: Provider, ledger: Ledger, optio
             promptVersion: profile.prompt, outputVersion: profile.output, validationVersion: profile.validation,
             usage: reply.usage, usageIdentity: "provider_reported", usageCalculatedNano: baseCost, budgetChargedBoundNano: charged, billedCost: null,
             output, limitations: safe.limitations, oldSnapshot: now() - safe.capturedAt >= REAL_AI.cacheTtlMs };
-          if (!result.oldSnapshot) cache.set(key, { until: safe.capturedAt + REAL_AI.cacheTtlMs, result });
+          if (!result.oldSnapshot && outcome !== "organization_failed") cache.set(key, { until: safe.capturedAt + REAL_AI.cacheTtlMs, result });
           while (cache.size > REAL_AI.cacheEntries) cache.delete(cache.keys().next().value!);
           return result;
         }
@@ -97,5 +120,5 @@ export function createRealPilotService(provider: Provider, ledger: Ledger, optio
     });
     flights.set(key, flight); return subscribe(flight, signal);
   }
-  return { interpret, inspect: () => ({ active: flights.size, cache: cache.size, budget: ledger.inspect(now(), SYNTHETIC_PILOT_ID) }), stop: () => { stopped = true; cache.clear(); for (const f of flights.values()) f.controller.abort(); } };
+  return { interpret, interpretPrepared, inspect: () => ({ active: flights.size, cache: cache.size, budget: ledger.inspect(now(), SYNTHETIC_PILOT_ID) }), stop: () => { stopped = true; cache.clear(); for (const f of flights.values()) f.controller.abort(); } };
 }

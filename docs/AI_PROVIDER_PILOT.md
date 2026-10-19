@@ -1,5 +1,74 @@
 # Market Radar 3.0B — 受控 Provider 试点交接
 
+## 2026-10-19 受控编号协议：本地实现与原名单真实合成复测
+
+本轮基线 `f31ccc12b7547937a51428057b59d0d581fdae0c`，原 `codex/mr-30b-real-provider-pilot` / [Draft PR #6](https://github.com/cjwdwb/market-radar/pull/6)。本轮差异尚未提交/上传，PR未合并，未部署；现有生产记录仍为 Sites v32 / `4a4b7fb66ac4fc10663087b42a09e08c55804e2a`，真实产品模型关闭。远端该HEAD的CI38349505890成功是此前候选证据，不覆盖本轮本地diff。
+
+### 协议与实现
+
+DeepSeek明确启用 `claim-selection-v1 / scoped-catalog-v1 / strict-claim-ids-v1 / bounded-id-selection-v1 / claim-selection-validation-v1 / fixed-claim-restoration-v1`；原v1/v2 schema、validator、OpenAI适配器、fixture、State/Research规则和预算schema均未修改。新增一个 `lib/ai/claim-selection.ts`，接入既有Provider/service/单例CLI，没有新UI、依赖或模型路由。输入投影后一次冻结完整Context、目录、质量规则、对照及请求；服务端映射复用于请求、manifest、校验与恢复。SHA-256作用域包含完整事实/版本/顺序，ID不承担权限。回复只能是1–3个精确ID；不修剪/模糊匹配/文本修复或切回旧协议。
+
+`modelSelected`原顺序、`systemRequired`、按预冻covers差集得到的`systemAdded`、固定文案及引用的`renderedResult`分存。全局限制保留Context来源，不编造Evidence ID；Alignment不足与确认mixed分开，短中方向分歧独立保留。主项资格、重要事实/分歧及多种等价安排在调用前冻结，组织质量不能由系统补齐“救回”。后项可有部分重叠但必须新增事实或明确披露；不要求唯一排序或选满限制。全部数据不足仍在原准入层拒绝。
+
+### 真实执行与逐例评价
+
+用户已明确授权DeepSeek自有合成外发与原共用预算，专用产品Key仅确认当前进程存在、未打印/写盘/读取开发Key。官方10月19日[定价](https://api-docs.deepseek.com/quick_start/pricing/)、[Responses参考](https://api-docs.deepseek.com/api/create-response/)、[指南](https://api-docs.deepseek.com/guides/responses_api/)重新核对：`deepseek-flash`（当日文档别名映射DeepSeek-V4.1-Flash-1017）、none、instructions/json_schema仍适用；高峰未缓存输入$0.30/M、输出$1.20/M未变。沿用用户确认的含税/附加费总额不超过峰值基础费用2倍上界；供应商账单未取得。
+
+付费前独立GPT审计VERIFIED PASS后，按原名单一例一条命令运行，每例新冻结输入、返回后人工审阅再继续。没有循环批跑、自动重试、改Prompt补考、账户探针或切换模型。9次HTTP全部200、返回deepseek-flash、reasoningTokens均0；stale仅本地检查，0HTTP/0预留。每例原始`frozen.json/reply.json/results.json`保持不可覆盖，另写`gpt-review.json`保存人工评价，故原results中的PENDING_GPT_REVIEW不被事后改写。
+
+| 场景 | 是否派发 | 选择合法性 | 模型组织质量 | 程序补齐 | 最终披露 | 对照收益 | 结果/原因 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| aligned | 1次 | PASS | PASS | 16/16 | PASS | 未证明 | 双窗偏上+短方向/RMS；未声称完整Alignment可用 |
+| mixed | 1次 | PASS | PASS | 15/16 | PASS | 未证明 | 模型保留短下/中上分歧，另选中RMS低；完整Alignment披露仍由系统补 |
+| relative_missing | 1次 | PASS | PASS | 16/16 | PASS | 未证明 | 只选有效方向/RMS；相对维度真实原因仍为等待BTC报价 |
+| rms_not_direction | 1次 | PASS | PASS | 16/16 | PASS | 未证明 | 两窗无明显单向结构，短RMS低且明确不等于低风险 |
+| transition | 1次 | PASS | PASS | 16/16 | PASS | 未证明 | 原场景实际为unchanged；未编造发生变化 |
+| no_events | 1次 | PASS | PASS | 16/16 | PASS | 未证明 | 没有事件不推导平静/低风险/无方向 |
+| information_missing | 1次 | PASS | PASS | 16/16 | PASS | 未证明 | 合法渐进顺序，未编造新闻或原因；并不比关系优先模板更紧凑 |
+| stale | 未派发 | NOT RUN | NOT RUN | 本地保留32项 | NOT RUN | 不适用 | 准入PASS：insufficient_context，不能算模型质量PASS |
+| partial | 1次 | PASS | PASS | 28/28 | PASS | 未证明 | 仅短窗可用；37点要求/当前22点限制保留；与确定性基线完全相同 |
+| minute_unsupported | 1次 | PASS | PASS | 16/16 | PASS | 未证明 | 当前方向/RMS有效，分钟历史研究继续unsupported |
+
+数字为系统新增/系统必需披露数量，不是模型贡献数量。所有quality PASS只表示满足事前最低覆盖标准。原名单5例在同一NOW下完整Context相同；全部没有活跃事件或官方资料正例，没有available relative或完整aligned正例，不能据此宣称这些能力经过真实评测。`transition`也不是changed正例。对照收益统一UNPROVEN，不能将安全恢复/完整披露当作LLM增益。
+
+### 用量与预算（USD，不是实际账单）
+
+| 场景 | 输入/输出token | 高峰用量估算 | 2倍费用占用上界 |
+| --- | --- | --- | --- |
+| aligned | 5051 / 85 | 0.0016173 | 0.0032346 |
+| mixed | 5059 / 130 | 0.0016737 | 0.0033474 |
+| relative_missing | 5077 / 130 | 0.0016791 | 0.0033582 |
+| rms_not_direction | 5068 / 87 | 0.0016248 | 0.0032496 |
+| transition | 5060 / 87 | 0.0016224 | 0.0032448 |
+| no_events | 5010 / 81 | 0.0016002 | 0.0032004 |
+| information_missing | 5049 / 124 | 0.0016635 | 0.0033270 |
+| stale | 0 / 0（未派发） | 0 | 0 |
+| partial | 4597 / 50 | 0.0014391 | 0.0028782 |
+| minute_unsupported | 5118 / 95 | 0.0016494 | 0.0032988 |
+| 本轮合计 | 45089 / 869 | 0.0145695 | 0.0291390 |
+
+缓存token合计1024、reasoning0，计算不依赖缓存/低峰优惠。本轮9次预留合计$0.1573206（派发前上限之和，**不是最终费用，也不是当前在途占用**），随后按usage结算为上述上界；原有$0.0053184保留。原pilot/月账本累计11/20次、$0.0344574，unknown/reserved/active均0。试点剩余$0.2155426且最多9次预留；UTC月派发$7门槛剩余$6.9655426，月$8总预算及$1缓冲不变。`billedCost=null`，未实际对账或充值。开发GPT/Codex、开发DS、数据/服务器费用不包含在此产品API统计。
+
+本轮计数：9新增预留、9HTTP、9响应、1发送前拒绝、0缓存命中、0非法选择、0模型组织失败、0系统披露失败、9有效模型复测；原10场景入口均已执行，stale模型质量仍NOT RUN。运行名单完成后停止，没有为用满额度增加请求。
+
+### 验证、审计与证据
+
+Windows / Node22.15.0，本轮新测：首轮86/86专项；核心稳定候选全量506项=505PASS/1既有Windows文件symlink权限SKIP；build/typecheck/局部lint通过。审计后仅CLI计数/旧测试补正，62/62相关回归及lint通过。标准构建最初因共享依赖的Vite临时缓存被沙箱拒绝，runner替代失败；经工具权限复核后原vinext构建成功，不改构建系统。既有>500KB chunk提示保留，无本轮UI改动/可复现性能瓶颈，未调用Optimizer。浏览器、生产登录后和真机本轮NOT RUN；没有新候选远端CI，未将旧CI当本轮通过。
+
+最终CLI小修候选已再跑全量：507项=506PASS/0FAIL/1同一Windows权限SKIP，日志`selection-final-full-node.log`；该结果是本轮实际新测。之后11源码/测试hash与付费前固定版本完全一致，不重复未变产品构建。
+
+独立GPT付费前审计及修复VERIFY：P2重复事实贡献漏判、P2旧OpenAI prepared快照未深冻、P3独立披露失败统计缺失、P3旧v2两项直接反例丢失，均最小修复并复核。独立盘点另检查9可派发确定性基线/倒序与28组合理排列，全部满足冻结规则。主代理负责实现与逐例人工审阅；开发DS Worker本轮没有调用，**9次产品DeepSeek不能记作开发DS参与**。
+
+最终集中独立GPT复核 **VERIFIED PASS，无新增confirmed finding**：11源码/测试hash、39新证据hash与6旧证据hash一致；从冻结Context重建目录/请求并核对原始回复、精确恢复/归因和质量，9例通过，stale无派发。逐例人工评价时间均早于下例开始。审计员以SQLite readOnly核对原库11条请求/profile及费用，未写库/读取Key/调用API；旧两份原始回复重放仍FAIL。实际核对最终507项日志。供应商账单、浏览器、生产、当前远端PR/CI未由最终审计员重新查询，不把这些记为新通过。审计证据摘要另存`outputs/ai30b/selection-final-audit.json`。
+
+主要证据（本地忽略目录，不上传原始回复或预算库）：`outputs/ai30b/selection-execution-handoff.json`含10个runId、39份证据hash、逐例评价、预算和计数；`selection-verified-files.json`为11个代码/测试固定hash；`selection-old-evidence-hashes.json`的6旧原件与10月13日原交接hash再次逐项一致。日志为`selection-{full-node,build,typecheck,lint}.log`及`selection-audit-fix-{tests,lint}.log`。Node测试命令：`node --experimental-strip-types --import ./tests/register-types.mjs --test tests/*.test.mjs`；构建实际`node node_modules/vinext/dist/cli.js build`；类型`node scripts/typecheck.mjs`；局部`node node_modules/eslint/bin/eslint.js`加本次受影响路径。未声称执行Windows下的npm test包装命令。
+
+### 阶段与下一步
+
+A1保留原合成连通PASS，本轮9次新增另记；旧协议A2仍FAIL，原两次失败消费/证据不追认。新编号协议实现/离线验证、9次选择合法性/最低组织标准/系统披露均通过，stale不算模型PASS；不能称真实市场解释已通过或模型优于模板。
+
+B真实市场解释本轮NOT RUN。下一步需要在原任务内核验最小真实输入的数据外发用途及许可、受控snapshot与owner权限路径，并另行冻结真实输入试点范围；当前合成准入不自动升权。现有生产真实模型保持关闭，PR#6保持Draft；本轮不push/merge/tag/deploy。原始账本/凭据不入Git。
+
 2026-10-13后续上传：用户明确授权后，DeepSeek候选`36f3f0a4b8a4b337d0619cb6a3447ff42eeb6aff`已正常推送原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，tree `3f1e324324d086c4bf3b56b893b30feb81bebcff`与本地相同。独立上传包装VERIFIED；新[CI38349103530](https://github.com/cjwdwb/market-radar/actions/runs/38349103530)实际Ubuntu24.04.5/Node22.15/npm10.9.2、npm ci→npm test，build/typecheck与491/491Node PASS、0FAIL/0SKIP。原chunk/Actions提示保留。归档[上传卡](../tasks/archive/MR-UPLOAD-AI30B-DEEPSEEK.md)，后续仅补文档，最新head/checks见PR。未合并/部署/新增模型消费，原始回复/预算库/Key未上传；A1连通PASS/A2质量FAIL不因CI通过改变。下面未上传/当前CI未跑等为开发交接时事实。
 
 ## 2026-10-13 真实合成试点：接口连通PASS，质量FAIL，后续场景停止

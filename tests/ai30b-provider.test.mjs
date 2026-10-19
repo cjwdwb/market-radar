@@ -12,6 +12,7 @@ import { projectProviderContext } from '../lib/ai/context.ts';
 import { synthesisCatalog, validateSynthesis, SYNTHESIS_JSON_SCHEMA } from '../lib/ai/real-output.ts';
 import { createOpenAIProvider, buildResponsesRequest, parseResponses } from '../lib/ai/openai-provider.ts';
 import { createRealPilotService } from '../lib/ai/real-service.ts';
+globalThis.fetch = () => { throw new Error('TEST_FORBIDS_NETWORK'); };
 const NOW=Date.UTC(2026,9,8,12), context=(s='upward',symbol='BTC-USDT')=>fixtureContext(s,symbol,NOW), safe=c=>projectProviderContext(c);
 function selected(c){const catalog=synthesisCatalog(c),summary=[catalog.find(s=>s.evidenceRefs.length===2&&s.evidenceRefs.includes('medium.direction'))??catalog.find(s=>s.evidenceRefs.includes('short.direction'))??catalog[0]];
  return {summary,primaryEvidenceRefs:summary[0].evidenceRefs,conflictRefs:c.evidence.filter(e=>e.kind==='alignment'&&e.availability==='available'&&e.classification==='mixed').map(e=>e.id),limitationRefs:c.evidence.filter(e=>e.availability!=='available').map(e=>e.id)};
@@ -29,6 +30,12 @@ test('3.0B fixed Luna Standard/none request and complete schema/input cost',()=>
  assert.equal(body.text.format.strict,true);assert.deepEqual(body.text.format.schema,SYNTHESIS_JSON_SCHEMA);
  assert.equal(request.maximumInputTokens,Buffer.byteLength(request.body)+2048);assert.equal(request.maximumBaseNano,request.maximumInputTokens*125+2048*500);
  assert.ok(request.maximumInputTokens<=REAL_AI.inputBytes+2048);
+});
+
+test('old v2 duplicate_claim and missing_primary remain rejected independently of new ID protocol',()=>{
+ const c=safe(context()), original=selected(c);
+ assert.throws(()=>validateSynthesis(JSON.stringify({...original,summary:[...original.summary,...original.summary]}),c),e=>e.code==='duplicate_claim');
+ assert.throws(()=>validateSynthesis(JSON.stringify({...original,primaryEvidenceRefs:['short.volatility']}),c),e=>e.code==='missing_primary');
 });
 test('3.0B bounded synthesis rejects extra prose, false numeric values, references and omitted conflicts/limits',()=>{
  const c=safe(context('mixed')),output=selected(c);

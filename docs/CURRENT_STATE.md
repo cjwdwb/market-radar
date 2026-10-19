@@ -1,5 +1,7 @@
 # 当前状态
 
+2026-10-19受控编号协议交接后用户授权上传：[上传卡](../tasks/MR-UPLOAD-AI30B-SELECTION.md)。新协议9次真实DeepSeek合成请求选择/组织/披露PASS，stale本地拒绝0HTTP且模型质量NOT RUN；旧协议两次FAIL保留，优于模板的增益仍未证明。开发阶段最终507Node中506PASS/1既有Windows权限SKIP，build/typecheck/相关lint及独立GPT证据/账本复核VERIFIED PASS。原账本11/20次、保守占用$0.0344574，非实际账单。源码哈希与审计版本一致；本轮仅准备原Draft PR#6上传与新CI，不再调用模型，不合并/部署，真实市场解释与生产仍关闭。下方为历史时点。
+
 2026-10-13后续授权上传：DeepSeek试点候选`36f3f0a4b8a4b337d0619cb6a3447ff42eeb6aff`已推送原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端tree与本地一致；新CI38349103530在Ubuntu24.04.5/Node22.15构建/typecheck及491/491Node全部通过。独立包装审计VERIFIED，归档[上传卡](../tasks/archive/MR-UPLOAD-AI30B-DEEPSEEK.md)。仅上传代码与脱敏报告，原始回复/账本/Key未提交；无新增产品模型请求，未合并main或部署。A1 PASS/A2 FAIL及生产关闭不变。下方“未上传”保留开发时点。
 
 2026-10-13真实合成执行：专用产品Key已配置，DeepSeek官方Responses/deepseek-flash/none两次实际HTTP200，A1连通PASS；首例误列conflictRefs，一次限定prompt v2澄清后仍改写受控原句，A2质量FAIL。原校验/模型/预算未放宽，剩余9场景NOT RUN，已停止继续调用。累计2次、保守2倍含费占用$0.0053184，unknown/reserved0，实际账单未取得。新73专项/typecheck/lint与第二次请求前独立VERIFY通过，旧全量/build不冒称本轮重跑。见[完整证据与限制](AI_PROVIDER_PILOT.md)。未上传/合并/部署，真实市场外发及生产仍未启用；现有Sitesv32不变。下方待Key/零调用为此前记录。

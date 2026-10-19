@@ -9,8 +9,9 @@ import { ACTIVE_PRODUCT_AI as REAL_AI, SYNTHETIC_PILOT_ID } from '../lib/ai/real
 import { fixtureContext } from '../lib/ai/fixture.ts';
 import { projectProviderContext } from '../lib/ai/context.ts';
 import { claimFor } from '../lib/ai/validation.ts';
-import { synthesisCatalog } from '../lib/ai/real-output.ts';
+import { createSelectionCatalog } from '../lib/ai/claim-selection.ts';
 import { executePilot, parsePilotArgs, inspectPilotBudget, pilotExitCode } from '../scripts/ai30b-pilot.mjs';
+globalThis.fetch = () => { throw new Error('TEST_FORBIDS_NETWORK'); };
 
 const NOW = Date.UTC(2026, 9, 12, 12), json = path => JSON.parse(readFileSync(path, 'utf8'));
 // manifest按JSON持久化，原对象的undefined可选字段不会落盘；不改变fixture内容。
@@ -27,12 +28,9 @@ function setup(t) {
     provenance: { candidateSha: 'mock-only', cliDiffSha256: 'mock-only', caseDefinitionVersion: 'synthetic-cases-v1' } };
 }
 function selected(context) {
-  const catalog = synthesisCatalog(context);
-  const summary = [catalog.find(s => s.evidenceRefs.includes('medium.direction') && s.evidenceRefs.length === 2)
-    ?? catalog.find(s => s.evidenceRefs.includes('short.direction')) ?? catalog[0]];
-  return { summary, primaryEvidenceRefs: summary[0].evidenceRefs,
-    conflictRefs: context.evidence.filter(e => e.kind === 'alignment' && e.availability === 'available' && e.classification === 'mixed').map(e => e.id),
-    limitationRefs: context.evidence.filter(e => e.availability !== 'available').map(e => e.id) };
+  const catalog = createSelectionCatalog(context);
+  const pair = catalog.entries.find(e => e.evidenceRefs.includes('short.direction') && e.evidenceRefs.includes('medium.direction'));
+  return { selectedClaimIds: [pair?.claimId ?? catalog.entries.find(e => e.primaryEligible).claimId] };
 }
 function mockTransport(changes = {}) {
   return async (url, init) => {
@@ -116,11 +114,12 @@ test('pilot CLI semantic failure keeps bounded reply evidence and original settl
   assert.equal(report.accounting.at(-1).outcome, 'validation_failed');
 });
 
-test('pilot CLI preserves duplicate_claim and missing_primary validator diagnostics', async t => {
-  const original = selected(projectProviderContext(fixtureContext('upward', 'BTC-USDT', NOW)));
+test('pilot CLI preserves duplicate selection and ineligible primary diagnostics without fallback', async t => {
+  const context = projectProviderContext(fixtureContext('upward', 'BTC-USDT', NOW));
+  const original = selected(context), catalog = createSelectionCatalog(context);
   for (const [expected, output] of [
-    ['duplicate_claim', { ...original, summary: [...original.summary, ...original.summary] }],
-    ['missing_primary', { ...original, primaryEvidenceRefs: ['short.volatility'] }],
+    ['duplicate_selection', { selectedClaimIds: [...original.selectedClaimIds, ...original.selectedClaimIds] }],
+    ['ineligible_primary', { selectedClaimIds: [catalog.entries.find(e => e.selectable && !e.primaryEligible).claimId] }],
   ]) await t.test(expected, async t => {
     const opts = setup(t);
     opts.transport = mockTransport({ output: [{ type: 'message', role: 'assistant', status: 'completed', content: [{ type: 'output_text', text: JSON.stringify(output) }] }] });

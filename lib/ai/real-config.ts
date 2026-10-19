@@ -12,7 +12,7 @@ export const REAL_AI = Object.freeze({
 export const DEEPSEEK_AI = Object.freeze({
   ...REAL_AI, provider: "deepseek" as const, model: "deepseek-flash", endpoint: "https://api.deepseek.com/responses", serviceTier: null,
   adapterVersion: "deepseek-responses-v1", billingProfile: "deepseek-flash-peak-no-cache-usd-v1",
-  generation: "deepseek-flash-none-v1", prompt: "bounded-synthesis-v2-deepseek-instructions-v2",
+  generation: "deepseek-flash-none-v1", prompt: "bounded-id-selection-v1", output: "claim-selection-v1", validation: "claim-selection-validation-v1",
   priceVersion: "deepseek-flash-usd-peak-2026-10-12",
   inputNanoPerToken: 300, cachedNanoPerToken: 6, cacheWriteNanoPerToken: 300, outputNanoPerToken: 1200,
 });

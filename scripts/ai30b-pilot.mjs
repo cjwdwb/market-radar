@@ -6,11 +6,9 @@ import { execFileSync } from 'node:child_process';
 import { ProductBudget } from '../lib/ai/product-budget.mjs';
 import { ACTIVE_PRODUCT_AI as REAL_AI, SYNTHETIC_PILOT_ID } from '../lib/ai/real-config.ts';
 import { fixtureContext } from '../lib/ai/fixture.ts';
-import { projectProviderContext } from '../lib/ai/context.ts';
 import { claimFor } from '../lib/ai/validation.ts';
-import { synthesisCatalog } from '../lib/ai/real-output.ts';
-import { createDeepSeekProvider, buildDeepSeekRequest } from '../lib/ai/deepseek-provider.ts';
-import { createRealPilotService } from '../lib/ai/real-service.ts';
+import { createDeepSeekProvider } from '../lib/ai/deepseek-provider.ts';
+import { createRealPilotService, preparePilotRequest } from '../lib/ai/real-service.ts';
 
 const repository = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const sha256 = value => createHash('sha256').update(value).digest('hex');
@@ -60,7 +58,7 @@ function sourceIdentity() {
     cliSha256: sha256(readFileSync(fileURLToPath(import.meta.url))),
     cliDiffSha256: sha256(git(['diff', 'HEAD', '--', 'scripts/ai30b-pilot.mjs'])),
     fixtureSha256: sha256(readFileSync(resolve(repository, 'lib/ai/fixture.ts'))),
-    providerFiles: ['real-config.ts', 'deepseek-provider.ts', 'responses-transport.ts', 'real-service.ts', 'product-budget.mjs']
+    providerFiles: ['real-config.ts', 'deepseek-provider.ts', 'responses-transport.ts', 'real-service.ts', 'real-output.ts', 'claim-selection.ts', 'product-budget.mjs']
       .map(path => ({ path: `lib/ai/${path}`, sha256: sha256(readFileSync(resolve(repository, 'lib/ai', path))) })),
     caseDefinitionVersion: 'synthetic-cases-v1', caseDefinitionSha256: sha256(JSON.stringify(CASES)),
   };
@@ -72,7 +70,8 @@ const SAFE_CODES = new Set(['insufficient_context', 'context_expired', 'data_per
   'invalid_response', 'model_mismatch', 'billing_identity_unknown', 'invalid_usage', 'invalid_output', 'output_limit',
   'unsupported_claim', 'invalid_evidence_ref', 'duplicate_evidence', 'evidence_mismatch', 'missing_limitation',
   'missing_conflict', 'duplicate_claim', 'missing_primary', 'category_mismatch', 'refusal', 'incomplete', 'completed', 'failed',
-  'configuration_mismatch', 'provider_credit_unavailable', 'budget_profile_migration_required']);
+  'configuration_mismatch', 'provider_credit_unavailable', 'budget_profile_migration_required', 'catalog_invalid',
+  'invalid_selection_schema', 'duplicate_selection', 'unknown_selection', 'selection_not_applicable', 'ineligible_primary']);
 const errorCode = e => SAFE_CODES.has(e?.code) ? e.code : 'pilot_error';
 
 function writeEvidence(path, value, limit = 256 * 1024) {
@@ -95,7 +94,7 @@ export async function executePilot(options, { ledger, outputRoot, key, transport
   if (options.mode === 'run' && budgetBefore.active) throw new Error('budget_recovery_required');
   const [id, scenario, symbol] = definition;
   // 调用原fixture生成器，故意stale仍由原场景制造；不延长TTL或改旧Context时间。
-  const context = fixtureContext(scenario, symbol, now()), safe = projectProviderContext(context), request = buildDeepSeekRequest(safe);
+  const context = fixtureContext(scenario, symbol, now()), prepared = preparePilotRequest(context, REAL_AI), { safe, request } = prepared;
   mkdirSync(outputRoot, { recursive: true });
   const output = mkdtempSync(resolve(outputRoot, `synthetic-${startedAt}-${id}-`)), runId = basename(output);
   const frozen = {
@@ -106,13 +105,14 @@ export async function executePilot(options, { ledger, outputRoot, key, transport
       expected: safe.evidence.map(e => ({ id: e.id, availability: e.availability, classification: e.classification })),
       mandatoryLimitations: safe.limitations, forbidden: ['new_values', 'causality', 'forecast', 'trade_advice', 'history_win_rate'],
       maximumNano: Math.ceil(request.maximumBaseNano * ledger.feeMultiplier), maximumInputTokens: request.maximumInputTokens,
-      catalog: synthesisCatalog(safe), deterministicTemplate: safe.evidence.map(claimFor) },
+      catalog: request.selection, deterministicTemplate: safe.evidence.map(claimFor) },
   };
   writeEvidence(resolve(output, 'frozen.json'), frozen);
   if (options.mode === 'freeze') return { mode: 'offline_frozen', runId, manifest: resolve(output, 'frozen.json'), cases: 1, actualHttpAttempts: 0, budget: budgetBefore };
 
   const counters = { actualHttpAttempts: 0, httpResponses: 0, parsedProviderReplies: 0, validProviderResponses: 0,
-    preDispatchRejections: 0, cacheHits: 0, success: 0, refusal: 0, incomplete: 0, timeout: 0, validationFailures: 0 };
+    preDispatchRejections: 0, cacheHits: 0, success: 0, refusal: 0, incomplete: 0, timeout: 0, validationFailures: 0,
+    selectionValidityPass: 0, illegalSelections: 0, organizationQualityFailures: 0, disclosureCompletenessPass: 0, disclosureFailures: 0 };
   const httpStatuses = [], accounting = [];
   let diagnosticStatus = 'no_reply';
   const observedLedger = {
@@ -157,15 +157,26 @@ export async function executePilot(options, { ledger, outputRoot, key, transport
   const service = createRealPilotService(provider, observedLedger, { now, timeoutMs, profile: REAL_AI });
   let result;
   try {
-    const interpretation = await service.interpret(context);
-    counters.success++; if (interpretation.cacheHit) counters.cacheHits++;
-    result = { caseId: id, status: 'validated', result: interpretation };
+    const interpretation = await service.interpretPrepared(prepared);
+    const selection = interpretation.output;
+    if (selection.selectionValidity === 'PASS') counters.selectionValidityPass++;
+    if (selection.disclosureCompleteness === 'PASS') counters.disclosureCompletenessPass++;
+    const qualityFailed = selection.modelOrganizationQuality !== 'PASS';
+    const disclosureFailed = selection.disclosureCompleteness !== 'PASS';
+    if (qualityFailed) counters.organizationQualityFailures++;
+    if (disclosureFailed) counters.disclosureFailures++;
+    if (!qualityFailed && !disclosureFailed && selection.selectionValidity === 'PASS') counters.success++;
+    if (interpretation.cacheHit) counters.cacheHits++;
+    result = { caseId: id, status: disclosureFailed ? 'disclosure_failed' : qualityFailed ? 'organization_failed' : 'validated', result: interpretation };
   } catch (e) {
     const code = errorCode(e);
     if (code === 'timeout') counters.timeout++;
-    if (accounting.some(entry => entry.outcome === 'validation_failed')) counters.validationFailures++;
+    if (accounting.some(entry => entry.outcome === 'validation_failed')) { counters.validationFailures++; counters.illegalSelections++; }
     if (!counters.actualHttpAttempts) counters.preDispatchRejections++;
-    result = { caseId: id, status: counters.actualHttpAttempts ? 'failed' : 'not_dispatched', code };
+    result = { caseId: id, status: counters.actualHttpAttempts ? 'failed' : 'not_dispatched', code,
+      selectionValidity: accounting.some(entry => entry.outcome === 'validation_failed') ? 'FAIL' : 'NOT RUN',
+      modelOrganizationQuality: 'NOT RUN', disclosureCompleteness: 'NOT RUN',
+      localDisclosures: !counters.actualHttpAttempts && code === 'insufficient_context' ? request.selection.systemRequired : undefined };
   } finally { service.stop(); }
   const endedAt = now(), budgetAfter = inspectPilotBudget(ledger, endedAt);
   const report = { runId, inputIdentity: 'synthetic', startedAt, endedAt, latencyMs: endedAt - startedAt,
