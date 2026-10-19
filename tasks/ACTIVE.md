@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-UPLOAD-AI30B-SELECTION — 2026-10-19 授权上传中
+## MR-UPLOAD-AI30B-SELECTION — 2026-10-19 已上传，CI通过
 
-用户在受控编号交接后明确“上传”。[上传卡](MR-UPLOAD-AI30B-SELECTION.md)：将已审计候选正常push原草稿PR#6，核对新CI；只上传源码/测试/脱敏报告，不上传原始回复、账本或Key，不再调用模型、不合并/部署。下段“不上传”为此前执行阶段边界，本轮授权只覆盖上传。
+用户在受控编号交接后明确“上传”。[归档卡](archive/MR-UPLOAD-AI30B-SELECTION.md)：产品ef24640已正常push原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端HEAD与本地一致，独立包装审计VERIFIED PASS；新CI39228360858构建/typecheck及507/507 Node全部通过。只上传源码/测试/脱敏报告，原始回复/账本/Key未上传，无新模型请求、不合并/部署。后续仅文档收尾，最新head/checks见PR。下段“不上传”为此前执行阶段边界。
 
 ## MR-30B-REAL-PROVIDER-PILOT — 2026-10-19 受控编号协议
 

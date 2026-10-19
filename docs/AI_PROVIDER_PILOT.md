@@ -1,5 +1,7 @@
 # Market Radar 3.0B — 受控 Provider 试点交接
 
+2026-10-19后续上传：用户明确授权后，受控编号候选`ef24640df1c29859353b35033cbb0c7b426d77c4`已正常push原[Draft PR#6](https://github.com/cjwdwb/market-radar/pull/6)，本地/远端HEAD一致。独立包装审计VERIFIED PASS，源码hash未变；新[CI39228360858](https://github.com/cjwdwb/market-radar/actions/runs/39228360858)在Ubuntu24.04/Node22.15执行npm ci→npm test，构建/typecheck及507/507Node通过，0FAIL/0SKIP。归档[上传卡](../tasks/archive/MR-UPLOAD-AI30B-SELECTION.md)，后续仅文档收尾，最新head/checks见PR。无新模型请求，原始回复/预算库/Key未上传；未合并或部署，真实市场解释和生产准入未完成。下方“尚未提交/上传”和远端CI未测描述保留此前开发交接时点。
+
 ## 2026-10-19 受控编号协议：本地实现与原名单真实合成复测
 
 本轮基线 `f31ccc12b7547937a51428057b59d0d581fdae0c`，原 `codex/mr-30b-real-provider-pilot` / [Draft PR #6](https://github.com/cjwdwb/market-radar/pull/6)。本轮差异尚未提交/上传，PR未合并，未部署；现有生产记录仍为 Sites v32 / `4a4b7fb66ac4fc10663087b42a09e08c55804e2a`，真实产品模型关闭。远端该HEAD的CI38349505890成功是此前候选证据，不覆盖本轮本地diff。

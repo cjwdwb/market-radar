@@ -1,5 +1,7 @@
 # MR-30B-REAL-PROVIDER-PILOT
 
+2026-10-19后续授权上传已完成：[上传归档](archive/MR-UPLOAD-AI30B-SELECTION.md)，产品ef24640已push原Draft PR#6，新Ubuntu/Node22.15 CI39228360858构建/typecheck及507/507 Node通过，独立包装复核VERIFIED PASS；未合并/部署/再调用模型。下方未上传为此前交接记录，主任务真实输入阶段仍开放。
+
 ## 2026-10-19 受控事实编号选择 — Planner 定稿
 
 执行交接：付费前独立GPT审计2项P2/2项P3已修复VERIFY；本轮按原名单逐例9次DeepSeek真实合成HTTP200且选择/最低组织标准/披露均PASS，stale准入拒绝0HTTP/0预留（不是模型PASS）。旧两次FAIL原件6hash与10月13日历史交接一致。新费用占用上界$0.029139，原账本累计11次/$0.0344574，unknown/reserved0，剩余试点9次/$0.2155426；实际账单未知。最终507全量=506PASS/1既有Windows权限SKIP，build/typecheck/lint通过，真实执行后11源码/测试hash与付费前版本相同。证据`outputs/ai30b/selection-execution-handoff.json`；最终集中独立复核VERIFIED PASS，核对39份新证据/6份旧证据、逐例先审阅后调用、原库11条请求和费用，旧原始回复重放仍FAIL。本轮子项已交接并停止；仅本地候选，无上传/部署，真实市场解释与模型增益未获证明，主任务继续开放。

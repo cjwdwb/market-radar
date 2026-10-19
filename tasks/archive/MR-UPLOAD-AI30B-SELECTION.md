@@ -1,6 +1,6 @@
 # MR-UPLOAD-AI30B-SELECTION
 
-日期：2026-10-19。状态：上传前包装核验。
+日期：2026-10-19。状态：已上传原 Draft PR #6，产品 CI 通过，归档。
 
 ## 授权、基线与范围
 
@@ -32,4 +32,10 @@
 
 ## 上传结果
 
-待实际提交、推送与 CI 返回后填写，不预填通过。
+产品提交：`ef24640df1c29859353b35033cbb0c7b426d77c4`，tree `862f1c5644254082ec59408ad1c2471b6bb0dc3a`，正常 push 至 `github` 原分支。GitHub PR HEAD 与本地完整 SHA 一致；相同 commit 标识对应相同 tree。原[PR #6](https://github.com/cjwdwb/market-radar/pull/6)仍为 open / draft / 未合并，标题和正文已更新为完整候选说明。
+
+新[CI39228360858](https://github.com/cjwdwb/market-radar/actions/runs/39228360858) / job117980078479：Ubuntu24.04 / Node22.15.0，实际 `npm ci` → `npm test`（build → typecheck → Node tests）；507/507 PASS、0 FAIL、0 SKIP，执行日志已核对。既有 >500KB chunk 提示保留；未据 CI 宣称浏览器或生产通过。
+
+独立 GPT `/root/upload_selection_audit` 包装复核 VERIFIED PASS，无 finding：14个暂存路径精确匹配白名单，11个源码/测试hash与既有审计清单相同，index内容与工作文件经Git换行规范化后一致；脱敏文档/PR正文没有将旧FAIL追认为PASS，也没有冒称真实市场或生产验证。`git diff --cached --check` 通过，敏感凭据模式及禁止产物路径均无命中。沙箱内尝试 `git write-tree` 因index.lock权限失败、未成功写入；按用户上传授权提权执行正常commit/push后取得上述tree，不修改权限策略或强制推送。
+
+上传阶段新增模型请求0、开发DS调用0，无新账本写入；没有合并、tag、部署、配置、密钥或其他工作树改动。原始证据与库只在本机。后续收尾提交仅补本归档及文档索引，产品不变；最新文档head/checks见PR，最终检查不以产品CI冒充收尾提交CI。

@@ -1,6 +1,6 @@
 # 当前状态
 
-2026-10-19受控编号协议交接后用户授权上传：[上传卡](../tasks/MR-UPLOAD-AI30B-SELECTION.md)。新协议9次真实DeepSeek合成请求选择/组织/披露PASS，stale本地拒绝0HTTP且模型质量NOT RUN；旧协议两次FAIL保留，优于模板的增益仍未证明。开发阶段最终507Node中506PASS/1既有Windows权限SKIP，build/typecheck/相关lint及独立GPT证据/账本复核VERIFIED PASS。原账本11/20次、保守占用$0.0344574，非实际账单。源码哈希与审计版本一致；本轮仅准备原Draft PR#6上传与新CI，不再调用模型，不合并/部署，真实市场解释与生产仍关闭。下方为历史时点。
+2026-10-19受控编号协议已按用户授权上传：产品`ef24640df1c29859353b35033cbb0c7b426d77c4`正常push原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端与本地一致。新[CI39228360858](https://github.com/cjwdwb/market-radar/actions/runs/39228360858)在Ubuntu24.04/Node22.15构建/typecheck及507/507Node通过，独立包装审计VERIFIED PASS；见[上传归档](../tasks/archive/MR-UPLOAD-AI30B-SELECTION.md)。新协议9次真实合成请求通过，stale未派发且模型质量NOT RUN，旧协议2次FAIL保留；模型增益未证明。原账本11/20次、保守占用$0.0344574，非实际账单。此次上传无新增模型请求，未合并/部署，真实市场解释未验证、生产模型仍关闭。后续仅文档记录，最新head/checks见PR；现有Sitesv32不变。下方为历史时点。
 
 2026-10-13后续授权上传：DeepSeek试点候选`36f3f0a4b8a4b337d0619cb6a3447ff42eeb6aff`已推送原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端tree与本地一致；新CI38349103530在Ubuntu24.04.5/Node22.15构建/typecheck及491/491Node全部通过。独立包装审计VERIFIED，归档[上传卡](../tasks/archive/MR-UPLOAD-AI30B-DEEPSEEK.md)。仅上传代码与脱敏报告，原始回复/账本/Key未提交；无新增产品模型请求，未合并main或部署。A1 PASS/A2 FAIL及生产关闭不变。下方“未上传”保留开发时点。
 
