@@ -1,5 +1,147 @@
 # Market Radar 3.0B — 受控 Provider 试点交接
 
+2026-10-21 后续发布授权：用户明确“上传部署吧”，执行[发布卡](../tasks/MR-PUBLISH-AI30-PREPARATION.md)。范围为当前验证候选在真实AI关闭状态下的上传部署；不改变下文来源/真实外发/生产消费的缺口。GitHub、Sites与发布新测结果集中记录在该卡，下面保留开发阶段原始结论。
+
+## 2026-10-21 AI Market Interpretation：生产准备切片（总交付仍开放）
+
+[MR-30-AI-PRODUCTION-DELIVERY](../tasks/MR-30-AI-PRODUCTION-DELIVERY.md)承接原候选与全部未提交Real Context成果，不重做Foundation、不删除旧失败。主工作树HEAD仍`cd902372c3c14b67d5b16b668b28849bbfd84231`；本轮只读核对PR#6为open/Draft，main/base为`7d2d30f6fe466a4e746ade2b3db231b2cb13b2d4`，旧候选CI39228845333 success。该CI没有覆盖本次未提交改动。
+
+**现有生产已上线；本轮未重新发布。** Sites工具新核对v32/source`4a4b7fb66ac4fc10663087b42a09e08c55804e2a`及原部署succeeded；当前部署者owner、观众public、环境revision3。实际数据库overview返回无绑定/无表；环境只检查变量名称，无产品DeepSeek Key。没有生产登录后测试，没有开通资源或配置秘密。
+
+### 来源与发布决定
+
+首发仍以BTC/ETH的完整现货身份、原生15m与已有Direction/RMS为候选；实际批准资产白名单为空。旧OKX评估用途限制没有被新任务自动解除。10月19日Coin Metrics原询问线程本轮读回仅SENT；备用主题搜索遇工具RATE_LIMIT_EXCEEDED而停止，不能排除另起线程答复。旧问题只覆盖私有三次，不自动覆盖生产。
+
+用户本轮明确批准后，2026-10-21 15:06 UTC向已核实官方Community支持发送新的生产用途补充询问，工具确认SENT。询问具体BTC/ETH窗口、DeepSeek最小派生事实推理、≤30日私有证据保存及站主网站展示；无代码/行情/账本/Key，不申请订阅、试用或采购。具体稿/回执在忽略的`outputs/ai30-production/`，无自动邮件跟踪。来源答复和用户真实数据外发许可仍未取得；发送询问不解除这些Gate。
+
+冻结唯一平台候选为现有Worker+D1，不另建DO/独立服务器。Sites 1.1.0存储文档支持D1声明/托管；实际资源尚未开通。[Cloudflare官方D1价](https://developers.cloudflare.com/d1/platform/pricing/)只作容量/费用参考，不作为本Site已免费获配额或获准付费的证明。站主身份授予、正常生产消费政策、D1实际资源/迁入、生产专用秘密须在任务卡决定表中按具体范围批准。已有UTC月$8/$7派发/$1缓冲不重复申请。
+
+### 本轮独立准备的边界
+
+- B1：新增D1预算适配及隔离schema。条件写入与预留同一事务，幂等键绑定scope/固定快照与目录/profile摘要；claim提交成功仅一次才允许后续派发。未知费用不退款，旧月未决保守带入，失败停批与结算同事务。只保存财务及hash元数据，不保存完整行情/Provider payload。默认disabled、pending；不产生生产策略、不挂hosting迁移、不接真实Provider。
+- C0：新增Sites身份+服务端grant边界。invoke/read/manage分离，访问码/email不授予付费权限；固定站点/Origin、受限操作JSON、每次重新查授权、撤销/revision/到期及跨用户快照拒绝。没有接入公开路由；本地workerd中的合成Request仅证明原生API兼容，不能证明真实Sites边缘头防伪。
+- B2：按任务卡的64行/256KiB已知v2输入边界，在隔离SQLite/D1完成冻结旧库、逐行迁入、一致备份与恢复。SQL触发器阻止旧已开句柄继续消费，目标无policy且始终关闭；真实11行账本未退役/迁入。目标凭据绑定不可变实例UUID，原库重启可续接，同label第二库拒绝；未知schema/real_context扩展拒绝而不丢表。仅测试规定结构的隔离新库，云资源/结构/配额尚未验证。
+
+原权威库本轮以SQLite readOnly/query_only核对，quick_check=ok：11/20次，保守占用$0.0344574，基础usage估算$0.0172287，reserved/unknown均0；均属2026-10/DeepSeek。读前后文件大小32768字节及mtime一致。剩原试点9次/$0.2155426、月派发余额$6.9655426是此次账本快照，不代表供应商余额。实际供应商账单未取得。无新模型请求、无真实市场资料外发；未读取或复制专用Key。
+
+### 验证与限制登记
+
+Windows / Node22.15.0；本地Miniflare/workerd；数据/身份/财务演练均显式fixture，测试无真实外连。首轮集成专项167/167通过，日志`outputs/ai30-production/targeted-tests.txt`；这早于后述预算完整性修复，不能作为修后唯一依据。独立GPT C0只读审计/VERIFY无finding；6/6由协调者新测，TS/局部lint通过。构建与项目typecheck本轮新执行通过，分别`build.txt`、`typecheck.txt`；Windows实际分项命令，不声称运行npm test包装。
+
+独立GPT对B1发现P2：非STRICT SQLite可接受文本金额，SUM将损坏unknown占用当零。Builder增加schema数值类型/安全范围与原子SQL完整性守卫，独立实际workerd 38/38 VERIFY；根代理另补“没有active请求”的首次reserve拒绝反例，最终预算39/39通过。B2独立P2：同label可以误接第二数据库；修复绑定持久实例UUID，独立32/32 VERIFY。两个确认问题均关闭。完整目标DDL疑点经独立复核撤回：本轮入口先以固定B1 SQL初始化隔离新库；不代表迁入模块已认证任意已有数据库。正式云库还需完整结构/资源身份预检，不以verified自动授权消费。
+
+最终主树新测 **661项：660 PASS / 0 FAIL / 1 SKIP**，其中B1/C0/B2为39+6+32=77项通过。唯一SKIP为既有Windows文件symlink权限不足（junction另有覆盖）。专项初跑出现1次esbuild父目录沙箱访问拒绝；同鉴权文件经自动审批后6/6通过，最终全量也通过，未弱化断言。受影响lint/diff检查通过。构建和typecheck在本轮先前稳定候选执行成功，后续只修改未接入bundle的Node迁入模块/测试，最终全量覆盖修复；不声称重跑未执行的包装命令。
+
+| 本轮验证 | 实际命令/对象 | 结果与证据 |
+| --- | --- | --- |
+| 完整Node | 固定Node22.15，`--experimental-strip-types --import ./tests/register-types.mjs --test` + rg取得的全部顶层test文件 | PASS（660通过/1既有skip），`final-full-node.txt` |
+| build | 同Node执行`node_modules/vinext/dist/cli.js build` | PASS，`build.txt`；仍有既有500KB chunk及实验功能警告，未据此称性能通过 |
+| typecheck | 同Node执行`scripts/typecheck.mjs`，使用实际生成类型 | PASS，`typecheck.txt` |
+| 相关lint | 同Node执行eslint，对新8个JS/TS文件 | PASS，`final-lint.txt` |
+| 独立审计 | GPT对固定B1/C0/B2 diff，确认问题FIX/VERIFY | PASS（限定隔离范围）；B1新增无active用例独立静态复核、协调者执行 |
+| 远端CI | PR#6/cd90237旧CI39228845333 | 本轮diff NOT RUN，不借旧CI作新结果 |
+| 浏览器/性能/真机/生产 | 本轮没有新增UI或真实Provider接线 | NOT RUN；不复用旧五视口作为生产验收 |
+
+以上日志、审批后重测、最终hash清单均在忽略的`outputs/ai30-production/`。前轮18个Real Context产品/测试文件SHA256未变。所有财务演练均合成，本轮真实API调用0、财务占用新增0；实际供应商账单仍未取得。
+
+迁入局限：未执行64行成功边界；初次导入24+2N语句，64行对应152条，本地输入上限不证明远程D1可在配额内完成。未来真正云接线需按实际Sites资源核对配额与schema，走既有Drizzle/托管迁移流程；本轮SQL只是隔离候选，不是已发布迁移。
+
+尚未交付：真实来源准入、生产消费政策/授权与持久快照接线、实际页面真实案例、正式迁入、上线与上线关闭演练。无新UI路径接入，因此本轮未重复五视口/真机；10月19日私有五视口是历史证据，不替代未来生产UI。无实测性能瓶颈，不启动Optimizer；未声称FPS/模型增益。开发DS未调用（本轮为GPT核心鉴权/存储审查），产品DeepSeek新增调用0。下文原3.0B记录保留。
+
+## 2026-10-19 Real Context 私有准备（当前未发布候选）
+
+任务[MR-30B-REAL-CONTEXT-PILOT](../tasks/MR-30B-REAL-CONTEXT-PILOT.md)接续`cd902372c3c14b67d5b16b668b28849bbfd84231`，不是重启3.0B。该HEAD/PR#6 Draft未合并，旧CI39228845333 success本轮只读核对；main为`7d2d30f6fe466a4e746ade2b3db231b2cb13b2d4`。当前代码为本地未提交diff，旧507项不作为新路径验证。生产仅沿用Sitesv32/source`4a4b7fb66ac4fc10663087b42a09e08c55804e2a`记录，本轮无生产配置或模型启用。
+
+### 用途决定与具体缺口
+
+唯一技术候选：BTC-USDT / OKX SPOT / USDT / UTC / native15m，Short90及Medium180 Direction/RMS。2026-10-19读取[官方API Agreement](https://www.okx.com/help/okx-api-agreement)（更新2026-07-28）：一般AI整合§3.4仍受§9.4约束；§9.4(c)限制行情用于评估拟向第三方提供的AI系统。Market Radar本轮是产品解释质量对照，没有适用例外，因此不是已获准的私人交易工具用法。
+
+| 用途 | 决定 | 范围/证据/下一步 |
+| --- | --- | --- |
+| 为此次产品AI评估取得资料及内部计算 | DENIED | §9.4(c)，不因此改动现有非AI行情链路；需来源方适用许可/例外 |
+| 派生Direction/RMS事实发送DeepSeek | DENIED | 标签仍依赖该行情，不能改名/删source绕过；同一评估限制 |
+| 最小输入、回复、校验证据本机30日保存 | UNKNOWN | 仅为方案；未取得可覆盖此用途的依据，当前没有真实capture |
+| 本人loopback私有衍生预览 | UNKNOWN | 不把非商业/有访问码当全面许可 |
+| 原始行情向第三方公开展示 | DENIED | §9.4(a)，本轮不要求公开原始数据权，不以此替代AI评估核查 |
+| 用户对真实市场资料具体外发 | 未授权 | 旧合成授权不涵盖；来源许可可行后一次确认具体字段、接收方、30日保存、最多3次 |
+
+Yahoo只定向核查一个既有替代：技术可用不等于用途批准，官方条款正文返回999，未绕过；Coin Metrics现有日频不满足分钟State。未调查更多源或采集分钟历史。真正解除动作是取得覆盖当前产品AI评估/第三方推理/最小私人保存展示的来源依据，再取得用户具体外发同意；不是再次确认免费非商业，也不是再次申请原月预算。
+
+### 必要离线接线与运行边界
+
+后续只读推进（同日）：[Community官方说明](https://gitbook-docs.coinmetrics.io/packages/coin-metrics-community-data)中的7点限制属于细粒度参考价，不宜推广至market-candles；[ReferenceRate原生周期](https://gitbook-docs.coinmetrics.io/coin-metrics-prices/coin-metrics-prices/reference-rate-metrics)也不含15m。既有coinbase market-candles 403仍是旧探针记录，本次未请求行情。共享准备至少22个连续完整点，USD综合参考价和USDT现货K线的身份/时间契约不同，不能配置换名。当前免费替代尚未满足技术准入，未更改来源许可。
+
+现有cm-labs入口现跳转[官方Coin Metrics/Talos页](https://www.talos.com/our-solutions/data/overview)，其Community Support列明datasupport@talostrading.com。已将一个BTC现货市场、当前22–96根原生15m、最多3次DeepSeek私有评估及30日本机最小保存的具体问题写成可审阅本地询问稿；另备OKX客服稿，待转API许可团队。`outputs/ai30b/real-context/coinmetrics-source-inquiry.txt`与`okx-source-inquiry.txt`在准备时均未发送，不含代码、真实输入或秘密，也不授权购买。外部发信仍需明确授权；来源答复必须同时覆盖实际数据能力与用途，不把“能请求”当许可。真实输入外发另按本任务确认单，不沿用旧合成同意。
+
+用户随后明确允许发送上述具体Coin Metrics询问，2026-10-19 11:12 UTC由已连接邮箱发送，工具返回SENT，无附件；私有回执`outputs/ai30b/real-context/source-inquiry-send.json`。OKX稿未发送，来源答复尚未取得，技术/用途Gate未解除。发信授权不含真实资料外发，未启用自动跟踪、催询或采购。两稿经过独立GPT只读核对，任务卡一处窗口说明P3已修，不涉及State代码。
+
+此后续只改说明/询问稿；18个产品/测试文件与已验证候选hash一致，diff格式检查通过。上述584项、五视口及源码审计是此前实施证据，本次未重跑产品测试、未重查远端CI、未打开正式账本/Key。产品请求仍0，生产无变化。
+
+`real-context-policy`的`approvedRealContextGrant()`固定返回null，浏览器/env不能升权。loader复用单资产`getQuote(symbol,false)`与`getHistory(symbol,'15m')`，两项逻辑请求，正常为ticker+96根recent candles；已有两源有限回退及candles→history路径最坏6次HTTP尝试。当前实际调用0。原底层没有按等待者取消接口：取消本次等待、停止后续State/模型派发并丢弃晚到数据，不宣称取消共享网络。State门槛、freshness及行情刷新未改。
+
+registry过滤后仅四个方向/RMS证据，明确其余维度not_included、分钟研究unsupported、长期位置not_computed。克隆/冻结Context及准入记录，绑定访问者/资产、来源/币种/周期、真实证据时间、数据hash、规则/策略/授权版本；get、派发、缓存与返回各自复核。服务端创建的WeakMap能力不接受克隆、客户端Context或trust字段。过期禁止新派发，已返回的合法原快照按原asOf说明，不追随当前行情；撤销则拒绝访问。
+
+真实DTO为`private-interpretation-v1`，保留原fixture schema。只传有界事实、同目录固定模板A、模型编号顺序B、恢复与系统披露C；catalog/引用/来源/快照身份严格校验。Node/SQLite/运行时目录不入浏览器。`modelValue=UNPROVEN`固定，系统补齐不能记成模型能力。
+
+`scripts/ai30b-private.mjs`代理现有页面，127.0.0.1绑定、20分钟技术会话、精确Host/Origin、独立随机内存凭据、POST JSON≤2KiB、固定BTC与路由、无通配CORS/公网隧道。原访问码门禁仍保留；只有经过私有Origin核验才向固定上游转换Origin，私有凭据不转发。API能力GET只披露gate，不提供资料。现有Hook共享结果，私有链路60秒截止，旧fixture6秒不变；原生滚动、切资产和手动周期不改变输入事实。
+
+可在本机预览准备状态：先启动项目本地预览（仍需原网站访问验证），在安全终端设置独立随机`MARKET_RADAR_AI_PREVIEW_SESSION`，再执行`node --experimental-strip-types scripts/ai30b-private.mjs http://127.0.0.1:<预览端口>/ 5308`，访问`http://127.0.0.1:5308`并在页面会话输入框连接。凭据不放命令参数/URL/Git。默认只显示来源阻塞，**此CLI没有接通产品Key、正式账本或真实transport**；不能靠配置环境变量解除。停止终端或20分钟到期关闭本机服务。批准后的真实启动绑定、证据落盘/到期清理及实际页面点击仍待完成，不把注入mock工厂称为已消费真实模型。
+
+### 预算、证据与分工
+
+原ProductBudget添加显式批次扩展：固定`MR-30B-REAL-CONTEXT-001`，同原pilot键及reserve事务关联最多3次，重复授权启用不重置，授权不同/丢表/丢标记拒绝；失败或unknown与停批同事务，跨进程不能趁结算后窗口继续调用。旧provider价格、旧记录/金额不重算。仅临时库迁移和模拟11条历史兼容测试；**正式库本轮未打开、未迁移、未写入**。
+
+真实市场取数0、真实Provider HTTP0、真实快照0、正式预留0、新增产品费用0。旧11/20次与$0.0344574为上轮报告，不是本轮重新确认余额；供应商账单仍未取得，执行前必须重查原库。没有将mock费用写入正式余额。拟保存30日的是未来获得许可后的最小证据，当前只在忽略`outputs/ai30b/real-context`保存模拟QA日志/截图，不含产品Key、Cookie、用户资料或受限capture。
+
+GPT负责范围/源用途、核心实现及独立审计；两个GPT Builder在独立worktree处理预算/专项测试和UI/浏览器harness，协调者逐项接收。开发DS实际调用0、产品DeepSeek调用0；没有外发真实资料给开发Worker。原失败与9次合成结果保留，未新增重复合成付费评估。
+
+### 本轮验证与审计交接
+
+Windows / Node22.15.0 / Edge149.0.4022.98，生产等效本地workerd构建，测试时Worker外网请求拒绝；浏览器mock只在loopback和隔离浏览器上下文生效。所有新增测试使用显式transport、临时库及虚构行情，OKX身份标签只验证匹配契约，不是来源取数证据。
+
+| 检查 | 本轮结果 | 可复查证据及限制 |
+| --- | --- | --- |
+| 全量Node | PASS，584项：583通过，1既有Windows文件symlink权限SKIP，0失败 | `outputs/ai30b/real-context/node-full.log`；新29项私有链路、29项批次、19项UI＋原回归。不是原507次重述 |
+| build / typecheck | PASS | `build.log`、`typecheck.log`；用下述分项命令，未声称运行Windows的npm test包装 |
+| 受影响lint | PASS（新核心/UI/测试/runner） | `lint-scoped.log`；主组件仅改一处链接文字，整文件仍有基线同样3 error/5 warning，已用原HEAD内容对照`lint-baseline-main.log`，未顺手重构 |
+| 私有HTTP边界 | PASS，Node本地真实HTTP＋模拟runtime | 错Host/Origin/token/JSON/资产/参数均拒绝，原accessGate用合成秘密登录/登出，token不转发；不是生产鉴权或用户真实登录 |
+| 私有页面五视口 | PASS，6组 | `browser/verification.json`及`ai-private-{desktop,tablet,mobile,narrow,landscape}.png`；1440×1000、768×1024、390×844、320×740、844×390，键盘、三档偏好、44px、无横溢、证据定位、失败保留、返回周线；所有私有HTTP在浏览器侧mock，不替代上述HTTP边界测试 |
+| 原fixture页面五视口 | PASS，8组 | `browser-legacy/verification.json`；本轮在最终构建复测原Worker fixture、缓存、取消/换资产、预算失败与手动周线返回，0pageerror，2个预期429 console error |
+| 交互并行 | PASS（隔离行为检查） | 模拟解释等待时刷新报价、真实画布拖动/缩放、滚动/导航、取消及快速换资产，旧BTC不覆盖NVDA |
+| 浏览器告警 | 0 pageerror；5个预期503 console error | 故意触发失败保留场景所致；未写成无任何告警 |
+| 真机/用户本人试用/生产登录后 | NOT RUN | 桌面视口不能替代iPhone；本轮无真实输入案例 |
+| 远端CI | 本轮diff NOT RUN | PR仍Draft未推送；39228845333 success仅旧候选 |
+| 独立GPT审计 | 修复后静态VERIFY，无剩余confirmed finding | 原始审计/复核与主代理执行测试分开；审计员未操作正式库/网络/Key |
+
+审计修复范围：代理Origin未对齐导致登录失败；准入记录顶层可修改；DTO目录/来源未绑定；失败结算后再停批的跨进程窗口；证据写入期间过期/撤销的派发与结算检查；重连保留旧scope结果；组织失败误示网络问题；展开证据遗漏方法/取得时间。对应负向回归保留原阈值、引用与费用断言。集成另修DTO复合metricRefs上限（4证据×12项=48，实际13不能截断）及原冒号引用格式。预算独立审计发现的SQLite REPLACE绕过也已修复并验证。没有BLOCKER/HIGH遗留；真实用途阻塞属于未获准条件，不改写成产品测试PASS。
+
+浏览器新链路点击到mock呈现约847–873ms，含人为300ms响应等待、固定时钟和浏览器操作开销，不是DeepSeek耗时或性能提升。当前client JS合计1,199,554字节/12文件；本轮未构建基线同条件bundle对照，不宣称减少。沿用原500kB chunk warning，无新增可复现瓶颈，Optimizer未进入；未测真机FPS/峰值内存，不作流畅度量化承诺。
+
+实际命令（以本机已确认Node22入口运行）：
+
+```text
+node --experimental-strip-types --import ./tests/register-types.mjs --test tests/*.test.mjs
+node node_modules/vinext/dist/cli.js build
+node scripts/typecheck.mjs
+node node_modules/eslint/bin/eslint.js <本轮核心/UI/测试/runner文件>
+RADAR_SYNTHETIC_AUTH=1 RADAR_AI30B_PRIVATE=1 node tests/browser/radar.mjs
+RADAR_SYNTHETIC_AUTH=1 RADAR_AI30_ONLY=1 RADAR_AI30B=1 node tests/browser/radar.mjs
+```
+
+最后一行为环境变量说明；实际Windows使用PowerShell `$env:...`，预览固定loopback5319，Playwright指向已安装运行时。首次本地预览遗漏Miniflare user-worker绑定导致500、浏览器等不到图表；仅修忽略目录测试启动器，未改产品构建或弱化测试。末次五视口来自修复后的最终UI构建。
+
+| 阶段 | 当前判定 |
+| --- | --- |
+| REAL_INPUT_ADMISSION | BLOCKED：来源用途DENIED/UNKNOWN；具体真实外发授权未申请 |
+| TRUSTED_SNAPSHOT | 离线接口/隔离验证PASS；真实来源capture NOT RUN |
+| REAL_CURRENT_CASE | NOT RUN：0真实snapshot、0预留、0HTTP、0成功/失败/缓存样本 |
+| PRIVATE_UI | 本地mock五视口PASS；真实页面点击、真实启动绑定、证据持久保存尚未完成 |
+| MODEL_VALUE | UNPROVEN；同快照对照界面完成不等于模型有增益 |
+| ENGINEERING_REVIEW | 当前受限准备可审阅，独立GPT静态VERIFY；不是生产准入 |
+| PRODUCTION_ENABLEMENT | DISABLED；未push/合并/Ready/tag/deploy，现有Sitesv32不变 |
+
+下一步只解决一个条件：取得该单资产来源对本产品AI评估及最小私人证据用途的许可依据；之后集中确认既定最多3次真实外发，再接原账本与专用Key进行首个页面手动案例。当前确定性摘要继续默认，AI仅保留受限准备，不扩展3.0路线或宣布主任务完成。
+
 2026-10-19后续上传：用户明确授权后，受控编号候选`ef24640df1c29859353b35033cbb0c7b426d77c4`已正常push原[Draft PR#6](https://github.com/cjwdwb/market-radar/pull/6)，本地/远端HEAD一致。独立包装审计VERIFIED PASS，源码hash未变；新[CI39228360858](https://github.com/cjwdwb/market-radar/actions/runs/39228360858)在Ubuntu24.04/Node22.15执行npm ci→npm test，构建/typecheck及507/507Node通过，0FAIL/0SKIP。归档[上传卡](../tasks/archive/MR-UPLOAD-AI30B-SELECTION.md)，后续仅文档收尾，最新head/checks见PR。无新模型请求，原始回复/预算库/Key未上传；未合并或部署，真实市场解释和生产准入未完成。下方“尚未提交/上传”和远端CI未测描述保留此前开发交接时点。
 
 ## 2026-10-19 受控编号协议：本地实现与原名单真实合成复测

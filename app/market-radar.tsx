@@ -393,7 +393,7 @@ export default function MarketRadar(){
             <div className="chart-market-summary"><span>{selected.endsWith("-USDT")?"24h 高":"日内最高"}<b>{price(quote?.high,quote?.currency,false)}</b></span><span>{selected.endsWith("-USDT")?"24h 低":"日内最低"}<b>{price(quote?.low,quote?.currency,false)}</b></span><span>{activeAsset.market==="crypto"?"成交额":"成交量"}<b>{compact(quote?.volume)} <small>{activeAsset.market==="crypto"?quote?.currency:"股 / 份"}</small></b></span><span className="summary-freshness">{quoteStatus}<b>{formatTime(quote?.timestamp)} <small>本地时间</small></b></span></div>
             {radarOrigin?.symbol===selected?<RadarOriginContext symbol={selected} event={radarContext} onReturn={returnToRadar} onDismiss={()=>setRadarOrigin(null)}/>:<AssetRadarAwareness context={selectedRadar} onOpen={openRelatedRadar}/>}
             <AssetStateSummary state={selectedState} onOpen={openRelatedRadar}/>
-            {interpretation.result && <button className="btn ai-classic-link" onClick={openRelatedRadar}>查看 {selected} 的解释演示 · 未调用真实模型</button>}
+            {interpretation.result && <button className="btn ai-classic-link" onClick={openRelatedRadar}>查看 {selected} 的{interpretation.resultKind === "private_real" ? "原快照解释 · 本机私有试点" : "解释演示 · 未调用真实模型"}</button>}
             <Tabs value={range} onValueChange={value=>setRange(value as Range)}>
               <div className="period-tabs"><TabsList className="range-list" aria-label="走势时间范围">{PERIODS.map(p=><TabsTrigger key={p.value} value={p.value} className="range-trigger">{p.label}</TabsTrigger>)}</TabsList><span className="chart-legend"><span className="line-swatch" style={{background:chartColor}}/>{range==="15m"?"K 线 + 成交量":"价格走势"}</span></div>
               <TabsContent value={range}>

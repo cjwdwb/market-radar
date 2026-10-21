@@ -1,5 +1,19 @@
 # 当前任务索引
 
+## MR-PUBLISH-AI30-PREPARATION — 2026-10-21 上传部署执行中
+
+[发布卡](MR-PUBLISH-AI30-PREPARATION.md)：用户明确“上传部署吧”。发布已验证候选到GitHub和原Sites，真实AI继续关闭；不执行来源外发、消费启用、D1真实迁移或秘密变更。正常PR/新CI/独立包装审计后部署，主3.0真实交付仍开放。
+
+## MR-30-AI-PRODUCTION-DELIVERY — 2026-10-21 接续正式交付
+
+[主任务卡](MR-30-AI-PRODUCTION-DELIVERY.md)：承接原PR#6及未提交Real Context成果，冻结Worker+D1唯一权威方案；已进入隔离B1预算、C0鉴权及B2迁入演练/独立审计。当前生产无D1、模型关闭；实际迁入与真实页面未执行。用户批准的生产用途补充询问已发送，来源答复/真实外发、生产消费、资源和迁入决定仍缺。本次发布是满足条件后的交付步骤，旧禁发布不作永久终点；不把隔离成果记为3.0完成。验证和审计收口见[报告顶部](../docs/AI_PROVIDER_PILOT.md)，无新产品模型调用或部署。
+
+## MR-30B-REAL-CONTEXT-PILOT — 2026-10-19 离线准备已验证，真实来源受阻
+
+[有限子任务](MR-30B-REAL-CONTEXT-PILOT.md)、[报告顶部](../docs/AI_PROVIDER_PILOT.md)：原PR#6/cd90237与旧CI39228845333 success已核对。完成受控snapshot、私有Node入口、三次持久子限额、同快照A/B/C与UI准备；本地584项=583PASS/1既有权限SKIP，build/typecheck/局部lint和私有五视口通过，独立GPT发现项已修VERIFY。OKX§9.4(c)限制本产品AI质量评估，真实输入BLOCKED/0调用/正式账本未动；需来源依据再集中确认外发。真实启动、保存和页面案例未执行，模型价值UNPROVEN。不push/merge/部署，现有Sitesv32不变，原3.0B主任务与minute29独立成果仍保留。
+
+上项后续推进：只读复核明确Coin Metrics参考价限制与market-candles entitlement不同；免费原生15m替代仍待证实。用户明确授权后，于2026-10-19 11:12 UTC向已核实的官方Community支持发送具体技术/用途询问，工具确认SENT，无附件；未收到来源答复，OKX稿未发送。未取行情/调用模型/启用自动邮件跟踪。详见上项任务卡“后续来源推进”；18个产品/测试文件hash未变，本次无新增产品代码或测试执行。
+
 ## MR-UPLOAD-AI30B-SELECTION — 2026-10-19 已上传，CI通过
 
 用户在受控编号交接后明确“上传”。[归档卡](archive/MR-UPLOAD-AI30B-SELECTION.md)：产品ef24640已正常push原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端HEAD与本地一致，独立包装审计VERIFIED PASS；新CI39228360858构建/typecheck及507/507 Node全部通过。只上传源码/测试/脱敏报告，原始回复/账本/Key未上传，无新模型请求、不合并/部署。后续仅文档收尾，最新head/checks见PR。下段“不上传”为此前执行阶段边界。

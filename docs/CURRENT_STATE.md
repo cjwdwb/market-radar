@@ -1,5 +1,11 @@
 # 当前状态
 
+2026-10-21 后续用户明确“上传部署吧”：执行[关闭真实AI的候选发布](../tasks/MR-PUBLISH-AI30-PREPARATION.md)，正常上传/CI/合并及原Sites部署。此前“未上传/未部署”是开发交接状态，实际结果以发布卡为准。此次不启用模型消费、不迁移正式账本/开通D1、不改秘密和访问设置；3.0真实解释交付仍开放。
+
+2026-10-21 AI Market Interpretation正式交付续接：[主任务卡](../tasks/MR-30-AI-PRODUCTION-DELIVERY.md)与[报告顶部](AI_PROVIDER_PILOT.md)。候选仍cd90237/PR#6 Draft，main7d2d30f；当前Sitesv32/source4a4b7fb本轮工具重新确认，实际无D1绑定/产品Key，未重新发布。新增预算、授权和迁入组件仅在本地隔离SQLite/workerd中验证，不挂生产入口；审计修复与最终新测见报告。原权威账本只读核对11次/$0.0344574保守占用且未改，无新模型请求。获准生产用途询问已发送，来源用途、真实外发和具体生产决定未满足；3.0总任务保持开放，不能以本地迁入通过代替真实解释交付。下方记录保留历史时点。
+
+2026-10-19 Real Context有限子项：[当前报告](AI_PROVIDER_PILOT.md)顶部记录本地未提交准备。受控snapshot、私有入口、共享预算三次子限制及现有UI同快照对照已mock验证；584Node=583PASS/1既有Windows权限SKIP，build/typecheck/受影响lint、五视口与独立GPT修复VERIFY。OKX现行条款尚不允许本产品AI评估用途，真实市场capture/模型调用均0，正式账本未改；真实输入准入BLOCKED、模型价值UNPROVEN。PR#6仍Draft，本轮未push/合并/部署，Sitesv32和生产模型关闭不变。主3.0B未整体完成，下面为旧上传/执行事实。
+
 2026-10-19受控编号协议已按用户授权上传：产品`ef24640df1c29859353b35033cbb0c7b426d77c4`正常push原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端与本地一致。新[CI39228360858](https://github.com/cjwdwb/market-radar/actions/runs/39228360858)在Ubuntu24.04/Node22.15构建/typecheck及507/507Node通过，独立包装审计VERIFIED PASS；见[上传归档](../tasks/archive/MR-UPLOAD-AI30B-SELECTION.md)。新协议9次真实合成请求通过，stale未派发且模型质量NOT RUN，旧协议2次FAIL保留；模型增益未证明。原账本11/20次、保守占用$0.0344574，非实际账单。此次上传无新增模型请求，未合并/部署，真实市场解释未验证、生产模型仍关闭。后续仅文档记录，最新head/checks见PR；现有Sitesv32不变。下方为历史时点。
 
 2026-10-13后续授权上传：DeepSeek试点候选`36f3f0a4b8a4b337d0619cb6a3447ff42eeb6aff`已推送原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端tree与本地一致；新CI38349103530在Ubuntu24.04.5/Node22.15构建/typecheck及491/491Node全部通过。独立包装审计VERIFIED，归档[上传卡](../tasks/archive/MR-UPLOAD-AI30B-DEEPSEEK.md)。仅上传代码与脱敏报告，原始回复/账本/Key未提交；无新增产品模型请求，未合并main或部署。A1 PASS/A2 FAIL及生产关闭不变。下方“未上传”保留开发时点。
