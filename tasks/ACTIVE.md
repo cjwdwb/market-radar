@@ -1,5 +1,45 @@
 # 当前任务索引
 
+## MR-PUBLISH-AI30-PREPARATION — 2026-10-21 上传部署执行中
+
+[发布卡](MR-PUBLISH-AI30-PREPARATION.md)：用户明确“上传部署吧”。发布已验证候选到GitHub和原Sites，真实AI继续关闭；不执行来源外发、消费启用、D1真实迁移或秘密变更。正常PR/新CI/独立包装审计后部署，主3.0真实交付仍开放。
+
+## MR-30-AI-PRODUCTION-DELIVERY — 2026-10-21 接续正式交付
+
+[主任务卡](MR-30-AI-PRODUCTION-DELIVERY.md)：承接原PR#6及未提交Real Context成果，冻结Worker+D1唯一权威方案；已进入隔离B1预算、C0鉴权及B2迁入演练/独立审计。当前生产无D1、模型关闭；实际迁入与真实页面未执行。用户批准的生产用途补充询问已发送，来源答复/真实外发、生产消费、资源和迁入决定仍缺。本次发布是满足条件后的交付步骤，旧禁发布不作永久终点；不把隔离成果记为3.0完成。验证和审计收口见[报告顶部](../docs/AI_PROVIDER_PILOT.md)，无新产品模型调用或部署。
+
+## MR-30B-REAL-CONTEXT-PILOT — 2026-10-19 离线准备已验证，真实来源受阻
+
+[有限子任务](MR-30B-REAL-CONTEXT-PILOT.md)、[报告顶部](../docs/AI_PROVIDER_PILOT.md)：原PR#6/cd90237与旧CI39228845333 success已核对。完成受控snapshot、私有Node入口、三次持久子限额、同快照A/B/C与UI准备；本地584项=583PASS/1既有权限SKIP，build/typecheck/局部lint和私有五视口通过，独立GPT发现项已修VERIFY。OKX§9.4(c)限制本产品AI质量评估，真实输入BLOCKED/0调用/正式账本未动；需来源依据再集中确认外发。真实启动、保存和页面案例未执行，模型价值UNPROVEN。不push/merge/部署，现有Sitesv32不变，原3.0B主任务与minute29独立成果仍保留。
+
+上项后续推进：只读复核明确Coin Metrics参考价限制与market-candles entitlement不同；免费原生15m替代仍待证实。用户明确授权后，于2026-10-19 11:12 UTC向已核实的官方Community支持发送具体技术/用途询问，工具确认SENT，无附件；未收到来源答复，OKX稿未发送。未取行情/调用模型/启用自动邮件跟踪。详见上项任务卡“后续来源推进”；18个产品/测试文件hash未变，本次无新增产品代码或测试执行。
+
+## MR-UPLOAD-AI30B-SELECTION — 2026-10-19 已上传，CI通过
+
+用户在受控编号交接后明确“上传”。[归档卡](archive/MR-UPLOAD-AI30B-SELECTION.md)：产品ef24640已正常push原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端HEAD与本地一致，独立包装审计VERIFIED PASS；新CI39228360858构建/typecheck及507/507 Node全部通过。只上传源码/测试/脱敏报告，原始回复/账本/Key未上传，无新模型请求、不合并/部署。后续仅文档收尾，最新head/checks见PR。下段“不上传”为此前执行阶段边界。
+
+## MR-30B-REAL-PROVIDER-PILOT — 2026-10-19 受控编号协议
+
+[任务卡](MR-30B-REAL-PROVIDER-PILOT.md)、[报告](../docs/AI_PROVIDER_PILOT.md)：新受控编号协议本地实现，付费前独立审计4项finding已修VERIFY；原名单9次真实DeepSeek合成请求选择/组织/披露均PASS，stale本地拒绝0HTTP/0预留且模型质量NOT RUN。旧两次FAIL保留。累计原账本11/20次/$0.0344574保守占用、unknown/reserved0；本轮9次占用$0.029139。最终507全量=506PASS/1既有Windows权限SKIP，build/typecheck/局部lint通过。最终证据/原账本集中独立复核VERIFIED PASS，本轮子项完成并停止；模型优于模板仍未证明。没有真实行情外发，PR#6 Draft，本轮不上传/合并/部署，主任务B阶段仍开放。下方为历史时点。
+
+## MR-UPLOAD-AI30B-DEEPSEEK — 2026-10-13 已上传，CI通过
+
+用户另行明确“上传”。[归档卡](archive/MR-UPLOAD-AI30B-DEEPSEEK.md)：产品36f3f0a已正常push原[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，本地/远端tree相同；独立包装审计VERIFIED PASS，新Ubuntu/Node22.15 CI38349103530构建/typecheck与491/491Node通过。后续仅文档记录，最新head/checks见PR。未合并/部署/再发模型请求；下方“不上传”是此前执行阶段边界，A2质量FAIL与9类NOT RUN保持。
+
+## MR-30B-REAL-PROVIDER-PILOT — 2026-10-13 实际连通，合成质量未通过
+
+[原任务卡](MR-30B-REAL-PROVIDER-PILOT.md)、[当前报告](../docs/AI_PROVIDER_PILOT.md)：专用产品Key已到位，DeepSeek官方Responses/deepseek-flash/none真实合成2次均HTTP200，A1 PASS；首例missing_conflict、一次受限提示澄清后unsupported_claim，A2 FAIL，剩余9场景NOT RUN，停止继续消费。原账本累计2/20，2倍保守费用占用$0.0053184，unknown/reserved均0，billedCost=null，预算不重置。此次prompt v2只明确精确引用边界，原校验/fixture/模型/预算未改；73专项/typecheck/lint及第二次请求前独立VERIFY通过。10月12日全量/build属于历史证据。本轮不上传/合并/部署，不发真实市场资料，不启用生产。下方待Key/零请求与旧测试为此前时点。
+
+## MR-UPLOAD-AI30B — 已上传草稿PR，CI已验证
+
+2026-10-10用户明确“上传吧”；[归档卡](archive/MR-UPLOAD-AI30B.md)。产品411ae1bd已上传codex/mr-30b-real-provider-pilot，[草稿PR#6](https://github.com/cjwdwb/market-radar/pull/6)，远端tree与本地一致；Ubuntu24.04.5/Node22.15首轮CI38058677276构建/typecheck及449/449测试通过。独立GPT包装审计VERIFIED，后续只补文档，最新head/checks见PR。未合并main、未部署、未调用真实模型；主试点仍待Key/质量/真实输入准入。下方“不上传”为开发交接时记录。
+
+## MR-30B-REAL-PROVIDER-PILOT — 本地有限真实 Provider 试点
+
+[任务卡](MR-30B-REAL-PROVIDER-PILOT.md)、[报告](../docs/AI_PROVIDER_PILOT.md)：承接已合并3.0A，固定Luna/Standard/none；项目UTC月$8、派发$7、合成试点20次或$0.25。离线31专项/448全量PASS（1既有skip）、build/typecheck/scoped lint、五视口8组已新测；独立GPT两项P2修复VERIFY，最终18文件/证据复核VERIFIED PASS。DS获具体文字授权后实际辅助一次。用户已允许合成试点，Key待安全配置，真实请求0；B真实输入用途/生产保持关闭，不归档全部完成、不上传发布。
+
+2026-10-08核对：PR#5已合并，main7d2d30f、CI37751192029 success。下面“未合并”为各历史交接时事实，不改写；本轮未部署，现有Sitesv32不变。
+
 ## MR-UPLOAD-AI30A — 已上传 GitHub，未合并或部署
 
 用户已明确授权上传3.0A Foundation。[归档卡](archive/MR-UPLOAD-AI30A.md)：产品15535d60，独立分支codex/mr-30-ai-foundation，[PR#5](https://github.com/cjwdwb/market-radar/pull/5)。远端tree与本地index一致；Ubuntu/Node22.15首轮PR CI37632197422执行build/typecheck及418/418测试通过。后续仅补记录，产品不变，最新checks见PR。main未合并、网站未部署，原分钟26文件保留。

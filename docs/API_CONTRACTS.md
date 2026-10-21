@@ -1,5 +1,9 @@
 # API 契约索引
 
+2026-10-13本地真实合成补证：专用Key就绪后执行DeepSeek官方Responses两次，模型/usage解析成功，分别被原语义校验拒绝missing_conflict/unsupported_claim。一次DeepSeek-only instructions精确引用说明升级prompt v2，不改schema/validator或公开接口。A1连通PASS不等于A2质量或真实市场准入；产品试点已停止，实际账本累计2次保守占用$0.0053184，生产未启用。以下零请求/待Key是前一时点。
+
+2026-10-12 本地3.0B受控CLI：当前只选择DeepSeek官方`POST https://api.deepseek.com/responses`、`deepseek-flash`、none；固定instructions/user输入及JSON schema，本地原证据/冲突/限制校验不变。专用`MARKET_RADAR_DEEPSEEK_API_KEY`不回退通用开发Key；并发1/重试0/无工具，无自动Provider回退。保留原OpenAI适配，两者使用同一项目持久预算与固定试点身份，profile迁移只作用本地账本。模型/usage/billing profile不明时保留全部预留；不复用OpenAI的service_tier检查。该CLI不是公开HTTP接口；现有`/api/interpretation`仍不提供真实Provider调用，真实行情外发及生产未启用。当前仅离线回归通过、真实请求0，官方schema支持不替代实际质量验收；[契约、费用与执行停点](AI_PROVIDER_PILOT.md)。
+
 2026-10-07 本地 3.0A：`/api/interpretation` 在原 Worker 门禁之后。GET仅返回fixture/unconfigured，真实Provider始终false；POST仅同源JSON、16KiB，严格固定symbol/scenario。fixture只在loopback且服务端开关开启，生产503不回退演示；拒绝客户端Context/权限/model/Prompt/URL/key。返回严格fixture Result / 受控error码，private/no-store；无外部API/行情/数据库/采集。完整契约与预算见 [AI Foundation](AI_FOUNDATION.md)。本轮未发布，原线上协议不变。
 
 2026-10-03本地信息入口新增（未部署）：`GET /api/information`经原Worker accessGate，仅返回已审核构建输入的fed-monetary-view-v1。无参数；任何非空query400，非法发布包503，原门禁401/未支持方法405；private,no-store（Worker补max-age=0）。固定FED货币政策元数据、1MiB/200条/31日原校验、reconstructed/current-vintage；不接受URL/路径/SQL、不读数据库、不网络采集、不包含owner/run/账本。UI首次展开懒加载，保留本地文件导入和失败旧视图。准备方式与证据见[信息入口交付](INFORMATION_DELIVERY.md)。

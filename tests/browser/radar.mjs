@@ -11,6 +11,7 @@ const base=process.env.RADAR_PREVIEW_URL||'http://localhost:5173';
 // This harness creates signed test cookies, simulated data and test storage. Never target production.
 const testUrl=new URL(base);
 if(!['127.0.0.1','localhost','[::1]'].includes(testUrl.hostname)||!['http:','https:'].includes(testUrl.protocol))throw Error('Radar fixture requires a loopback preview URL.');
+if(process.env.RADAR_AI30B_PRIVATE==='1'&&process.env.RADAR_SYNTHETIC_AUTH!=='1')throw Error('Private UI checks require RADAR_SYNTHETIC_AUTH=1; real credentials are not allowed.');
 const stamp=1789372800000,output=process.env.RADAR_OUTPUT_DIR||'outputs/radar';fs.mkdirSync(output,{recursive:true});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const observedWarnings=[];
@@ -882,7 +883,7 @@ async function aiFoundationChecks(browser,report){
   assert.equal(aiRequests.filter(r=>r.method==='POST').length,1);assert.deepEqual(Object.keys(JSON.parse(aiRequests.find(r=>r.method==='POST').body)).sort(),['scenario','symbol']);
   await ai.getByRole('button',{name:'重新查看演示'}).click();await p.waitForFunction(()=>document.querySelector('.ai-result-heading')?.textContent.includes('缓存'));
   const id=await ai.locator('.ai-result').getAttribute('data-context-id');
-  await ai.getByRole('button',{name:'核对证据 short.direction',exact:true}).click();assert.equal(await ai.locator('.ai-evidence').getAttribute('open'),'');assert.match(await ai.locator('.ai-evidence').innerText(),/净变化|窗口净变化/);assert.match(await ai.locator('.ai-evidence').innerText(),/fixture:/);assert.equal(await p.evaluate(()=>document.activeElement?.id),'ai-evidence-short.direction');await ai.locator('.ai-evidence>summary').click();
+  await ai.getByRole('button',{name:'核对证据 short.direction',exact:true}).click();assert.equal(await ai.locator('.ai-evidence').getAttribute('open'),'');assert.match(await ai.locator('.ai-evidence').innerText(),/净变化|窗口净变化/);assert.match(await ai.locator('.ai-evidence').innerText(),/fixture:/);assert.equal(await ai.evaluate((panel,contextId)=>{const active=document.activeElement;return panel.contains(active)&&active.id.endsWith('-evidence-short.direction')&&active.closest('.ai-result')?.dataset.contextId===contextId;},id),true);await ai.locator('.ai-evidence>summary').click();
   for(const button of await ai.locator('.ai-actions button').all())assert.ok((await button.boundingBox()).height>=44);
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await ai.locator('.ai-result').evaluate(el=>{el.scrollIntoView({block:'start',behavior:'instant'});window.scrollBy({top:-85,behavior:'instant'});});await pause(100);await p.screenshot({path:`${output}/ai-${name}.png`});
   await ai.getByRole('button',{name:'返回图表',exact:true}).click();await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
@@ -897,11 +898,98 @@ async function aiFoundationChecks(browser,report){
  await ai.getByRole('button',{name:'查看解释',exact:true}).click();await p.locator('.radar-watch-row').filter({hasText:'NVDA'}).locator('button').first().click();await pause(750);await p.locator('.asset-radar-awareness').click();assert.equal(await ai.getAttribute('data-ai-symbol'),'NVDA');assert.equal(await ai.locator('.ai-result').count(),0);
  await p.unroute('**/api/interpretation');await p.route('**/api/interpretation',r=>r.fulfill({json:{mode:'unconfigured',realProviderEnabled:false}}));if(!await ai.getAttribute('open'))await ai.locator(':scope>summary').click();await ai.getByRole('button',{name:'查看解释',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.ai-feedback')?.textContent.includes('尚未配置'));assert.equal(await ai.locator('.ai-result').count(),0);
  report.checks.push('cancel releases UI; late old BTC request does not cover NVDA; unconfigured stays local');assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);await app.context.close();
+ if(process.env.RADAR_AI30B==='1'){
+  const local=await fixture(browser,{mode:'state26-gentle',motionPreference:'reduced'}),p=local.page;await p.setViewportSize({width:390,height:844});
+  await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.asset-radar-awareness').click();const ai=p.locator('.ai-interpretation');await ai.locator(':scope>summary').click();
+  for(const [code,message] of [['budget_exhausted','预算已用完'],['budget_unavailable','无法安全读取或保存预算']]){
+   await p.route('**/api/interpretation',r=>r.fulfill({status:r.request().method()==='GET'?200:429,json:r.request().method()==='GET'?{mode:'fixture',realProviderEnabled:false}:{error:code}}));
+   await ai.getByRole('button',{name:'查看解释',exact:true}).click();await p.waitForFunction(text=>document.querySelector('.ai-feedback')?.textContent.includes(text),message);
+   assert.equal(await ai.locator('.ai-result').count(),0);await ai.getByRole('button',{name:'返回图表',exact:true}).click();await p.locator('.candle-canvas').waitFor();
+   await p.locator('.asset-radar-awareness').click();if(await ai.getAttribute('open')===null)await ai.locator(':scope>summary').click();await p.unroute('**/api/interpretation');report.checks.push(`mobile synthetic ${code}: fails closed and chart/return preserved`);
+  }
+  assert.deepEqual(local.errors,[]);report.errors.push(...local.errors);await local.context.close();
+ }
+}
+async function aiPrivateChecks(browser,report){
+ const {privateInterpretationFixture}=await import('../fixtures/ai30b-ui.mjs');
+ const session='fixture-only-private-ui-session';
+ report.privateInput={identity:'offline synthetic market and private HTTP mocks; not real input or Provider verification',realRequests:0,privateServiceAuthentication:'NOT RUN by this route-mocked browser suite'};
+ for(const [name,width,height,pref] of [['desktop',1440,1000,'normal'],['tablet',768,1024,'system'],['mobile',390,844,'reduced'],['narrow',320,740,'system'],['landscape',844,390,'normal']]){
+  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',motionPreference:pref,watchlist:['BTC-USDT','NVDA']}),p=app.page,calls=[],external=[];
+  let gate='blocked',behavior='success',sequence=0,current,held=null;const releases=new Set();
+  const holdNext=()=>{let release,started;const ready=new Promise(resolve=>{started=resolve;}),wait=new Promise(resolve=>{release=()=>{releases.delete(release);resolve();};releases.add(release);});held={started,wait};return {ready,release};};
+  await p.route('**/api/interpretation',route=>{calls.push({path:'/api/interpretation',method:route.request().method()});return route.fulfill({json:{mode:'private_real',realProviderEnabled:gate==='ready',admission:gate,...(gate==='blocked'?{reason:'data_permission_unavailable'}:{})}});});
+  await p.route('**/__ai-pilot/**',async route=>{
+   const request=route.request(),path=new URL(request.url()).pathname,body=request.postDataJSON(),authenticated=request.headers()['x-ai-pilot-session']===session;
+   calls.push({path,method:request.method(),body,authenticated});
+   if(!authenticated)return route.fulfill({status:403,json:{error:'private_session_required'}});
+   if(path==='/__ai-pilot/status')return route.fulfill({json:{gate:{admission:gate,...(gate==='blocked'?{reason:'data_permission_unavailable'}:{})},allowedSymbol:'BTC-USDT'}});
+   if(gate!=='ready')return route.fulfill({status:403,json:{error:'data_permission_unavailable'}});
+   if(path==='/__ai-pilot/snapshot'){current=privateInterpretationFixture(stamp,++sequence);return route.fulfill({json:{snapshotId:current.snapshot.id,expiresAt:current.snapshot.expiresAt}});}
+   if(path==='/__ai-pilot/interpret'){
+    const reply=current,delay=held;held=null;if(delay){delay.started();await delay.wait;}
+    if(behavior==='failure')return route.fulfill({status:503,json:{error:'invalid_output'}}).catch(()=>{});
+    await pause(300);return route.fulfill({json:reply}).catch(()=>{});
+   }
+   return route.fulfill({status:404,json:{error:'route_not_available'}});
+  });
+  // Fail closed for external requests; local quote/history remain the existing fixture routes.
+  await p.route('**/*',route=>{const url=new URL(route.request().url());if(url.origin!==testUrl.origin){external.push(url.origin);return route.abort();}return route.fallback();});
+  try{
+   await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.candle-canvas').waitFor();
+   await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
+   assert.equal(calls.length,0);await p.locator('.asset-radar-awareness').click();const ai=p.locator('.ai-interpretation');
+   const open=async()=>{if(await ai.getAttribute('open')===null){await ai.locator(':scope>summary').focus();await p.keyboard.press('Enter');}};
+   await open();assert.equal(calls.length,0);await ai.getByRole('button',{name:'查看解释',exact:true}).click();
+   await ai.getByLabel('私有会话凭据',{exact:true}).waitFor();assert.match(await ai.locator('.ai-feedback').innerText(),/来源用途许可/);assert.equal(calls.length,1);
+   assert.equal(await ai.getByRole('button',{name:'查看快照解释',exact:true}).isDisabled(),true);
+   const connect=async()=>{await ai.getByLabel('私有会话凭据',{exact:true}).fill(session);await ai.locator('.ai-session button').focus();await p.keyboard.press('Enter');await p.waitForFunction(()=>document.querySelector('.ai-session small')?.textContent.includes('会话已验证'));assert.equal(await ai.getByLabel('私有会话凭据',{exact:true}).inputValue(),'');};
+   await connect();assert.equal(calls.filter(c=>c.path==='/__ai-pilot/snapshot').length,0);assert.match(await ai.innerText(),/准入受限/);
+   gate='ready';await connect();await ai.getByRole('button',{name:'查看快照解释',exact:true}).waitFor();
+   await p.waitForFunction(()=>!Array.from(document.querySelectorAll('.ai-actions button')).find(b=>b.textContent==='查看快照解释')?.disabled);
+   const started=performance.now();await ai.getByRole('button',{name:'查看快照解释',exact:true}).click();await ai.locator('.ai-result').waitFor();const latency=performance.now()-started,result=current;
+   const snapshot=result.snapshot.id,contextId=result.contextId,comparison=ai.locator('.ai-comparison');assert.equal(await comparison.count(),3);
+   assert.match(await comparison.nth(0).innerText(),/A · 固定模板/);assert.ok((await comparison.nth(0).innerText()).includes(result.baseline.sentences[0].text));
+   assert.equal(await comparison.nth(1).locator(':scope>ul').innerText(),await comparison.nth(2).locator(':scope>ul').innerText());
+   assert.match(await comparison.nth(1).innerText(),/B · 模型选择/);assert.match(await comparison.nth(2).innerText(),/C · 最终完整呈现/);
+   assert.match(await ai.innerText(),/UNPROVEN/);assert.match(await ai.innerText(),/不计入模型贡献/);assert.match(await ai.innerText(),/有效期至/);assert.doesNotMatch(await ai.innerText(),/演示结果|未调用真实模型/);
+   const disclosure=ai.locator('summary').filter({hasText:'完整披露编号与来源'});await disclosure.focus();await p.keyboard.press('Enter');
+   for(const d of result.systemRequired){assert.ok((await ai.innerText()).includes(d.disclosureId));assert.ok((await ai.innerText()).includes(d.origin));}await p.keyboard.press('Enter');
+   const refs=ai.getByRole('button',{name:'核对证据 short.direction',exact:true});
+   for(const ref of [refs.first(),refs.last()]){await ref.focus();await p.keyboard.press('Enter');assert.equal(await ai.evaluate((panel,id)=>{const target=document.activeElement;return panel.contains(target)&&target.id.endsWith('-evidence-short.direction')&&target.closest('.ai-result')?.dataset.snapshotId===id;},snapshot),true);}
+   const ids=await p.locator('.ai-interpretation [id]').evaluateAll(nodes=>nodes.map(n=>n.id));assert.equal(new Set(ids).size,ids.length);await ai.locator('.ai-evidence>summary').click();
+   for(const control of [ai.locator(':scope>summary'),ai.getByLabel('私有会话凭据',{exact:true}),...await ai.locator('.ai-actions button').all()])assert.ok((await control.boundingBox()).height>=44);
+   assert.equal(await p.evaluate(token=>[...Object.values(localStorage),...Object.values(sessionStorage),location.href].some(value=>String(value).includes(token)),session),false);
+   await ai.locator('.ai-result').evaluate(el=>{el.scrollIntoView({block:'start',behavior:'instant'});window.scrollBy({top:-85,behavior:'instant'});});await pause(100);assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:`${output}/ai-private-${name}.png`});
+   const beforeReturn=calls.length;await ai.getByRole('button',{name:'返回图表',exact:true}).click();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
+   assert.match(await p.locator('.ai-classic-link').innerText(),/原快照解释 · 本机私有试点/);await p.locator('.ai-classic-link').click();await open();assert.equal(await ai.locator('.ai-result').getAttribute('data-context-id'),contextId);assert.equal(calls.length,beforeReturn);
+   behavior='failure';await ai.getByRole('button',{name:'查看新快照解释',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.ai-feedback')?.textContent.includes('不是本次请求成功'));
+   assert.equal(await ai.locator('.ai-result').getAttribute('data-snapshot-id'),snapshot);assert.ok((await ai.locator('.ai-feedback').innerText()).includes(snapshot));behavior='success';
+   if(name==='desktop'){
+    const cancelled=holdNext();await ai.getByRole('button',{name:'查看新快照解释',exact:true}).click();await cancelled.ready;await ai.getByRole('button',{name:'取消解释',exact:true}).click();cancelled.release();await pause(400);
+    assert.match(await ai.locator('.ai-feedback').innerText(),/已取消解释/);assert.equal(await ai.locator('.ai-result').getAttribute('data-snapshot-id'),snapshot);
+    const during=holdNext();await ai.getByRole('button',{name:'查看新快照解释',exact:true}).click();await during.ready;await ai.getByRole('button',{name:'返回图表',exact:true}).click();
+    const quoteResponse=p.waitForResponse(r=>new URL(r.url()).pathname==='/api/quotes');app.priceOffset.value+=1;await p.locator('.refresh-button').click();await quoteResponse;
+    await p.getByRole('tab',{name:'15 分钟',exact:true}).click();const canvas=p.locator('.candle-canvas');await canvas.waitFor();await canvas.scrollIntoViewIfNeeded();await canvas.focus();await p.keyboard.press('+');
+    const beforeDrag=Number(await canvas.getAttribute('data-view-start')),box=await canvas.boundingBox();await p.mouse.move(box.x+box.width*.4,box.y+box.height*.4);await p.mouse.down();await p.mouse.move(box.x+box.width*.7,box.y+box.height*.4,{steps:6});await p.mouse.up();
+    assert.notEqual(Number(await canvas.getAttribute('data-view-start')),beforeDrag);await p.keyboard.press('Home');await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
+    await p.locator('.ai-classic-link').click();await open();await ai.getByRole('button',{name:'取消解释',exact:true}).waitFor();during.release();await p.waitForFunction(id=>{const next=document.querySelector('.ai-result')?.dataset.snapshotId;return next&&next!==id;},snapshot);
+    const late=holdNext();await ai.getByRole('button',{name:'查看新快照解释',exact:true}).click();await late.ready;await p.locator('.radar-watch-row').filter({hasText:'NVDA'}).locator('button').first().click();late.release();await pause(400);
+    await p.locator('.asset-radar-awareness').click();await open();assert.equal(await ai.getAttribute('data-ai-symbol'),'NVDA');assert.equal(await ai.locator('.ai-result').count(),0);assert.match(await ai.innerText(),/私有试点仅支持 BTC-USDT/);
+    report.checks.push('private desktop: cancellation preserves original snapshot; mock quote refresh and actual chart drag remain responsive while interpretation waits; delayed BTC result cannot cover NVDA');
+   }
+   for(const c of calls.filter(c=>c.path.startsWith('/__ai-pilot/'))){assert.equal(c.method,'POST');assert.equal(c.authenticated,true);assert.deepEqual(Object.keys(c.body).sort(),c.path.endsWith('/status')?[]:c.path.endsWith('/snapshot')?['symbol']:['snapshotId','symbol']);}
+   assert.deepEqual(external,[]);assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);report.viewports.push({name,width,height,motionPreference:pref,os:'reduce',synthetic:true,interpretationLatencyMs:latency});
+   report.checks.push(`private ${name}: keyboard source-blocked/session-connect, same-snapshot A/B/C and disclosure origins, scoped evidence, 44px/no overflow, failure retains original snapshot, shared Classic result/week return, no credential storage`);
+  }catch(error){await p.screenshot({path:`${output}/ai-private-${name}-failure.png`,fullPage:true}).catch(()=>{});throw error;}
+  finally{for(const release of releases)release();await app.context.close();}
+ }
 }
 (async()=>{
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={browser:browser.version(),viewports:[],checks:[],errors:[],warnings:observedWarnings};let page;
  try{
+  if(process.env.RADAR_AI30B_PRIVATE==='1'){await aiPrivateChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_AI30_ONLY==='1'){await aiFoundationChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_STATE26_REFINEMENT_PHASE){await state26RefinementChecks(browser,report,process.env.RADAR_STATE26_REFINEMENT_PHASE);return;}
   if(process.env.RADAR_REFINEMENT_PHASE){await refinementChecks(browser,report,process.env.RADAR_REFINEMENT_PHASE);return;}
