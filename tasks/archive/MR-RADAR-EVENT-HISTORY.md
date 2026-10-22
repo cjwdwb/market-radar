@@ -1,5 +1,11 @@
 # MR-RADAR-EVENT-HISTORY
 
+## 最终交付 — 2026-10-22
+
+完成并归档。PR#7正常合并，产品dba63f8bb3ea54ce0f3d8523c95409cc1bc9ec5f，部署源码6f7e1e889e5b714bd3f26ffd560126bd5ea01cbe；两者同树6fd1917cfab3d678dcb0d4d32fc8458138dc8136。远端CI39748374641 / job119722423182新测build/typecheck与678/678 Node通过，0失败/跳过。合并提交未取得额外main CI记录，不将PR CI冒称main新测。
+
+Sites v33原生succeeded，2026-10-22 16:36（Asia/Shanghai），环境revision3，原网址/public/应用访问码保留。新包独立包装审计VERIFIED；原3.0准备代码与本机历史一并上线，真实AI未启用。没有产品模型调用、源外发、云资源/秘密变更或后台采集。主3.0和独立数据track继续开放。生产登录后/真机NOT RUN，不以平台成功替代用户实测。详细发布ID见相邻[发布卡](MR-PUBLISH-AI30-PREPARATION.md)。下文保留实施时记录。
+
 2026-10-22（Asia/Shanghai）。Planner 定稿，进入 Builder。用户在上传部署任务中追加“完善一下，然后可以把radar那里的历史事件加进去”；完成后随已授权发布一起交付。
 
 ## 基线与事实

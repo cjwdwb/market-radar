@@ -1,16 +1,12 @@
 # 当前任务索引
 
-## MR-RADAR-EVENT-HISTORY — 2026-10-22 实施中
+## MR-RADAR-EVENT-HISTORY / MR-PUBLISH-AI30-PREPARATION — 2026-10-22 已上传部署
 
-[任务卡](MR-RADAR-EVENT-HISTORY.md)：用户追加Radar历史事件；独立本机7天/120条原始观察记录、筛选与证据，不恢复为当前Signal/State。基线PR#6合并234347d，生产仍v32；完善验证后与下方已授权发布统一交付。主3.0真实模型仍关闭。
-
-## MR-PUBLISH-AI30-PREPARATION — 2026-10-21 上传部署执行中
-
-[发布卡](MR-PUBLISH-AI30-PREPARATION.md)：用户明确“上传部署吧”。发布已验证候选到GitHub和原Sites，真实AI继续关闭；不执行来源外发、消费启用、D1真实迁移或秘密变更。正常PR/新CI/独立包装审计后部署，主3.0真实交付仍开放。
+[历史任务归档](archive/MR-RADAR-EVENT-HISTORY.md)、[发布归档](archive/MR-PUBLISH-AI30-PREPARATION.md)：PR#6准备代码与PR#7本机7天/120条历史事件已一起发布Sitesv33，源码6f7e1e889e5b714bd3f26ffd560126bd5ea01cbe；PR新CI678/678，平台succeeded/env3，独立产品与包装VERIFY完成。原网址/门禁不变，真实AI仍关闭。主3.0来源/真实解释/生产消费和独立数据目标继续开放；不把关闭状态发布记为完整AI交付。后续文档提交不重新部署。
 
 ## MR-30-AI-PRODUCTION-DELIVERY — 2026-10-21 接续正式交付
 
-[主任务卡](MR-30-AI-PRODUCTION-DELIVERY.md)：承接原PR#6及未提交Real Context成果，冻结Worker+D1唯一权威方案；已进入隔离B1预算、C0鉴权及B2迁入演练/独立审计。当前生产无D1、模型关闭；实际迁入与真实页面未执行。用户批准的生产用途补充询问已发送，来源答复/真实外发、生产消费、资源和迁入决定仍缺。本次发布是满足条件后的交付步骤，旧禁发布不作永久终点；不把隔离成果记为3.0完成。验证和审计收口见[报告顶部](../docs/AI_PROVIDER_PILOT.md)，无新产品模型调用或部署。
+[主任务卡](MR-30-AI-PRODUCTION-DELIVERY.md)：承接原PR#6及未提交Real Context成果，冻结Worker+D1唯一权威方案；已进入隔离B1预算、C0鉴权及B2迁入演练/独立审计。当前生产无D1、模型关闭；实际迁入与真实页面未执行。用户批准的生产用途补充询问已发送，来源答复/真实外发、生产消费、资源和迁入决定仍缺。本次发布是满足条件后的交付步骤，旧禁发布不作永久终点；不把隔离成果记为3.0完成。验证和审计收口见[报告顶部](../docs/AI_PROVIDER_PILOT.md)，未新增产品模型调用；准备代码已随v33发布，真实启用仍未发生。
 
 ## MR-30B-REAL-CONTEXT-PILOT — 2026-10-19 离线准备已验证，真实来源受阻
 

@@ -1,5 +1,19 @@
 # MR-PUBLISH-AI30-PREPARATION
 
+## 最终发布 — 2026-10-22
+
+完成并归档。用户追加历史事件后，原旧准备包未发布；最终发布包含PR#6准备代码和PR#7本机历史事件，真实AI保持关闭。PR#7 CI39748374641/job119722423182的build/typecheck及678/678 Node通过，源码6f7e1e889e5b714bd3f26ffd560126bd5ea01cbe，tree6fd1917cfab3d678dcb0d4d32fc8458138dc8136。官方helper正常同步同源构建，GitHub与Sites均已完成；没有force/tag/新产品版本号。
+
+- 原网址：https://market-radar-rex.swt-aether.chatgpt.site
+- Sites v33：`appgprj_6a9b9dc23584819190a31ae417863e7a~appgver_7b2c98f99ac881918051373527865778`
+- 部署：`appgdep_6ad9caf6e7c08191b4265e27256855bc`，原生`succeeded`，2026-10-22T08:36:17.573180Z，env revision3。
+- 本地gzip包2,015,713bytes，SHA256 `3D6F359E4339E8B4F326ED694D77E1FE90B8D86E840392895F7313E30EC8CE04`；平台解包tar6,727,680bytes/46文件，内容hash `1ee77827cf9de1ed69e11fb6e6c929a3148407ba3bacd5da00ca6e95bf8c0a56`。两者编码不同，不混作同一字节hash。
+- 最终独立包装审计VERIFIED：文件与发布checkout一致（hosting仅换行差异），无秘密/账本/原始回复/内部测试或SQL迁移；D1/R2仍null，公网真实Provider关闭，访问策略不变。
+- 发布前历史专项及集成五视口9+36组通过；最终本地678=677PASS/1既有权限SKIP，远端678全部PASS。新AI真实市场、生产登录后和真机未测；开发DS/产品模型调用均0。无D1真实迁入、秘密修改、来源采集或费用。
+- 后续本卡与版本索引为文档收尾提交，不重新部署。上一个可用回退点为Sitesv32/source4a4b7fb66ac4fc10663087b42a09e08c55804e2a，未执行回退。完整3.0仍开放，来源答复/真实用途/生产消费条件不因本次关闭状态发布而通过。
+
+下文为原规划与过程记录，非当前生产状态。
+
 2026-10-22续接：PR#6已合并为234347dc08ee5ac53c7eb4d0bf85793a95d83313，PR CI39628324304新测661/661通过。旧包独立审计VERIFIED，但未save/deploy。用户随后追加Radar历史事件，发布改为包含[历史任务](MR-RADAR-EVENT-HISTORY.md)的最终候选；旧site-v33.tar.gz不发布，生产此时仍v32。下方为上一轮过程记录。
 
 2026-10-21（Asia/Shanghai）。状态：执行中。用户在本地交接后明确“上传部署吧”。本卡只发布当前已验证候选，真实AI消费继续关闭；不将本卡完成等同MR-30-AI-PRODUCTION-DELIVERY完成。
