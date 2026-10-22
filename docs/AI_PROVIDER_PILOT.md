@@ -1,6 +1,8 @@
 # Market Radar 3.0B — 受控 Provider 试点交接
 
-2026-10-21 后续发布授权：用户明确“上传部署吧”，执行[发布卡](../tasks/MR-PUBLISH-AI30-PREPARATION.md)。范围为当前验证候选在真实AI关闭状态下的上传部署；不改变下文来源/真实外发/生产消费的缺口。GitHub、Sites与发布新测结果集中记录在该卡，下面保留开发阶段原始结论。
+2026-10-22正式发布：**Radar本机历史事件 + AI准备 / Sites v33**，源码`6f7e1e889e5b714bd3f26ffd560126bd5ea01cbe`。PR#7正常合并，远端build/typecheck及678/678 Node通过，独立审计/FIX/VERIFY与包装审计通过；平台succeeded、env revision3，原网址 https://market-radar-rex.swt-aether.chatgpt.site 。本机7天/120条历史记录、筛选、原证据与当前图表返回已上线，真实AI仍关闭。未开云资源/迁移/调度或修改秘密和访问策略；生产登录后/真机未测。[发布记录](../tasks/archive/MR-PUBLISH-AI30-PREPARATION.md)、[历史事件验收](../tasks/archive/MR-RADAR-EVENT-HISTORY.md)。主3.0真实交付及数据track仍开放，下面是历史时点。后续文档提交不等于生产重新部署。
+
+2026-10-21 后续发布授权：用户明确“上传部署吧”，执行[发布卡](../tasks/archive/MR-PUBLISH-AI30-PREPARATION.md)。范围为当前验证候选在真实AI关闭状态下的上传部署；不改变下文来源/真实外发/生产消费的缺口。GitHub、Sites与发布新测结果集中记录在该卡，下面保留开发阶段原始结论。
 
 ## 2026-10-21 AI Market Interpretation：生产准备切片（总交付仍开放）
 
