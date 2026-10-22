@@ -1,5 +1,9 @@
 # 当前任务索引
 
+## MR-RADAR-EVENT-HISTORY — 2026-10-22 实施中
+
+[任务卡](MR-RADAR-EVENT-HISTORY.md)：用户追加Radar历史事件；独立本机7天/120条原始观察记录、筛选与证据，不恢复为当前Signal/State。基线PR#6合并234347d，生产仍v32；完善验证后与下方已授权发布统一交付。主3.0真实模型仍关闭。
+
 ## MR-PUBLISH-AI30-PREPARATION — 2026-10-21 上传部署执行中
 
 [发布卡](MR-PUBLISH-AI30-PREPARATION.md)：用户明确“上传部署吧”。发布已验证候选到GitHub和原Sites，真实AI继续关闭；不执行来源外发、消费启用、D1真实迁移或秘密变更。正常PR/新CI/独立包装审计后部署，主3.0真实交付仍开放。
