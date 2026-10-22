@@ -985,10 +985,56 @@ async function aiPrivateChecks(browser,report){
   finally{for(const release of releases)release();await app.context.close();}
  }
 }
+async function eventHistoryChecks(browser,report){
+ const openHistory=p=>p.getByRole('group',{name:'事件视图'}).getByRole('button',{name:/历史事件/}).click();
+ const storageKey='market-radar-event-history-v1';
+ for(const [name,width,height] of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
+  const app=await fixture(browser,{os:'reduce'}),p=app.page;await p.setViewportSize({width,height});
+  try{
+   await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.candle-canvas').waitFor();
+   await p.waitForFunction(key=>JSON.parse(localStorage.getItem(key)||'null')?.observations.length>0,storageKey);
+   await p.getByRole('tab',{name:'1 周',exact:true}).click();
+   await p.evaluate(()=>{location.hash='radar'});await p.locator('#radar').waitFor();await openHistory(p);
+   await p.getByLabel('搜索事件',{exact:true}).fill('BTC-USDT');await p.locator('.event-history-item').first().waitFor();
+   assert.ok(await p.locator('.event-history-item').evaluateAll(rows=>rows.every(row=>row.dataset.symbol==='BTC-USDT')));
+   const first=p.locator('.event-history-item').first();await first.locator('summary').focus();await p.keyboard.press('Enter');assert.equal(await first.getAttribute('open'),'');
+   assert.match(await first.innerText(),/2026.*09.*14/);assert.match(await first.innerText(),/上次观察时/);assert.match(await first.innerText(),/来源 \/ 币种/);assert.match(await first.innerText(),/证据截止/);
+   assert.ok((await first.locator('summary').boundingBox()).height>=44);assert.notEqual(await first.locator('summary').evaluate(el=>getComputedStyle(el).outlineStyle),'none');
+   await first.scrollIntoViewIfNeeded();await p.screenshot({path:output+'/event-history-'+name+'.png'});
+   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+   await first.getByRole('button',{name:/当前图表/}).click();await p.locator('.classic-experience').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
+   await p.evaluate(()=>{location.hash='radar'});await p.locator('.event-history').waitFor();
+   await p.getByLabel('搜索事件',{exact:true}).fill('');
+   if(name==='desktop'){
+    // Explicit simulated records, never production: bounded pagination and lifecycle filters.
+    await p.evaluate(key=>{const data=JSON.parse(localStorage.getItem(key)),seed=data.observations[0];data.observations=Array.from({length:30},(_,i)=>{const shift=(i+1)*900000,s=structuredClone(seed.signal);for(const key of ['detectedAt','updatedAt','quoteAt','fetchedAt','evidenceAt','expiresAt'])s[key]-=shift;s.id=s.fingerprint+':'+s.evidenceAt;s.status=['active','resolved','expired'][i%3];return {signal:s,observedAt:seed.observedAt-shift}});localStorage.setItem(key,JSON.stringify(data));},storageKey);
+    await p.route('**/api/quotes?**',route=>route.fulfill({status:503,json:{error:'isolated offline fixture'}}));
+    await p.route('**/api/history?**',route=>route.fulfill({status:503,json:{error:'isolated offline fixture'}}));
+    await p.reload({waitUntil:'networkidle'});await p.locator('#radar').waitFor();assert.equal(await p.locator('.radar-feed .radar-signal').count(),0);assert.equal(await p.locator('.radar-summary').count(),0);
+    await openHistory(p);assert.equal(await p.locator('.event-history-item').count(),12);
+    const id=await p.locator('.event-history-item summary').first().innerText();await p.getByRole('button',{name:'下一页',exact:true}).click();assert.notEqual(await p.locator('.event-history-item summary').first().innerText(),id);
+    await p.getByLabel('上次观察状态',{exact:true}).selectOption('resolved');assert.equal(await p.locator('.event-history-item').count(),10);
+    await p.getByLabel('搜索事件',{exact:true}).fill('no-such-event');assert.match(await p.locator('.event-history').innerText(),/没有匹配/);
+    report.checks.push('reload without live data keeps 30 fixture observations separate from current feed/summary; pagination and lifecycle/search filters');
+   }
+   assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);report.viewports.push({name,width,height});report.checks.push(name+': provenance, keyboard, 44px, no overflow, current chart/manual week return');
+  }finally{await app.context.close();}
+ }
+ for(const mode of ['unavailable','corrupt','empty']){
+  const app=await fixture(browser,{storage:mode==='unavailable',mode:mode==='empty'?'quiet':'normal'}),p=app.page;
+  if(mode==='corrupt')await p.addInitScript(key=>localStorage.setItem(key,'broken'),storageKey);
+  await p.goto(base+'/#radar',{waitUntil:'networkidle'});await pause(300);await openHistory(p);
+  const text=await p.locator('.event-history').innerText();assert.match(text,mode==='unavailable'?/存储不可用/:mode==='corrupt'?/旧记录无法读取/:/这里还没有历史事件/);
+  if(mode==='corrupt')assert.equal(await p.evaluate(key=>localStorage.getItem(key),storageKey),'broken');
+  assert.deepEqual(app.errors,[]);report.checks.push(mode+': honest fallback, live UI usable');await app.context.close();
+ }
+}
+
 (async()=>{
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={browser:browser.version(),viewports:[],checks:[],errors:[],warnings:observedWarnings};let page;
  try{
+  if(process.env.RADAR_EVENT_HISTORY_ONLY==='1'){await eventHistoryChecks(browser,report);fs.writeFileSync(output+'/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_AI30B_PRIVATE==='1'){await aiPrivateChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_AI30_ONLY==='1'){await aiFoundationChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_STATE26_REFINEMENT_PHASE){await state26RefinementChecks(browser,report,process.env.RADAR_STATE26_REFINEMENT_PHASE);return;}

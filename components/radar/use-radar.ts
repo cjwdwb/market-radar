@@ -4,6 +4,7 @@ import { useEffect, useMemo, useReducer } from "react";
 import { radarCoverage, scanRadar } from "@/lib/radar/engine";
 import { buildRadarIntelligence } from "@/lib/radar/intelligence";
 import { emptyRadarStore, type RadarSnapshot, type RadarStore } from "@/lib/radar/types";
+import { useEventHistory } from "./use-event-history";
 
 type Scan = { snapshot: RadarSnapshot; now: number; enabled: boolean };
 function reduce(store: RadarStore, action: Scan) { return scanRadar(store, action.snapshot, action.now, action.enabled); }
@@ -14,5 +15,6 @@ export function useRadar(snapshot: RadarSnapshot, watchlist: string[], now: numb
   useEffect(() => { if (now !== undefined) dispatch({ snapshot, now, enabled }); }, [snapshot, now, enabled]);
   const coverage = useMemo(() => now === undefined ? [] : radarCoverage(snapshot, now), [snapshot, now]);
   const intelligence = useMemo(() => buildRadarIntelligence(store.signals, watchlist, now ?? 0), [store.signals, watchlist, now]);
-  return { signals: store.signals, coverage, intelligence };
+  const history = useEventHistory(store.signals, now);
+  return { signals: store.signals, coverage, intelligence, history };
 }

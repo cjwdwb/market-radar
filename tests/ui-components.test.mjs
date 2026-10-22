@@ -41,6 +41,7 @@ test("Radar asset empty state uses its own coverage while preserving offline and
   const { buildWatchlistState } = await vite.ssrLoadModule("/lib/radar/watchlist-state.ts");
   const props = {
     intelligence: { events: [], summary: { activeEvents: 0 } },
+    history: { observations: [], storage: "loading" },
     coverage: [{ symbol: "BTC-USDT", eligible: true, relativeEligible: true, reason: "基线可用" }, { symbol: "NVDA", eligible: false, readiness: "insufficient", reason: "历史基线不足" }],
     watchlist: ["NVDA"], scanning: true, online: true, loading: false,
     priceAlertCounts: new Map(),

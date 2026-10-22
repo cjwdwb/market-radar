@@ -1,5 +1,7 @@
 # MR-PUBLISH-AI30-PREPARATION
 
+2026-10-22续接：PR#6已合并为234347dc08ee5ac53c7eb4d0bf85793a95d83313，PR CI39628324304新测661/661通过。旧包独立审计VERIFIED，但未save/deploy。用户随后追加Radar历史事件，发布改为包含[历史任务](MR-RADAR-EVENT-HISTORY.md)的最终候选；旧site-v33.tar.gz不发布，生产此时仍v32。下方为上一轮过程记录。
+
 2026-10-21（Asia/Shanghai）。状态：执行中。用户在本地交接后明确“上传部署吧”。本卡只发布当前已验证候选，真实AI消费继续关闭；不将本卡完成等同MR-30-AI-PRODUCTION-DELIVERY完成。
 
 ## Scope / 基线

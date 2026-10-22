@@ -1,5 +1,7 @@
 # 当前状态
 
+2026-10-22：PR#6已合并234347dc，AI准备候选CI661/661通过，但尚未部署。用户追加Radar历史事件，本机7天/120条观察记录与筛选已完成；最终本地678项=677PASS/1既有Windows权限SKIP、构建/类型/lint及五视口9+36组通过，3项独立审计P2已修复复核。待正常上传CI和统一发布；当前生产仍Sitesv32、真实AI关闭。[历史任务](../tasks/MR-RADAR-EVENT-HISTORY.md)、[发布卡](../tasks/MR-PUBLISH-AI30-PREPARATION.md)。
+
 2026-10-21 后续用户明确“上传部署吧”：执行[关闭真实AI的候选发布](../tasks/MR-PUBLISH-AI30-PREPARATION.md)，正常上传/CI/合并及原Sites部署。此前“未上传/未部署”是开发交接状态，实际结果以发布卡为准。此次不启用模型消费、不迁移正式账本/开通D1、不改秘密和访问设置；3.0真实解释交付仍开放。
 
 2026-10-21 AI Market Interpretation正式交付续接：[主任务卡](../tasks/MR-30-AI-PRODUCTION-DELIVERY.md)与[报告顶部](AI_PROVIDER_PILOT.md)。候选仍cd90237/PR#6 Draft，main7d2d30f；当前Sitesv32/source4a4b7fb本轮工具重新确认，实际无D1绑定/产品Key，未重新发布。新增预算、授权和迁入组件仅在本地隔离SQLite/workerd中验证，不挂生产入口；审计修复与最终新测见报告。原权威账本只读核对11次/$0.0344574保守占用且未改，无新模型请求。获准生产用途询问已发送，来源用途、真实外发和具体生产决定未满足；3.0总任务保持开放，不能以本地迁入通过代替真实解释交付。下方记录保留历史时点。
