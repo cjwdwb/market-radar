@@ -22,4 +22,12 @@ Optimizer：没有新产品计算改动或实测瓶颈，跳过。开发 DS 本�
 
 ## 当前状态
 
-发布执行中；尚未将候选上传或部署，不预填通过。
+PR #10 已合并 `cf8510f9fd2c78a4ec747fb0aeef7aa3d9118318`；新 CI39922261881/job120310052685，Ubuntu/Node22.15 build/typecheck/694项全部通过。发布执行中。
+
+## 并行生产更新接续
+
+首次正常 Sites push 被拒绝，未强推。重新打开来源并核对发现另一个用户任务 MR-HOMEPAGE-VISITOR 已在本轮过程中发布 v35：源码 `b647c43b76fca21cc437e5d6c9a9d376aabd4407`，deployment `appgdep_6adb156294208191825ee239b0918196` 原生 succeeded/env3。其 `/from-aether` 公开只读访客入口不能被 UI 发布回退。
+
+执行最小整合：保留该来源提交的 worker/access-gate.ts、app/market-radar.tsx、components/cloud-monitor.tsx、tests/visitor-access.test.mjs 逐字不变；保留其任务与API记录。仅解决 ACTIVE/API 两个文档冲突，合并双方有效历史。新增范围为保留已上线功能，不自行发明新的访问策略或修改环境。其他工作树不动。
+
+整合后重新构建/typecheck/相关lint、全量Node、五视口UI与访客只读路径；独立审计复核不回退v35、不启用真实模型。再次正常PR/CI后合并同源部署。本轮最终不能沿用初始“线上仅v34”的描述。

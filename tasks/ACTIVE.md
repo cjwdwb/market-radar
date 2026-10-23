@@ -8,6 +8,10 @@
 
 [归档卡](archive/MR-30-UI-EXPERIENCE-POLISH.md)、[报告](../docs/UI_EXPERIENCE_POLISH.md)：独立ui30-polish工作树，产品7fdc9a9；Radar层级、三层解释/精确引用返回、历史三区与内存文件状态完成。694Node=693PASS/1既有Windows权限SKIP，build/typecheck/局部lint及最终五视口16组、新旧工作流与日频分页通过；独立GPT两项finding修复后VERIFY。截图使用合成样例，未读取私人文件/账本，产品模型0调用。未上传/合并/部署，现有Sitesv34继续运行；真机/生产登录/原生缩放未测，主3.0及原工作树保留。
 
+## MR-HOMEPAGE-VISITOR — 2026-10-23 主页免访问码阅读入口
+
+[任务卡](MR-HOMEPAGE-VISITOR.md)：用户明确要求从SWT Aether主页直达，无需访问码。基于实际Sites v34/d95b2ea独立修改；新增受限公开访客入口，市场读取可用，云监控和写入认证保留。11项门禁及7项监控/AI授权回归通过，本地workerd浏览器验证通过，独立审计发现的站主登录返回路径已修。Sites发布结果由主站UI-002记录继续登记；下列v33等为历史时点。
+
 ## MR-PUBLISH-PERSONAL-HISTORY — 2026-10-23 网站个人文件阅读入口
 
 [发布归档](archive/MR-PUBLISH-PERSONAL-HISTORY.md)：PR#9已合并d95b2ea，远端build/typecheck/682项Node全部通过；本地五视口新旧历史16组及实际保存文件导入通过，独立产品/包装VERIFY完成。Sitesv34原生succeeded/env3，原网址/门禁不变。个人解释文件仅在浏览器内存读取，未上传私人文件、不新增模型消费；实时AI仍未启用。原C1/C2工作树保持，生产登录后/真机未测，主3.0仍开放。
