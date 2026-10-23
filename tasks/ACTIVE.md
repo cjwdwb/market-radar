@@ -1,5 +1,9 @@
 # 当前任务索引
 
+## MR-PUBLISH-PERSONAL-HISTORY — 2026-10-23 网站个人文件阅读入口
+
+[任务卡](MR-PUBLISH-PERSONAL-HISTORY.md)：用户要求上传网站试用，独立候选只包含浏览器内存读取个人解释文件和最小展示复用。私人资料不上传/托管、不新增模型请求，原C1/C2未提交工作树不改动。新4项和既有19项相关回归通过；最终682项=681PASS/1既有Windows权限SKIP，build/typecheck/定向lint和五视口/真实保存文件本地导入通过。待独立审计、GitHub CI与Sites部署；生产仍v33。
+
 ## MR-RADAR-EVENT-HISTORY / MR-PUBLISH-AI30-PREPARATION — 2026-10-22 已上传部署
 
 [历史任务归档](archive/MR-RADAR-EVENT-HISTORY.md)、[发布归档](archive/MR-PUBLISH-AI30-PREPARATION.md)：PR#6准备代码与PR#7本机7天/120条历史事件已一起发布Sitesv33，源码6f7e1e889e5b714bd3f26ffd560126bd5ea01cbe；PR新CI678/678，平台succeeded/env3，独立产品与包装VERIFY完成。原网址/门禁不变，真实AI仍关闭。主3.0来源/真实解释/生产消费和独立数据目标继续开放；不把关闭状态发布记为完整AI交付。后续文档提交不重新部署。

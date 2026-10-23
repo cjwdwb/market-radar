@@ -366,7 +366,7 @@ async function publishedReferenceChecks(browser,report){
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   for(const target of [ref.locator(':scope > summary'),ref.getByLabel('日频资产',{exact:true}),ref.getByRole('button',{name:'查询日频价格',exact:true})])assert.ok((await target.boundingBox()).height>=44);
   await ref.scrollIntoViewIfNeeded();await p.screenshot({path:output+'/published-'+name+'.png'});await ref.locator('.macro-records li').first().evaluate(el=>el.scrollIntoView({block:'center',behavior:'instant'}));await pause(100);const priceBox=await ref.locator('.macro-records li p.numeric').first().boundingBox();assert.ok(priceBox.y>=64 && priceBox.y+priceBox.height<=height-72,JSON.stringify({name,priceBox,height}));await p.screenshot({path:output+'/published-'+name+'-prices.png'});
-  await panel.getByRole('link',{name:'返回实时图表',exact:true}).click();await p.locator('.price-chart').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
+  await panel.locator(':scope > .macro-pages').getByRole('link',{name:'返回实时图表',exact:true}).click();await p.locator('.price-chart').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
   assert.deepEqual(app.errors,[]);report.viewports.push({name,width,height});report.checks.push('published '+name+': explicit load only, 3 initial HTTP requests, actual BTC/ETH '+count+' rows per page, license/limitations, keyboard/44px/no overflow, manual range preserved');await app.context.close();
  }
  for(const motionPreference of ['system','normal','reduced']){
@@ -422,7 +422,7 @@ async function referenceChecks(browser,report){
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
   for(const target of [ref.locator(':scope > summary'),ref.getByLabel('日频资产',{exact:true}),ref.getByRole('button',{name:'查询日频价格',exact:true})])assert.ok((await target.boundingBox()).height>=44);
   await ref.scrollIntoViewIfNeeded();await p.screenshot({path:output+'/reference-'+name+'.png'});
-  await panel.getByRole('link',{name:'返回实时图表',exact:true}).click();await p.locator('.price-chart').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
+  await panel.locator(':scope > .macro-pages').getByRole('link',{name:'返回实时图表',exact:true}).click();await p.locator('.price-chart').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
   assert.deepEqual(app.errors,[]);report.viewports.push({name,width,height});report.checks.push('reference '+name+': '+(simulated?'fixture':'actual archive')+' '+expected+' rows, unsupported methods/attribution/coverage, keyboard/44px/no overflow, return preserves manual range');await app.context.close();
  }
 }
@@ -459,7 +459,7 @@ async function history29Checks(browser,report){
    report.checks.push('history29 desktop: fixed DB pagination, delayed old reply discarded, failed query retains identity, Short retained with Medium insufficient, immutable history/prospective registration and manual pending');
   }
   await panel.scrollIntoViewIfNeeded();assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));for(const target of [summary,at,panel.getByRole('button',{name:'返回实时 Radar'})])assert.ok((await target.boundingBox()).height>=44);await p.screenshot({path:`${output}/history29-${name}.png`});
-  await panel.getByRole('link',{name:'返回实时图表',exact:true}).click();await p.locator('.price-chart').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await panel.getAttribute('open'),null);assert.deepEqual(app.errors,[]);
+  await panel.locator(':scope > .macro-pages').getByRole('link',{name:'返回实时图表',exact:true}).click();await p.locator('.price-chart').waitFor();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');assert.equal(await panel.getAttribute('open'),null);assert.deepEqual(app.errors,[]);
   report.viewports.push({name,width,height});report.checks.push(`history29 ${name}: direct SQLite query, fixed version, explicit cutoff suggestion, keyboard/44px/overflow, return preserves manual range`);await app.context.close();
  }
  for(const motionPreference of ['system','normal','reduced']){
@@ -473,12 +473,12 @@ async function history28Checks(browser,report){
  for(const [name,width,height]of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
   const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',watchlist:['NVDA']}),p=app.page;await p.setViewportSize({width,height});await p.goto(base+'/#radar',{waitUntil:'networkidle'});
   const panel=p.locator('.history-workspace'),summary=panel.locator(':scope > summary');assert.equal(await panel.getAttribute('open'),null);await summary.focus();await p.keyboard.press('Enter');
-  await panel.locator('input[type=file]').setInputFiles(file(data));await panel.locator('.history-view').waitFor();assert.equal(await panel.locator('.history-view').getAttribute('data-history-id'),data.digest);assert.match(await panel.innerText(),/模拟历史/);
+  await panel.getByLabel('导入模拟历史包').setInputFiles(file(data));await panel.locator('.history-view').waitFor();assert.equal(await panel.locator('.history-view').getAttribute('data-history-id'),data.digest);assert.match(await panel.innerText(),/模拟历史/);
   assert.equal(await panel.locator('.history-result details[open]').count(),0);
   const query=panel.getByLabel('历史回放截止 UTC');await query.fill('2026-09-03T18:40');await panel.getByRole('button',{name:'查询历史',exact:true}).click();
   const version=panel.getByText('版本与身份说明',{exact:true});await version.click();assert.match(await panel.innerText(),/2026-09-03 18:40:00 UTC/);await version.click();
   const prices=panel.locator('details').filter({has: p.locator('summary').filter({hasText:'已归档价格'})}).last();await prices.locator(':scope > summary').click();assert.equal(await prices.locator('li').count(),20);await prices.getByRole('button',{name:'下一页',exact:true}).click();
-  const previousPrices=await prices.locator('li').allTextContents();await panel.locator('input[type=file]').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{}')});await panel.locator('[role=alert]').waitFor();assert.equal(await query.inputValue(),'2026-09-03T18:40');assert.deepEqual(await prices.locator('li').allTextContents(),previousPrices);
+  const previousPrices=await prices.locator('li').allTextContents();await panel.getByLabel('导入模拟历史包').setInputFiles({name:'invalid.json',mimeType:'application/json',buffer:Buffer.from('{}')});await panel.locator('[role=alert]').waitFor();assert.equal(await query.inputValue(),'2026-09-03T18:40');assert.deepEqual(await prices.locator('li').allTextContents(),previousPrices);
   await panel.getByText('样本研究详情',{exact:true}).click();assert.match(await panel.innerText(),/最少样本 10/);assert.match(await panel.innerText(),/未成熟或进入查询依赖窗口/);
   await prices.locator(':scope > summary').click();await panel.getByText('样本研究详情',{exact:true}).click();
   for(const target of [summary,query,panel.getByRole('button',{name:'返回实时 Radar'})])assert.ok((await target.boundingBox()).height>=44);
@@ -487,12 +487,12 @@ async function history28Checks(browser,report){
    await p.clock.pauseAt(stamp+1000);await pause(150);const count=app.requests.length;await panel.getByRole('button',{name:'查询历史',exact:true}).click();await p.clock.runFor(48);assert.deepEqual(app.requests.slice(count),[]);report.historyQueryApiRequests=[];await p.clock.resume();
    const next=await signed({...data,asset:{...data.asset,id:'fixture:us:NEXT:USD',providerId:'fixture:NEXT'}});
    await p.evaluate(()=>{const original=File.prototype.text;File.prototype.text=async function(){const text=await original.call(this);if(this.name==='slow.json')await new Promise(resolve=>{window.releaseHistoryRead=resolve;});return text;};});
-   await panel.locator('input[type=file]').setInputFiles({...file(data),name:'slow.json'});await p.waitForFunction(()=>typeof window.releaseHistoryRead==='function');await panel.locator('input[type=file]').setInputFiles(file(next));await p.waitForFunction(id=>document.querySelector('.history-view')?.dataset.historyId===id,next.digest);await p.evaluate(()=>window.releaseHistoryRead());await pause(100);assert.equal(await panel.locator('.history-view').getAttribute('data-history-id'),next.digest);
-   await panel.locator('input[type=file]').setInputFiles({name:'large.json',mimeType:'application/json',buffer:Buffer.alloc(2097153)});await panel.locator('[role=alert]').waitFor();assert.match(await panel.locator('[role=alert]').innerText(),/2 MiB/);assert.equal(await panel.locator('.history-view').getAttribute('data-history-id'),next.digest);
-   const link=panel.getByRole('link',{name:'下载模拟历史示例'});assert.equal(await link.getAttribute('href'),'/examples/history28-fixture.json');const response=await p.evaluate(async path=>{const r=await fetch(path);return {status:r.status,type:r.headers.get('content-type'),text:await r.text()};},await link.getAttribute('href'));assert.equal(response.status,200);assert.match(response.type,/json/);const shipped=response.text,id=JSON.parse(shipped).digest;await p.clock.setFixedTime(Date.now());await panel.locator('input[type=file]').setInputFiles({name:'shipped-example.json',mimeType:'application/json',buffer:Buffer.from(shipped)});await p.waitForFunction(id=>document.querySelector('.history-view')?.dataset.historyId===id,id);assert.match(await panel.locator('h3').first().innerText(),/fixture:us:EXAMPLE:USD/);report.checks.push('history28 shipped example: local authenticated download and import, explicit synthetic identity');
+   await panel.getByLabel('导入模拟历史包').setInputFiles({...file(data),name:'slow.json'});await p.waitForFunction(()=>typeof window.releaseHistoryRead==='function');await panel.getByLabel('导入模拟历史包').setInputFiles(file(next));await p.waitForFunction(id=>document.querySelector('.history-view')?.dataset.historyId===id,next.digest);await p.evaluate(()=>window.releaseHistoryRead());await pause(100);assert.equal(await panel.locator('.history-view').getAttribute('data-history-id'),next.digest);
+   await panel.getByLabel('导入模拟历史包').setInputFiles({name:'large.json',mimeType:'application/json',buffer:Buffer.alloc(2097153)});await panel.locator('[role=alert]').waitFor();assert.match(await panel.locator('[role=alert]').innerText(),/2 MiB/);assert.equal(await panel.locator('.history-view').getAttribute('data-history-id'),next.digest);
+   const link=panel.getByRole('link',{name:'下载模拟历史示例'});assert.equal(await link.getAttribute('href'),'/examples/history28-fixture.json');const response=await p.evaluate(async path=>{const r=await fetch(path);return {status:r.status,type:r.headers.get('content-type'),text:await r.text()};},await link.getAttribute('href'));assert.equal(response.status,200);assert.match(response.type,/json/);const shipped=response.text,id=JSON.parse(shipped).digest;await p.clock.setFixedTime(Date.now());await panel.getByLabel('导入模拟历史包').setInputFiles({name:'shipped-example.json',mimeType:'application/json',buffer:Buffer.from(shipped)});await p.waitForFunction(id=>document.querySelector('.history-view')?.dataset.historyId===id,id);assert.match(await panel.locator('.history-view h3').first().innerText(),/fixture:us:EXAMPLE:USD/);report.checks.push('history28 shipped example: local authenticated download and import, explicit synthetic identity');
    // P0：实际下载的包与旧合法包都走现有 UI；损坏包不能替换有效查询。
    const verifyExample=async(example,label)=>{
-    await panel.locator('input[type=file]').setInputFiles(file(example));
+    await panel.getByLabel('导入模拟历史包').setInputFiles(file(example));
     await p.waitForFunction(id=>document.querySelector('.history-view')?.dataset.historyId===id,example.digest);
     await query.fill(new Date(example.range.cutoff).toISOString().slice(0,16));await panel.getByRole('button',{name:'查询历史',exact:true}).click();
     assert.match(await panel.innerText(),/模拟历史 · 当前取得版本 · 非当时观察\/预测/);
@@ -503,7 +503,7 @@ async function history28Checks(browser,report){
     await research.locator(':scope > summary').click();
     const selectedQuery=await query.inputValue(),previousResult=await panel.locator('.history-result').innerText();
     const broken=structuredClone(example);broken.bars[0].close+=.001;
-    await panel.locator('input[type=file]').setInputFiles(file(broken));await panel.locator('[role=alert]').waitFor();
+    await panel.getByLabel('导入模拟历史包').setInputFiles(file(broken));await panel.locator('[role=alert]').waitFor();
     assert.match(await panel.locator('[role=alert]').innerText(),/校验失败/);assert.match(await panel.locator('[role=alert]').innerText(),/已保留上一份有效历史与查询/);
     assert.equal(await panel.locator('.history-view').getAttribute('data-history-id'),example.digest);assert.equal(await query.inputValue(),selectedQuery);assert.equal(await panel.locator('.history-result').innerText(),previousResult);
     report.checks.push(`history28 ${label}: import, replay, 10 research samples, fixture limitation, bad digest preserves accepted data and query`);
@@ -518,7 +518,7 @@ async function history28Checks(browser,report){
  for(const motionPreference of ['system','normal','reduced']){
   const app=await fixture(browser,{mode:'state26-gentle',motionPreference,os:'reduce',watchlist:['NVDA']}),p=app.page;
   await p.setViewportSize({width:390,height:844});await p.goto(base+'/#radar',{waitUntil:'networkidle'});const panel=p.locator('.history-workspace');await panel.locator(':scope > summary').click();
-  const partial=await historyFixture({count:22});await panel.locator('input[type=file]').setInputFiles(file(partial));await panel.locator('.history-view').waitFor();assert.match(await panel.innerText(),/窗口偏上/);assert.match(await panel.innerText(),/连续 K 线不足/);
+  const partial=await historyFixture({count:22});await panel.getByLabel('导入模拟历史包').setInputFiles(file(partial));await panel.locator('.history-view').waitFor();assert.match(await panel.innerText(),/窗口偏上/);assert.match(await panel.innerText(),/连续 K 线不足/);
   await panel.getByLabel('历史回放截止 UTC').fill('2026-09-01T01:49');await panel.getByRole('button',{name:'查询历史',exact:true}).click();assert.match(await panel.innerText(),/缺少截止 K 线/);
   await panel.getByRole('button',{name:'返回实时 Radar'}).click();assert.deepEqual(app.errors,[]);report.checks.push(`history28 ${motionPreference}: partial horizon, missing exact endpoint and return under system reduced motion`);await app.context.close();
  }
@@ -1034,6 +1034,7 @@ async function eventHistoryChecks(browser,report){
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={browser:browser.version(),viewports:[],checks:[],errors:[],warnings:observedWarnings};let page;
  try{
+  if(process.env.RADAR_PERSONAL_WEB==='1'){const {personalWebChecks}=await import('./personal-web.mjs');await personalWebChecks({browser,fixture,base,output,report,legacyHistoryChecks:()=>history28Checks(browser,report)});fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_EVENT_HISTORY_ONLY==='1'){await eventHistoryChecks(browser,report);fs.writeFileSync(output+'/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_AI30B_PRIVATE==='1'){await aiPrivateChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_AI30_ONLY==='1'){await aiFoundationChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}

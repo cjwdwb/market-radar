@@ -7,6 +7,7 @@ import { HistoryResult } from "./history-result";
 import { HistoryNavigation } from "./history-navigation";
 import { ReferenceHistory } from "./reference-history";
 import { PublishedReferenceHistory } from "./published-reference-history";
+import { PersonalHistoryPanel } from "./personal-history";
 import type { ReferenceCatalog, ReferenceQuery } from "@/lib/history/reference";
 
 const inputTime = (at: number) => new Date(at).toISOString().slice(0, 16);
@@ -138,6 +139,7 @@ export function HistoryWorkspace() {
   return <details ref={panel} onToggle={e => { if (e.target === e.currentTarget) setHistoryOpen(e.currentTarget.open); }} className="panel macro-timeline history-workspace" style={{ minWidth: 0, overflowWrap: "anywhere" }}>
     <summary>历史回放与研究 <span>独立于实时</span></summary>
     <p>按固定版本查看历史。分钟回放与研究仍为模拟数据；已连接的真实日频参考价在独立入口展示，不参与分钟方法。查询不会启动采集。</p>
+    <PersonalHistoryPanel/>
     {historyOpen && !catalog?.reference && <PublishedReferenceHistory/>}
     {isLocal && <details className="history-connect"><summary>连接本地归档数据库</summary><p>先显式启动本地查询服务。使用独立本地会话密钥，仅在本页内存保留；网站访问码不授予数据库权限。</p>
       <form className="macro-filter" onSubmit={e => { e.preventDefault(); void connect(); }}><label>本地会话密钥<input type="password" autoComplete="off" value={keyInput} onChange={e => { invalidate(); setKeyInput(e.target.value); }} aria-label="本地归档会话密钥"/></label><button className="btn" type="submit" disabled={loading || !keyInput}>连接归档</button></form>
