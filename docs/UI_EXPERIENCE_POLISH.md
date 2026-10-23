@@ -1,5 +1,11 @@
 # Market Radar 3.0 UI 与交互收口
 
+## 后续发布 — 2026-10-23
+
+上线后真实访客复查：入口、三区、RSC、390px和模型关闭状态通过；同次BTC/ETH/SOL-USDT的1d历史请求3次503，保留待查，不以本地fixture或页面无异常代替真实数据健康。站主登录后及真机NOT RUN。
+
+本成果已随 **Sites v36** 上线，源码`84511bfdf4189db7a0495e82a52727aeb72a7401`，原网址 https://market-radar-rex.swt-aether.chatgpt.site 。PR#10/#11/#12正常合并；最终Ubuntu CI build/typecheck/701项Node全PASS，独立源码/包装VERIFY，平台succeeded/env3。同期v35访客入口已保留，发布前发现的root RSC重复401已最小修复并实际复测。原UI五视口16组在整合版再次通过；后续仅门禁变动，另跑实际访客路径，未把旧UI截图当新产品截图。实时AI仍关闭、未上传私人文件、产品模型0调用，详见[发布归档](../tasks/archive/MR-PUBLISH-UI30-POLISH.md)。下述未发布与694项是原本地交付时点。
+
 2026-10-23，任务 MR-30-UI-EXPERIENCE-POLISH。**本地候选完成并经独立 GPT VERIFY；未上传、未合并、未部署。** 主 3.0、实时 AI 和历史数据任务仍开放。
 
 ## 基线与实际对象

@@ -1,5 +1,9 @@
 # 版本与回退索引
 
+2026-10-23正式发布：**UI与交互收口 / Sites v36**，源码`84511bfdf4189db7a0495e82a52727aeb72a7401`，平台succeeded/env3。PR#10/#11/#12已合并，最终build/typecheck/701项Node全PASS，独立源码/包装VERIFY。保留同期v35/source`b647c43b76fca21cc437e5d6c9a9d376aabd4407`的访客入口，补精确root RSC只读路径修复；访客浏览器复测通过。实时AI仍关闭，无新产品模型请求、私人资料上传或环境变更。原网址 https://market-radar-rex.swt-aether.chatgpt.site ，[发布记录](../tasks/archive/MR-PUBLISH-UI30-POLISH.md)。v35为历史回退点，未新建或移动标签；文档收尾不再次部署。
+
+2026-10-23前序发布：Sitesv34/source`d95b2ea35afc8d767ea65f3af4a7aabcdf34a497`提供个人解释文件内存阅读；随后独立主页任务发布Sitesv35/source`b647c43b76fca21cc437e5d6c9a9d376aabd4407`，增加受限公开访客入口。两者的合法成果均保留于v36，不把并行发布覆盖回旧门禁。
+
 2026-10-22正式发布：**Radar本机历史事件 + AI准备 / Sites v33**，源码`6f7e1e889e5b714bd3f26ffd560126bd5ea01cbe`。PR#7正常合并，远端build/typecheck及678/678 Node通过，独立审计/FIX/VERIFY与包装审计通过；平台succeeded、env revision3，原网址 https://market-radar-rex.swt-aether.chatgpt.site 。本机7天/120条历史记录、筛选、原证据与当前图表返回已上线，真实AI仍关闭。未开云资源/迁移/调度或修改秘密和访问策略；生产登录后/真机未测。[发布记录](../tasks/archive/MR-PUBLISH-AI30-PREPARATION.md)、[历史事件验收](../tasks/archive/MR-RADAR-EVENT-HISTORY.md)。主3.0真实交付及数据track仍开放，下面是历史时点。后续文档提交不等于生产重新部署。
 
 2026-10-03正式发布：**Market Radar 2.9 官方资料 / Sites v32**，源码 `4a4b7fb66ac4fc10663087b42a09e08c55804e2a`，平台succeeded，环境revision3。原网址 https://market-radar-rex.swt-aether.chatgpt.site 。[PR #4](https://github.com/cjwdwb/market-radar/pull/4)正常合并，PR/main CI各386/386通过。新增5个官方项目/产品25条资料，加FED2条；财报/媒体新闻仍未覆盖，实时行情/访问设置不变，无持续采集。后续文档提交不重新部署；生产登录后与iPhone本轮NOT RUN。[发布记录](../tasks/archive/MR-29-INFORMATION-SOURCES-PUBLISH.md)。 原Sites v31/source c28de66可作为已有回退点，未移动标签或新增产品版本号。以下保留旧版本。

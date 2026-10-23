@@ -1,5 +1,9 @@
 # 当前状态
 
+最新线上复查限制：v36新访客UI/三区/手机窄屏与root RSC可用，但2026-10-23 08:29UTC的BTC/ETH/SOL-USDT、1d历史请求出现3次503，Worker未崩溃；上游根因未确证，待后续诊断。不能以UI通过声称所有实时历史源健康。站主登录后/真机未测。
+
+2026-10-23最新正式发布：**UI与交互收口 / Sites v36**，源码`84511bfdf4189db7a0495e82a52727aeb72a7401`，原生succeeded/env3，原网址 https://market-radar-rex.swt-aether.chatgpt.site 。PR#10/#11/#12正常合并，最终CI39924196391 build/typecheck/701项全PASS，独立源码/包装VERIFY。保留同期v35的`/from-aether`只读访客入口，并修复其实际构建root RSC误拒绝；模型写入/站主管理边界不变。Radar层级、精确证据返回、历史三区已上线，个人文件仍仅浏览器内存读取，实时AI仍关闭、产品模型0调用。主3.0与数据track继续开放；[发布记录](../tasks/archive/MR-PUBLISH-UI30-POLISH.md)。后续文档提交不等于重新部署，下方为历史时点。
+
 2026-10-23本地UI候选：`codex/mr30-ui-experience-polish`，产品`7fdc9a9`，从main`57674a3`隔离实施。Radar更紧凑、解释三层阅读与精确证据返回、历史三个局部入口及文件内存保留完成；694Node=693PASS/1Windows权限SKIP、build/typecheck/局部lint、五视口及新旧核心路径通过，独立GPT修复VERIFY。未push/合并/部署、未新增产品模型请求，现有生产仍下述Sitesv34 / 实时AI关闭。真机/生产登录/原生缩放未测，主3.0仍开放。[收口报告](UI_EXPERIENCE_POLISH.md)、[任务归档](../tasks/archive/MR-30-UI-EXPERIENCE-POLISH.md)。
 
 2026-10-23正式发布：个人历史AI解释文件可在Radar中本地导入阅读，**Sitesv34**，源码d95b2ea35afc8d767ea65f3af4a7aabcdf34a497，平台succeeded/env3。PR#9/远端CI39912770616 build/typecheck/682项全PASS，独立产品及包装VERIFY通过。文件只在浏览器内存读取，不上传私人文件、不调用模型、不改真实AI生产保护；未包含另一工作树C1/C2后端改动。五视口/既有真实BTC文件本机导入通过；生产登录后/真机未测。原网址 https://market-radar-rex.swt-aether.chatgpt.site ，主3.0真实生产AI仍开放。[发布记录](../tasks/archive/MR-PUBLISH-PERSONAL-HISTORY.md)。
