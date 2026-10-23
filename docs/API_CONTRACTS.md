@@ -1,5 +1,7 @@
 # API 契约索引
 
+2026-10-23 UI发布前实际构建修复：有效访客会话的GET/HEAD只读白名单补上精确 `/.rsc`，即Vinext主页的数据表示；`/?_rsc`单元路径不能覆盖它。其他RSC页面、无/无效会话、Server Action/写方法仍拒绝，monitor和AI写权限不变。见发布任务中的VISITOR-RSC-001。
+
 2026-10-23主页阅读入口：公开 GET `/from-aether` 发放独立24小时签名访客会话并303到固定 `/`，不依赖Referer、不携带链接秘密。访客只读白名单为 `/`、构建资产、`/_vinext/image`、两份已有examples、GET/HEAD `/api/quotes`、`/api/history`、`/api/reference-history`、`/api/information`、`/api/asset-information`、`/api/interpretation`；各API参数校验仍生效。`/api/monitor`读写、所有写方法和未知路径不开放；完整会话的旧行为不变。退出同时清除访客和完整会话。该入口是公开可分享阅读路径，不承诺来源页限制。见 [MR-HOMEPAGE-VISITOR](../tasks/MR-HOMEPAGE-VISITOR.md)。以下“原门禁不变”为各历史发布时点。
 
 2026-10-23个人历史文件阅读已发布Sitesv34：Radar历史区选择`personal-history-interpretation-v1` JSON，最大64KiB；只用浏览器File API，在当前页面内存保留，刷新/清除即移除。没有新增HTTP路由、文件上传、存储或模型派发；任意网站访问者不能因此读取他人文件。保留Binance SPOT BTCUSDT/USDT/15m和historical_simulation/current_vintage声明，结构/引用/日期范围校验不等于认证来源、金融事实或原调用，UI明确说明。实际个人文件、原档/回复/预算不进入Git/部署包。原生产模型保护和访问门禁不变。[发布卡](../tasks/archive/MR-PUBLISH-PERSONAL-HISTORY.md)。

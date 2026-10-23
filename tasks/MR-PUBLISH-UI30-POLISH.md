@@ -31,3 +31,9 @@ PR #10 已合并 `cf8510f9fd2c78a4ec747fb0aeef7aa3d9118318`；新 CI39922261881/
 执行最小整合：保留该来源提交的 worker/access-gate.ts、app/market-radar.tsx、components/cloud-monitor.tsx、tests/visitor-access.test.mjs 逐字不变；保留其任务与API记录。仅解决 ACTIVE/API 两个文档冲突，合并双方有效历史。新增范围为保留已上线功能，不自行发明新的访问策略或修改环境。其他工作树不动。
 
 整合后重新构建/typecheck/相关lint、全量Node、五视口UI与访客只读路径；独立审计复核不回退v35、不启用真实模型。再次正常PR/CI后合并同源部署。本轮最终不能沿用初始“线上仅v34”的描述。
+
+## 发布前发现 VISITOR-RSC-001 — 最小修复
+
+整合候选 d7a424b（与25d34ea同tree）的实际生产构建浏览器，访客进入后3秒出现43次 `GET /.rsc` 401；页面初次HTML可用但Vinext后续root RSC被误拦。此前单元测试仅覆盖 `/?_rsc=test`，不能替代实际构建路径。报告位于独立浏览器工作树 `outputs/publish-ui30-final/visitor-before-rsc-fix/verification.json`，禁止将此轮记为PASS。
+
+按本卡允许的已复现发布缺陷修复范围，新增允许路径 worker/access-gate.ts、tests/visitor-access.test.mjs、docs/API_CONTRACTS.md。仅为已有有效visitor会话允许精确root `/.rsc` 的GET/HEAD，服务于已允许主页的同一只读表示；不允许通配RSC、POST、未知页面、无会话、站主管理或模型消费。无环境/秘密/云访问策略变动。补相邻拒绝测试、受影响lint、重新构建/typecheck、实际访客复测与独立VERIFY，最终CI覆盖全量。旧归档包作废并重新打包。
