@@ -6,7 +6,8 @@ const LIFETIME = 7 * 24 * 60 * 60;
 const VISITOR_COOKIE = "__Host-radar_visitor";
 const VISITOR_LIFETIME = 24 * 60 * 60;
 const VISITOR_READ_PATHS = new Set([
-  "/", "/api/quotes", "/api/history", "/api/reference-history",
+  // Vinext 的主页只读 RSC 表示；不放行其他页面或 Server Action。
+  "/", "/.rsc", "/api/quotes", "/api/history", "/api/reference-history",
   "/api/information", "/api/asset-information", "/api/interpretation",
   "/_vinext/image", "/examples/history28-fixture.json", "/examples/fed-monetary-20260923.json",
 ]);

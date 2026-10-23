@@ -32,6 +32,22 @@ test("visitor can load market workspace, RSC, built assets and reviewed public s
   assert.equal(await accessGate(visit(cookie, "/?_rsc=test", { headers: { rsc: "1" } }), config), null);
 });
 
+test("root Vinext RSC requires a valid reading session and never grants actions or other pages", async () => {
+  const { cookie } = await entrance();
+  for (const method of ["GET", "HEAD"]) {
+    assert.equal(await accessGate(visit(cookie, "/.rsc?_rsc=integration", { method, headers: { rsc: "1" } }), config), null);
+    for (const deniedCookie of ["", "__Host-radar_visitor=invalid"]) {
+      assert.equal((await accessGate(visit(deniedCookie, "/.rsc", { method, headers: { rsc: "1" } }), config)).status, 401);
+    }
+    for (const path of ["/admin.rsc", "/private.rsc", "/api/monitor.rsc", "/.rsc/private"]) {
+      assert.equal((await accessGate(visit(cookie, path, { method, headers: { rsc: "1" } }), config)).status, 401, path);
+    }
+  }
+  for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
+    assert.equal((await accessGate(visit(cookie, "/.rsc", { method, headers: { rsc: "1", "next-action": "test-action" } }), config)).status, 401);
+  }
+});
+
 test("visitor cannot read cloud state, unknown APIs, private pages, source maps or write", async () => {
   const { cookie } = await entrance();
   for (const path of ["/api/monitor", "/api/monitor/", "/api/admin", "/api/history/private", "/api/future-route"]) {
