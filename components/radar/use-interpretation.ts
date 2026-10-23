@@ -56,7 +56,7 @@ export function useInterpretation(symbol: string) {
           const capability = await boundedResponse(await fetch("/api/interpretation", { signal: controller.signal, cache: "no-store" }));
           active(); if (!["private_real", "fixture", "unconfigured"].includes(capability.mode)) throw new Error("invalid_output"); requestMode = capability.mode; currentMode.current = requestMode; setMode(requestMode);
           if (requestMode === "private_real") setGate(capability.admission === "ready" ? "ready" : "blocked");
-          if (action === "discover") return null;
+          if (action === "discover") { if (requestMode === "private_real" && capability.admission === "blocked") setError(typeof capability.reason === "string" && interpretationErrors[capability.reason] ? capability.reason : "data_permission_unavailable"); return null; }
           if (requestMode === "private_real" && !session.current) throw new Error(capability.admission === "blocked" ? capability.reason || "data_permission_unavailable" : "session_required");
         }
         if (requestMode === "private_real") {

@@ -19,10 +19,11 @@ function reveal(target: HTMLElement) {
   }
 }
 function focusVisible(target: HTMLElement, scrollY?: number) {
+  const identity = target.id;
   reveal(target);
   // One layout frame follows disclosure opening / local-section activation.
   requestAnimationFrame(() => {
-    if (!target.isConnected || target.closest("[hidden]")) return;
+    if (!target.isConnected || target.id !== identity || target.closest("[hidden]")) return;
     target.focus({ preventScroll: true });
     const behavior = isMotionReduced() ? "instant" : "smooth";
     if (scrollY !== undefined) window.scrollTo({ top: scrollY, behavior });
@@ -38,7 +39,7 @@ export function visitEvidence(scope: string, id: string, trigger: HTMLElement) {
 export function returnToCitation(scope: string, id: string) {
   const target = document.getElementById(evidenceId(scope, id));
   const origin = target && origins.get(target);
-  if (origin?.trigger.isConnected) focusVisible(origin.trigger, origin.scrollY);
+  if (origin?.trigger.isConnected && !origin.trigger.closest("[hidden]")) focusVisible(origin.trigger, origin.scrollY);
   else {
     // Never recreate a replaced result or find another panel with the same evidence ID.
     const heading = document.getElementById(`${scope}-heading`);
