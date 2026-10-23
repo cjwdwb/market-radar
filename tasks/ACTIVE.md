@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-30-UI-EXPERIENCE-POLISH — 2026-10-23 本地精修进行中
+## MR-30-UI-EXPERIENCE-POLISH — 2026-10-23 本地候选完成，未发布
 
-[任务卡](MR-30-UI-EXPERIENCE-POLISH.md)：独立ui30-polish工作树，main57674a3/CI成功/线上v34已核对。模拟基线已实际截图；按Radar层级、解释与证据、历史三区推进。无私人资料/账本读取、产品模型0调用，不上传发布；主3.0及原工作树继续保留。
+[归档卡](archive/MR-30-UI-EXPERIENCE-POLISH.md)、[报告](../docs/UI_EXPERIENCE_POLISH.md)：独立ui30-polish工作树，产品7fdc9a9；Radar层级、三层解释/精确引用返回、历史三区与内存文件状态完成。694Node=693PASS/1既有Windows权限SKIP，build/typecheck/局部lint及最终五视口16组、新旧工作流与日频分页通过；独立GPT两项finding修复后VERIFY。截图使用合成样例，未读取私人文件/账本，产品模型0调用。未上传/合并/部署，现有Sitesv34继续运行；真机/生产登录/原生缩放未测，主3.0及原工作树保留。
 
 ## MR-PUBLISH-PERSONAL-HISTORY — 2026-10-23 网站个人文件阅读入口
 

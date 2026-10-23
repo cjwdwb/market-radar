@@ -1,5 +1,17 @@
 # MR-30-UI-EXPERIENCE-POLISH
 
+## 本地完成 / 独立 VERIFY — 2026-10-23
+
+产品候选 `7fdc9a9`，后续仅测试 / 文档；独立分支 `codex/mr30-ui-experience-polish`。未 push、merge、tag、deploy；生产仍 Sites v34，实时模型未启用。主 3.0 / 数据任务继续开放。
+
+Radar 层级与中文标签、三层解释、命名多引用定位 / 返回、历史三个分区及本页文件保留均完成。无金融规则 / parser / 认证 / Provider / 预算 / 依赖改动，产品模型 0 调用。
+
+新测：受影响 Node 37/37；全量 694=693PASS/0FAIL/1Windows文件symlink权限SKIP；build/typecheck/受影响lint PASS。最终 UI 16组、五视口60张后图、桌面/手机24张配对基线；旧 fixture/private/personal+history/events/integration-motion/daily 分别6/6/16/9/48/15组PASS。所有pageerror为空，预期故障consoleerror单列。独立GPT确认两项证据焦点finding，经修复后固定产品/最终截图VERIFY PASS。
+
+真机、生产登录、原生浏览器缩放、内存 / FPS NOT RUN；CSS根字号200%仅部分文字放大检查。不把本地mock和静态公开日频回归当成当前真实AI验收。详见[可复查报告](../../docs/UI_EXPERIENCE_POLISH.md)与本地`outputs/ui-polish/`。
+
+补充允许路径：`reference-history.tsx` 与 `published-reference-history.tsx` 只为历史分区隐藏时取消未完成请求并保留已接受结果；未更改 API / 查询金融语义。协议与所有权范围详见报告。
+
 ## Planner / baseline — 2026-10-23
 
 Independent worktree `worktrees/ui30-polish`, branch `codex/mr30-ui-experience-polish`, source/main `57674a3a2dd81d77cbd79041bec743c8ac267765`. Original worktrees preserved. Main CI39913505302 rechecked success; Sites live version34 rechecked. Deployment source d95b2ea; documentation main does not redeploy. No local product edits at baseline.
