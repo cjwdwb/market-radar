@@ -1,5 +1,7 @@
 # 当前状态
 
+2026-10-23本地UI候选：`codex/mr30-ui-experience-polish`，产品`7fdc9a9`，从main`57674a3`隔离实施。Radar更紧凑、解释三层阅读与精确证据返回、历史三个局部入口及文件内存保留完成；694Node=693PASS/1Windows权限SKIP、build/typecheck/局部lint、五视口及新旧核心路径通过，独立GPT修复VERIFY。未push/合并/部署、未新增产品模型请求，现有生产仍下述Sitesv34 / 实时AI关闭。真机/生产登录/原生缩放未测，主3.0仍开放。[收口报告](UI_EXPERIENCE_POLISH.md)、[任务归档](../tasks/archive/MR-30-UI-EXPERIENCE-POLISH.md)。
+
 2026-10-23正式发布：个人历史AI解释文件可在Radar中本地导入阅读，**Sitesv34**，源码d95b2ea35afc8d767ea65f3af4a7aabcdf34a497，平台succeeded/env3。PR#9/远端CI39912770616 build/typecheck/682项全PASS，独立产品及包装VERIFY通过。文件只在浏览器内存读取，不上传私人文件、不调用模型、不改真实AI生产保护；未包含另一工作树C1/C2后端改动。五视口/既有真实BTC文件本机导入通过；生产登录后/真机未测。原网址 https://market-radar-rex.swt-aether.chatgpt.site ，主3.0真实生产AI仍开放。[发布记录](../tasks/archive/MR-PUBLISH-PERSONAL-HISTORY.md)。
 
 2026-10-22正式发布：**Radar本机历史事件 + AI准备 / Sites v33**，源码`6f7e1e889e5b714bd3f26ffd560126bd5ea01cbe`。PR#7正常合并，远端build/typecheck及678/678 Node通过，独立审计/FIX/VERIFY与包装审计通过；平台succeeded、env revision3，原网址 https://market-radar-rex.swt-aether.chatgpt.site 。本机7天/120条历史记录、筛选、原证据与当前图表返回已上线，真实AI仍关闭。未开云资源/迁移/调度或修改秘密和访问策略；生产登录后/真机未测。[发布记录](../tasks/archive/MR-PUBLISH-AI30-PREPARATION.md)、[历史事件验收](../tasks/archive/MR-RADAR-EVENT-HISTORY.md)。主3.0真实交付及数据track仍开放，下面是历史时点。后续文档提交不等于生产重新部署。

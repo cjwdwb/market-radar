@@ -23,6 +23,7 @@ type Gate = "unknown" | "ready" | "blocked";
 /** 父组件只持有一份请求状态；导航、render或行情变化都不触发Provider。 */
 export function useInterpretation(symbol: string) {
   const [phase, setPhase] = useState<"idle" | "loading" | "ready" | "error" | "cancelled">("idle");
+  const [discovering, setDiscovering] = useState(false);
   const [error, setError] = useState(""), [result, setResult] = useState<DisplayInterpretation | null>(null);
   const [mode, setMode] = useState("unknown"), [stateSymbol, setStateSymbol] = useState(symbol);
   const [gate, setGate] = useState<Gate>("unknown"), [connected, setConnected] = useState(false), [allowedSymbol, setAllowedSymbol] = useState("");
@@ -35,8 +36,8 @@ export function useInterpretation(symbol: string) {
   }, [symbol]);
   useLayoutEffect(() => { const credential = session; return () => { credential.current = ""; }; }, []);
   const cancel = useCallback(() => { generation.current++; flight.current?.abort(); flight.current = null; setPhase("cancelled"); setError("cancelled"); }, []);
-  const request = useCallback(async (action: "generate" | "connect", scenario = "upward", credential = "") => {
-    if (flight.current) return;
+  const request = useCallback(async (action: "generate" | "connect" | "discover", scenario = "upward", credential = "") => {
+    if (flight.current || action === "discover" && currentMode.current !== "unknown") return;
     if (action === "connect") { session.current = credential.trim(); setConnected(false); setResult(null); setAllowedSymbol(""); setGate("unknown"); }
     const controller = new AbortController(), version = ++generation.current, selected = symbol;
     let timedOut = false;
@@ -46,15 +47,16 @@ export function useInterpretation(symbol: string) {
     let timer = setTimeout(() => { timedOut = true; controller.abort(); }, AI_LIMITS.timeoutMs + 1000);
     const privateDeadline = () => { clearTimeout(timer); timer = setTimeout(() => { timedOut = true; controller.abort(); }, 60_000); };
     const active = () => { if (controller.signal.aborted || version !== generation.current || currentSymbol.current !== selected) throw new Error("cancelled"); };
-    flight.current = controller; setPhase("loading"); setError("");
+    flight.current = controller; setDiscovering(action === "discover"); setPhase("loading"); setError("");
     try {
       // 截止时间也覆盖响应读取和模块加载；迟到任务不能继续派发或写回。
       const task = (async (): Promise<DisplayInterpretation | null> => {
         let requestMode = currentMode.current;
-        if (action === "generate") {
+        if (action !== "connect") {
           const capability = await boundedResponse(await fetch("/api/interpretation", { signal: controller.signal, cache: "no-store" }));
-          active(); requestMode = capability.mode; currentMode.current = requestMode; setMode(requestMode);
+          active(); if (!["private_real", "fixture", "unconfigured"].includes(capability.mode)) throw new Error("invalid_output"); requestMode = capability.mode; currentMode.current = requestMode; setMode(requestMode);
           if (requestMode === "private_real") setGate(capability.admission === "ready" ? "ready" : "blocked");
+          if (action === "discover") { if (requestMode === "private_real" && capability.admission === "blocked") setError(typeof capability.reason === "string" && interpretationErrors[capability.reason] ? capability.reason : "data_permission_unavailable"); return null; }
           if (requestMode === "private_real" && !session.current) throw new Error(capability.admission === "blocked" ? capability.reason || "data_permission_unavailable" : "session_required");
         }
         if (requestMode === "private_real") {
@@ -103,11 +105,12 @@ export function useInterpretation(symbol: string) {
       if (currentMode.current === "private_real" && ["session_required", "private_session_required", "permission_revoked"].includes(code)) { session.current = ""; setConnected(false); setResult(null); if (code !== "permission_revoked") setGate("unknown"); }
       setPhase("error"); setError(code);
     } }
-    finally { clearTimeout(timer); controller.signal.removeEventListener("abort", rejectCancelled); if (version === generation.current) flight.current = null; }
+    finally { clearTimeout(timer); controller.signal.removeEventListener("abort", rejectCancelled); if (version === generation.current) { flight.current = null; setDiscovering(false); } }
   }, [symbol]);
+  const discover = useCallback(() => request("discover"), [request]);
   const generate = useCallback((scenario = "upward") => request("generate", scenario), [request]);
   const connectSession = useCallback((credential: string) => request("connect", "upward", credential), [request]);
   const visibleResult = result?.context.asset.symbol === symbol ? result : null;
-  return { symbol, phase, error, mode, gate, connected, allowedSymbol, result: visibleResult, resultKind: visibleResult ? "format" in visibleResult ? "private_real" : "fixture" : null, generate, cancel, connectSession };
+  return { symbol, phase, error, mode, gate, connected, allowedSymbol, result: visibleResult, discover, discovering, resultKind: visibleResult ? "format" in visibleResult ? "private_real" : "fixture" : null, generate, cancel, connectSession };
 }
 export type InterpretationController = ReturnType<typeof useInterpretation>;

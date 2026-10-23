@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReferenceCatalog, ReferenceQuery } from "@/lib/history/reference";
 
 const date = (at: number) => new Date(at).toISOString().slice(0, 10);
@@ -8,7 +8,7 @@ const day = (v: string) => { const at = Date.parse(v + "T00:00:00Z"); if (!Numbe
 type QueryCall = (body: { asset: string; from: number; cutoff: number; version: string }, signal: AbortSignal) => Promise<ReferenceQuery>;
 
 /** 日频事实与分钟研究分别展示；失败保留带完整身份的上一份结果。 */
-export function ReferenceHistory({ catalog, query }: { catalog: ReferenceCatalog; query: QueryCall }) {
+export function ReferenceHistory({ catalog, query, active = true }: { catalog: ReferenceCatalog; query: QueryCall; active?: boolean }) {
   const first = catalog.series[0];
   const [asset, setAsset] = useState(first?.asset ?? "btc");
   const [from, setFrom] = useState(first ? date(first.range.from) : "2026-09-01");
@@ -16,9 +16,11 @@ export function ReferenceHistory({ catalog, query }: { catalog: ReferenceCatalog
   const [accepted, setAccepted] = useState<ReferenceQuery | null>(null), [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const [acceptedInput, setAcceptedInput] = useState<string | null>(null);
   const generation = useRef(0), controller = useRef<AbortController | null>(null);
+  const cancel = useCallback(() => { generation.current++; controller.current?.abort(); setBusy(false); }, []);
+  const cancelWhenHidden = useRef(cancel);
+  useEffect(() => { if (!active) cancelWhenHidden.current(); }, [active]);
   useEffect(() => () => { generation.current++; controller.current?.abort(); }, []);
   const selected = catalog.series.find(s => s.asset === asset);
-  function cancel() { generation.current++; controller.current?.abort(); setBusy(false); }
   async function load(pageFrom?: number) {
     cancel(); const id = generation.current; controller.current = new AbortController(); setBusy(true); setError("");
     try {

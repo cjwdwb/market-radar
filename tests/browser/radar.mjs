@@ -11,7 +11,7 @@ const base=process.env.RADAR_PREVIEW_URL||'http://localhost:5173';
 // This harness creates signed test cookies, simulated data and test storage. Never target production.
 const testUrl=new URL(base);
 if(!['127.0.0.1','localhost','[::1]'].includes(testUrl.hostname)||!['http:','https:'].includes(testUrl.protocol))throw Error('Radar fixture requires a loopback preview URL.');
-if(process.env.RADAR_AI30B_PRIVATE==='1'&&process.env.RADAR_SYNTHETIC_AUTH!=='1')throw Error('Private UI checks require RADAR_SYNTHETIC_AUTH=1; real credentials are not allowed.');
+if((process.env.RADAR_AI30B_PRIVATE==='1'||process.env.RADAR_UI_POLISH)&&process.env.RADAR_SYNTHETIC_AUTH!=='1')throw Error('Private/UI polish checks require RADAR_SYNTHETIC_AUTH=1; real credentials are not allowed.');
 const stamp=1789372800000,output=process.env.RADAR_OUTPUT_DIR||'outputs/radar';fs.mkdirSync(output,{recursive:true});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const observedWarnings=[];
@@ -433,7 +433,7 @@ async function history29Checks(browser,report){
   const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',watchlist:['NVDA']}),p=app.page;
   await p.clock.setFixedTime(Date.now());await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});
   await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.classic-experience .asset-state-summary button').click();
-  const panel=p.locator('.history-workspace'),summary=panel.locator(':scope > summary');await summary.focus();await p.keyboard.press('Enter');
+  const panel=p.locator('.history-workspace'),summary=panel.locator(':scope > summary');await summary.focus();await p.keyboard.press('Enter');await panel.getByRole('group',{name:'历史工作区导航'}).getByRole('button',{name:'回放与研究',exact:true}).click();
   await panel.getByText('连接本地归档数据库',{exact:true}).click();await panel.getByLabel('本地归档会话密钥').fill(token);await panel.getByRole('button',{name:'连接归档',exact:true}).click();await panel.getByLabel('归档序列').waitFor();
   assert.equal(await panel.getByLabel('本地归档会话密钥').inputValue(),'');
   const options=await panel.getByLabel('归档序列').locator('option').evaluateAll(es=>es.map(e=>({value:e.value,text:e.textContent})));const main=options.find(o=>o.text.includes('C29-USD')&&o.text.includes('5 分钟')),other=options.find(o=>o.text.includes('OTHER'));
@@ -463,7 +463,7 @@ async function history29Checks(browser,report){
   report.viewports.push({name,width,height});report.checks.push(`history29 ${name}: direct SQLite query, fixed version, explicit cutoff suggestion, keyboard/44px/overflow, return preserves manual range`);await app.context.close();
  }
  for(const motionPreference of ['system','normal','reduced']){
-  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',motionPreference,watchlist:['NVDA']}),p=app.page;await p.clock.setFixedTime(Date.now());await p.setViewportSize({width:390,height:844});await p.goto(base+'/#radar',{waitUntil:'networkidle'});const panel=p.locator('.history-workspace');await panel.locator(':scope > summary').click();await panel.getByText('连接本地归档数据库',{exact:true}).click();await panel.getByLabel('本地归档会话密钥').fill(token);await panel.getByRole('button',{name:'连接归档',exact:true}).click();await panel.getByLabel('归档序列').waitFor();await panel.getByRole('button',{name:'查询历史',exact:true}).click();await panel.locator('.history-view').waitFor();await panel.getByRole('button',{name:'上一有效时点',exact:true}).click();await p.waitForFunction(()=>!document.querySelector('.history-workspace')?.textContent.includes('正在校验或查询历史版本'));await panel.getByRole('button',{name:'返回实时 Radar',exact:true}).click();assert.equal(await panel.getAttribute('open'),null);assert.deepEqual(app.errors,[]);report.checks.push(`history29 ${motionPreference}: connected query/navigation/return under system reduced preference`);await app.context.close();
+  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',motionPreference,watchlist:['NVDA']}),p=app.page;await p.clock.setFixedTime(Date.now());await p.setViewportSize({width:390,height:844});await p.goto(base+'/#radar',{waitUntil:'networkidle'});const panel=p.locator('.history-workspace');await panel.locator(':scope > summary').click();await panel.getByRole('group',{name:'历史工作区导航'}).getByRole('button',{name:'回放与研究',exact:true}).click();await panel.getByText('连接本地归档数据库',{exact:true}).click();await panel.getByLabel('本地归档会话密钥').fill(token);await panel.getByRole('button',{name:'连接归档',exact:true}).click();await panel.getByLabel('归档序列').waitFor();await panel.getByRole('button',{name:'查询历史',exact:true}).click();await panel.locator('.history-view').waitFor();await panel.getByRole('button',{name:'上一有效时点',exact:true}).click();await p.waitForFunction(()=>!document.querySelector('.history-workspace')?.textContent.includes('正在校验或查询历史版本'));await panel.getByRole('button',{name:'返回实时 Radar',exact:true}).click();assert.equal(await panel.getAttribute('open'),null);assert.deepEqual(app.errors,[]);report.checks.push(`history29 ${motionPreference}: connected query/navigation/return under system reduced preference`);await app.context.close();
  }
 }
 
@@ -472,7 +472,7 @@ async function history28Checks(browser,report){
  const data=await historyFixture({count:900}), file=p=>({name:'history28-fixture.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(p))});
  for(const [name,width,height]of [['desktop',1440,1000],['tablet',768,1024],['mobile',390,844],['narrow',320,740],['landscape',844,390]]){
   const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',watchlist:['NVDA']}),p=app.page;await p.setViewportSize({width,height});await p.goto(base+'/#radar',{waitUntil:'networkidle'});
-  const panel=p.locator('.history-workspace'),summary=panel.locator(':scope > summary');assert.equal(await panel.getAttribute('open'),null);await summary.focus();await p.keyboard.press('Enter');
+  const panel=p.locator('.history-workspace'),summary=panel.locator(':scope > summary');assert.equal(await panel.getAttribute('open'),null);await summary.focus();await p.keyboard.press('Enter');await panel.getByRole('group',{name:'历史工作区导航'}).getByRole('button',{name:'回放与研究',exact:true}).click();
   await panel.getByLabel('导入模拟历史包').setInputFiles(file(data));await panel.locator('.history-view').waitFor();assert.equal(await panel.locator('.history-view').getAttribute('data-history-id'),data.digest);assert.match(await panel.innerText(),/模拟历史/);
   assert.equal(await panel.locator('.history-result details[open]').count(),0);
   const query=panel.getByLabel('历史回放截止 UTC');await query.fill('2026-09-03T18:40');await panel.getByRole('button',{name:'查询历史',exact:true}).click();
@@ -517,7 +517,7 @@ async function history28Checks(browser,report){
  }
  for(const motionPreference of ['system','normal','reduced']){
   const app=await fixture(browser,{mode:'state26-gentle',motionPreference,os:'reduce',watchlist:['NVDA']}),p=app.page;
-  await p.setViewportSize({width:390,height:844});await p.goto(base+'/#radar',{waitUntil:'networkidle'});const panel=p.locator('.history-workspace');await panel.locator(':scope > summary').click();
+  await p.setViewportSize({width:390,height:844});await p.goto(base+'/#radar',{waitUntil:'networkidle'});const panel=p.locator('.history-workspace');await panel.locator(':scope > summary').click();await panel.getByRole('group',{name:'历史工作区导航'}).getByRole('button',{name:'回放与研究',exact:true}).click();
   const partial=await historyFixture({count:22});await panel.getByLabel('导入模拟历史包').setInputFiles(file(partial));await panel.locator('.history-view').waitFor();assert.match(await panel.innerText(),/窗口偏上/);assert.match(await panel.innerText(),/连续 K 线不足/);
   await panel.getByLabel('历史回放截止 UTC').fill('2026-09-01T01:49');await panel.getByRole('button',{name:'查询历史',exact:true}).click();assert.match(await panel.innerText(),/缺少截止 K 线/);
   await panel.getByRole('button',{name:'返回实时 Radar'}).click();assert.deepEqual(app.errors,[]);report.checks.push(`history28 ${motionPreference}: partial horizon, missing exact endpoint and return under system reduced motion`);await app.context.close();
@@ -877,13 +877,13 @@ async function aiFoundationChecks(browser,report){
   p.on('request',r=>{if(new URL(r.url()).pathname==='/api/interpretation')aiRequests.push({method:r.method(),body:r.postData()});});
   await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.candle-canvas').waitFor();
   assert.equal(aiRequests.length,0);await p.locator('.asset-radar-awareness').click();const ai=p.locator('.ai-interpretation');
-  assert.equal(await ai.getAttribute('open'),null);await ai.locator(':scope>summary').focus();await p.keyboard.press('Enter');assert.equal(await ai.getAttribute('open'),'');assert.equal(aiRequests.length,0);
+  assert.equal(await ai.getAttribute('open'),null);await ai.locator(':scope>summary').focus();await p.keyboard.press('Enter');assert.equal(await ai.getAttribute('open'),'');await ai.getByRole('button',{name:'查看解释',exact:true}).waitFor();assert.equal(aiRequests.length,1);assert.equal(aiRequests[0].method,'GET');
   const started=performance.now();await ai.getByRole('button',{name:'查看解释',exact:true}).click();await ai.locator('.ai-result').waitFor();
   const latency=performance.now()-started;assert.match(await ai.innerText(),/演示结果 \/ 未调用真实模型/);assert.match(await ai.innerText(),/不解释当前实时行情/);
   assert.equal(aiRequests.filter(r=>r.method==='POST').length,1);assert.deepEqual(Object.keys(JSON.parse(aiRequests.find(r=>r.method==='POST').body)).sort(),['scenario','symbol']);
   await ai.getByRole('button',{name:'重新查看演示'}).click();await p.waitForFunction(()=>document.querySelector('.ai-result-heading')?.textContent.includes('缓存'));
   const id=await ai.locator('.ai-result').getAttribute('data-context-id');
-  await ai.getByRole('button',{name:'核对证据 short.direction',exact:true}).click();assert.equal(await ai.locator('.ai-evidence').getAttribute('open'),'');assert.match(await ai.locator('.ai-evidence').innerText(),/净变化|窗口净变化/);assert.match(await ai.locator('.ai-evidence').innerText(),/fixture:/);assert.equal(await ai.evaluate((panel,contextId)=>{const active=document.activeElement;return panel.contains(active)&&active.id.endsWith('-evidence-short.direction')&&active.closest('.ai-result')?.dataset.contextId===contextId;},id),true);await ai.locator('.ai-evidence>summary').click();
+  await ai.getByRole('button',{name:/查看依据 ·/}).first().click();await ai.getByRole('button',{name:'查看短窗方向结构依据',exact:true}).first().click();await p.waitForFunction(()=>document.activeElement.id.endsWith('-evidence-short.direction'));assert.equal(await ai.locator('.ai-evidence').getAttribute('open'),'');assert.match(await ai.locator('.ai-evidence').innerText(),/净变化|窗口净变化/);assert.match(await ai.locator('.ai-evidence').innerText(),/fixture:/);assert.equal(await ai.evaluate((panel,contextId)=>{const active=document.activeElement;return panel.contains(active)&&active.id.endsWith('-evidence-short.direction')&&active.closest('.ai-result')?.dataset.contextId===contextId;},id),true);await ai.locator('.ai-evidence>summary').click();
   for(const button of await ai.locator('.ai-actions button').all())assert.ok((await button.boundingBox()).height>=44);
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await ai.locator('.ai-result').evaluate(el=>{el.scrollIntoView({block:'start',behavior:'instant'});window.scrollBy({top:-85,behavior:'instant'});});await pause(100);await p.screenshot({path:`${output}/ai-${name}.png`});
   await ai.getByRole('button',{name:'返回图表',exact:true}).click();await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
@@ -940,7 +940,7 @@ async function aiPrivateChecks(browser,report){
    await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
    assert.equal(calls.length,0);await p.locator('.asset-radar-awareness').click();const ai=p.locator('.ai-interpretation');
    const open=async()=>{if(await ai.getAttribute('open')===null){await ai.locator(':scope>summary').focus();await p.keyboard.press('Enter');}};
-   await open();assert.equal(calls.length,0);await ai.getByRole('button',{name:'查看解释',exact:true}).click();
+   await open();await ai.getByLabel('私有会话凭据',{exact:true}).waitFor();assert.equal(calls.length,1);assert.equal(calls[0].method,'GET');
    await ai.getByLabel('私有会话凭据',{exact:true}).waitFor();assert.match(await ai.locator('.ai-feedback').innerText(),/来源用途许可/);assert.equal(calls.length,1);
    assert.equal(await ai.getByRole('button',{name:'查看快照解释',exact:true}).isDisabled(),true);
    const connect=async()=>{await ai.getByLabel('私有会话凭据',{exact:true}).fill(session);await ai.locator('.ai-session button').focus();await p.keyboard.press('Enter');await p.waitForFunction(()=>document.querySelector('.ai-session small')?.textContent.includes('会话已验证'));assert.equal(await ai.getByLabel('私有会话凭据',{exact:true}).inputValue(),'');};
@@ -948,15 +948,15 @@ async function aiPrivateChecks(browser,report){
    gate='ready';await connect();await ai.getByRole('button',{name:'查看快照解释',exact:true}).waitFor();
    await p.waitForFunction(()=>!Array.from(document.querySelectorAll('.ai-actions button')).find(b=>b.textContent==='查看快照解释')?.disabled);
    const started=performance.now();await ai.getByRole('button',{name:'查看快照解释',exact:true}).click();await ai.locator('.ai-result').waitFor();const latency=performance.now()-started,result=current;
-   const snapshot=result.snapshot.id,contextId=result.contextId,comparison=ai.locator('.ai-comparison');assert.equal(await comparison.count(),3);
-   assert.match(await comparison.nth(0).innerText(),/A · 固定模板/);assert.ok((await comparison.nth(0).innerText()).includes(result.baseline.sentences[0].text));
-   assert.equal(await comparison.nth(1).locator(':scope>ul').innerText(),await comparison.nth(2).locator(':scope>ul').innerText());
-   assert.match(await comparison.nth(1).innerText(),/B · 模型选择/);assert.match(await comparison.nth(2).innerText(),/C · 最终完整呈现/);
-   assert.match(await ai.innerText(),/UNPROVEN/);assert.match(await ai.innerText(),/不计入模型贡献/);assert.match(await ai.innerText(),/有效期至/);assert.doesNotMatch(await ai.innerText(),/演示结果|未调用真实模型/);
-   const disclosure=ai.locator('summary').filter({hasText:'完整披露编号与来源'});await disclosure.focus();await p.keyboard.press('Enter');
+   await ai.locator('.ai-evaluation>summary').click();const snapshot=result.snapshot.id,contextId=result.contextId,comparison=ai.locator('.ai-comparison');assert.equal(await comparison.count(),3);
+   assert.match(await comparison.nth(0).innerText(),/程序摘要/);assert.ok((await comparison.nth(0).innerText()).includes(result.baseline.sentences[0].text));
+   assert.equal(await comparison.nth(1).locator(':scope>ul').innerText(),await ai.locator('.ai-primary>ul').innerText());assert.match(await comparison.nth(2).innerText(),/页面上方的主要观察/);
+   assert.match(await comparison.nth(1).innerText(),/模型选择与顺序/);assert.match(await comparison.nth(2).innerText(),/系统补齐后的最终呈现/);
+   assert.match(await ai.innerText(),/UNPROVEN/);assert.match(await ai.innerText(),/不计入模型贡献/);await ai.getByText('快照身份与校验记录',{exact:true}).click();assert.match(await ai.innerText(),/有效期至/);await ai.getByText('快照身份与校验记录',{exact:true}).click();assert.doesNotMatch(await ai.innerText(),/演示结果|未调用真实模型/);
+   const disclosure=ai.locator('summary').filter({hasText:'完整披露与系统补充'});await disclosure.focus();await p.keyboard.press('Enter');
    for(const d of result.systemRequired){assert.ok((await ai.innerText()).includes(d.disclosureId));assert.ok((await ai.innerText()).includes(d.origin));}await p.keyboard.press('Enter');
-   const refs=ai.getByRole('button',{name:'核对证据 short.direction',exact:true});
-   for(const ref of [refs.first(),refs.last()]){await ref.focus();await p.keyboard.press('Enter');assert.equal(await ai.evaluate((panel,id)=>{const target=document.activeElement;return panel.contains(target)&&target.id.endsWith('-evidence-short.direction')&&target.closest('.ai-result')?.dataset.snapshotId===id;},snapshot),true);}
+   for(const ref of await ai.locator('.ai-reference:visible').all())await ref.click();const refs=ai.getByRole('button',{name:'查看短窗方向结构依据',exact:true});
+   for(const ref of [refs.first(),refs.last()]){await ref.focus();await p.keyboard.press('Enter');await p.waitForFunction(()=>document.activeElement.id.endsWith('-evidence-short.direction'));assert.equal(await ai.evaluate((panel,id)=>{const target=document.activeElement;return panel.contains(target)&&target.id.endsWith('-evidence-short.direction')&&target.closest('.ai-result')?.dataset.snapshotId===id;},snapshot),true);}
    const ids=await p.locator('.ai-interpretation [id]').evaluateAll(nodes=>nodes.map(n=>n.id));assert.equal(new Set(ids).size,ids.length);await ai.locator('.ai-evidence>summary').click();
    for(const control of [ai.locator(':scope>summary'),ai.getByLabel('私有会话凭据',{exact:true}),...await ai.locator('.ai-actions button').all()])assert.ok((await control.boundingBox()).height>=44);
    assert.equal(await p.evaluate(token=>[...Object.values(localStorage),...Object.values(sessionStorage),location.href].some(value=>String(value).includes(token)),session),false);
@@ -1034,6 +1034,7 @@ async function eventHistoryChecks(browser,report){
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={browser:browser.version(),viewports:[],checks:[],errors:[],warnings:observedWarnings};let page;
  try{
+  if(process.env.RADAR_UI_POLISH){const {uiPolishChecks}=await import('./ui-polish.mjs');await uiPolishChecks({browser,fixture,base,output,report,phase:process.env.RADAR_UI_POLISH});fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify({phase:report.phase,checks:report.checks.length,screenshots:report.screenshots.length,errors:report.errors,warnings:report.warnings.length}));return;}
   if(process.env.RADAR_PERSONAL_WEB==='1'){const {personalWebChecks}=await import('./personal-web.mjs');await personalWebChecks({browser,fixture,base,output,report,legacyHistoryChecks:()=>history28Checks(browser,report)});fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_EVENT_HISTORY_ONLY==='1'){await eventHistoryChecks(browser,report);fs.writeFileSync(output+'/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_AI30B_PRIVATE==='1'){await aiPrivateChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
@@ -1093,7 +1094,7 @@ async function eventHistoryChecks(browser,report){
   await page.locator('.desktop-nav a[href="#overview"]').focus();await page.keyboard.press('Enter');await pause(100);assert.equal(await page.locator('.classic-experience').isVisible(),true);
   await page.locator('.desktop-nav a[href="#radar"]').focus();await page.keyboard.press('Enter');await pause(100);assert.equal(await page.locator('#radar').isVisible(),true);
   await page.locator('.radar-filters button').first().focus();assert.notEqual(await page.locator('.radar-filters button').first().evaluate(el=>getComputedStyle(el).outlineStyle),'none');report.checks.push('keyboard navigation and visible focus');
-  await page.setViewportSize({width:390,height:844});await page.locator('.radar-filters button').filter({hasText:'My Radar'}).click();assert.ok(await page.locator('.radar-feed .radar-signal').count());
+  await page.setViewportSize({width:390,height:844});await page.locator('.radar-filters button').filter({hasText:'我的自选'}).click();assert.ok(await page.locator('.radar-feed .radar-signal').count());
   await page.locator('.signal-context summary').first().click();assert.equal(await page.locator('.signal-context[open]').count(),1);assert.ok(await page.locator('.signal-evidence').first().isVisible());assert.ok(await page.getByRole('heading',{name:/高可信|中可信|低可信/}).first().isVisible());report.checks.push('mobile filters, evidence and confidence disclosure');
   if(await page.locator('.signal-cluster .signal-context').count()){await page.locator('.signal-cluster .signal-context').first().evaluate(el=>{el.open=true});const secondary=page.locator('.signal-cluster .cluster-evidence').first();await secondary.waitFor();const detail=await secondary.innerText();assert.match(detail,/阈值/);for(const label of ['数据来源','报价时间','获取时间','K 线结束','信号发现'])assert.match(detail,new RegExp(label));report.checks.push('cluster disclosure retains secondary thresholds and provenance');}
   await page.context().setOffline(true);await pause(100);assert.ok(await page.getByText('网络已断开',{exact:true}).count());await page.context().setOffline(false);

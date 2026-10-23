@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { PACKAGE_LIMIT, parseHistoryPackage, type HistoryPackage } from "@/lib/history/package";
 import { replayHistory, researchHistory, type HistoryReplay, type HistoryResearch } from "@/lib/history/replay";
 import { historyNavigation, type ArchiveAnalysis, type ArchiveCatalog, type ArchiveSelection, type ArchiveSeries, type ArchivePricePage } from "@/lib/history/query";
@@ -27,10 +27,15 @@ async function importFile(file: File) {
   return data;
 }
 type SavedRecord = { id: string; identity: string; question: string; correctionOf: string | null; registeredAt: number; inputCutoff: number; targetEnd: number | null; series: string; snapshot: string; outcomes: { id: string; status: string; evaluatedAt: number; returnPercent: number | null }[] };
+const sections = [{ id: "prices", label: "历史价格" }, { id: "saved", label: "已保存解释" }, { id: "research", label: "回放与研究" }] as const;
+type HistorySection = typeof sections[number]["id"];
 
 /** 已接受结果与正在编辑的请求分离；失败和旧响应不能把旧事实标成新选择的成功。 */
 export function HistoryWorkspace() {
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<HistorySection>("prices");
+  const [visited, setVisited] = useState<Record<HistorySection, boolean>>({ prices: false, saved: false, research: false });
+  const sectionId = useId();
   const isLocal = useSyncExternalStore(subscribe, localHost, () => false);
   const [accepted, setAccepted] = useState<Accepted | null>(null), [mode, setMode] = useState<"file" | "archive">("file");
   const [asOf, setAsOf] = useState(""), [error, setError] = useState(""), [loading, setLoading] = useState(false), [page, setPage] = useState(0);
@@ -41,7 +46,28 @@ export function HistoryWorkspace() {
   const generation = useRef(0), controller = useRef<AbortController | null>(null), sessionKey = useRef(""), panel = useRef<HTMLDetailsElement>(null);
   const pendingRegistration = useRef<{ intent: string; key: string } | null>(null), pendingAction = useRef<"read" | "write" | null>(null);
   useEffect(() => () => { generation.current++; controller.current?.abort(); sessionKey.current = ""; }, []);
-  function invalidate() { generation.current++; controller.current?.abort(); if (pendingAction.current === "write") setNotice("已停止等待；登记或核验可能已保存，请读取记录核对。"); pendingAction.current = null; setLoading(false); }
+  const invalidate = useCallback(() => { generation.current++; controller.current?.abort(); if (pendingAction.current === "write") setNotice("已停止等待；登记或核验可能已保存，请读取记录核对。"); pendingAction.current = null; setLoading(false); }, []);
+  const activateSection = useCallback((section: HistorySection) => {
+    if (activeSection === "research" && section !== "research" && pendingAction.current) invalidate();
+    setActiveSection(section);
+    setVisited(current => current[section] ? current : { ...current, [section]: true });
+  }, [activeSection, invalidate]);
+  useEffect(() => {
+    const workspace = panel.current;
+    if (!workspace) return;
+    function reveal(event: Event) {
+      if (!(event.target instanceof Element)) return;
+      const target = event.target.closest<HTMLElement>("[data-history-section]");
+      if (!target || target.closest(".history-workspace") !== workspace) return;
+      const section = target.dataset.historySection;
+      if (section !== "prices" && section !== "saved" && section !== "research") return;
+      activateSection(section);
+      workspace!.open = true;
+      setHistoryOpen(true);
+    }
+    workspace.addEventListener("radar-history-reveal", reveal);
+    return () => workspace.removeEventListener("radar-history-reveal", reveal);
+  }, [activateSection]);
   function begin(action: "read" | "write" = "read") { controller.current?.abort(); controller.current = new AbortController(); pendingAction.current = action; const id = ++generation.current; setLoading(true); setError(""); setNotice(""); return { id, signal: controller.current.signal }; }
   function failed(id: number, e: unknown) { if (id === generation.current) setError(e instanceof Error ? e.message : "本地历史操作失败。"); }
   function end(id: number) { if (id === generation.current) { pendingAction.current = null; setLoading(false); } }
@@ -136,15 +162,29 @@ export function HistoryWorkspace() {
   const fileBars = accepted?.mode === "file" ? accepted.data.bars.filter(b => b.time + accepted.data.intervalMs <= accepted.replay.asOf) : [];
   const displayedBars = accepted?.mode === "archive" ? accepted.analysis.prices.records : fileBars.slice(page * 20, (page + 1) * 20), pages = Math.max(1, Math.ceil(fileBars.length / 20));
   function leave() { invalidate(); if (panel.current) { panel.current.open = false; panel.current.querySelector("summary")?.focus(); } }
-  return <details ref={panel} onToggle={e => { if (e.target === e.currentTarget) setHistoryOpen(e.currentTarget.open); }} className="panel macro-timeline history-workspace" style={{ minWidth: 0, overflowWrap: "anywhere" }}>
+  return <details ref={panel} onToggle={e => { if (e.target !== e.currentTarget) return; const open = e.currentTarget.open; setHistoryOpen(open); if (open) setVisited(current => current[activeSection] ? current : { ...current, [activeSection]: true }); }} className="panel macro-timeline history-workspace" style={{ minWidth: 0, overflowWrap: "anywhere" }}>
     <summary>历史回放与研究 <span>独立于实时</span></summary>
     <p>按固定版本查看历史。分钟回放与研究仍为模拟数据；已连接的真实日频参考价在独立入口展示，不参与分钟方法。查询不会启动采集。</p>
-    <PersonalHistoryPanel/>
-    {historyOpen && !catalog?.reference && <PublishedReferenceHistory/>}
+    <div className="history-section-nav" role="group" aria-label="历史工作区导航">
+      {sections.map(section => <button className="btn" type="button" key={section.id} aria-pressed={activeSection === section.id} aria-controls={`${sectionId}-${section.id}`} onClick={() => activateSection(section.id)}>{section.label}</button>)}
+    </div>
     {isLocal && <details className="history-connect"><summary>连接本地归档数据库</summary><p>先显式启动本地查询服务。使用独立本地会话密钥，仅在本页内存保留；网站访问码不授予数据库权限。</p>
       <form className="macro-filter" onSubmit={e => { e.preventDefault(); void connect(); }}><label>本地会话密钥<input type="password" autoComplete="off" value={keyInput} onChange={e => { invalidate(); setKeyInput(e.target.value); }} aria-label="本地归档会话密钥"/></label><button className="btn" type="submit" disabled={loading || !keyInput}>连接归档</button></form>
     </details>}
-    {catalog?.reference && <ReferenceHistory key={JSON.stringify(catalog.reference)} catalog={catalog.reference} query={(body, signal) => call<ReferenceQuery>("reference-query", body, signal)}/>}
+    {loading && <p role="status">正在校验或查询历史版本… <button className="btn" onClick={() => { const writing = pendingAction.current === "write"; invalidate(); if (!writing) setNotice("已取消本次操作；上一份结果保留。"); }}>停止等待</button></p>}
+    {error && <p role="alert" className="error-text">{error}{accepted && " 已保留上一份有效历史与查询。"}</p>}
+    {notice && <p role="status">{notice}</p>}
+    <section id={`${sectionId}-prices`} className="history-section" data-history-section="prices" aria-label="历史价格" hidden={activeSection !== "prices"}>
+      {visited.prices && <><h3>历史价格</h3>
+        {!catalog?.reference && <PublishedReferenceHistory active={historyOpen && activeSection === "prices"}/>}
+        {catalog?.reference && <ReferenceHistory key={JSON.stringify(catalog.reference)} catalog={catalog.reference} active={historyOpen && activeSection === "prices"} query={(body, signal) => call<ReferenceQuery>("reference-query", body, signal)}/>}
+      </>}
+    </section>
+    <section id={`${sectionId}-saved`} className="history-section" data-history-section="saved" aria-label="已保存解释" hidden={activeSection !== "saved"}>
+      {visited.saved && <PersonalHistoryPanel/>}
+    </section>
+    <section id={`${sectionId}-research`} className="history-section" data-history-section="research" aria-label="回放与研究" hidden={activeSection !== "research"}>
+    {visited.research && <><h3>回放与研究</h3>
     <a className="btn" style={{ minHeight: 44, display: "inline-flex", marginBottom: 8 }} href="/examples/history28-fixture.json" download>下载模拟历史示例</a>
     <input type="file" accept=".json,application/json" aria-label="导入模拟历史包" onChange={e => { void handleImport(e.target.files?.[0]); e.target.value = ""; }}/>
     {catalog && catalog.series.length > 0 && <div className="history-controls"><p>{catalog.limitation}</p><label>归档序列（资产 / 原生周期）<select aria-label="归档序列" value={seriesKey} onChange={e => { invalidate(); const s = catalog.series.find(s => s.key === e.target.value); if (s) { draftSeries(s); setMode("archive"); } }}>{catalog.series.map(s => <option key={s.key} value={s.key}>{s.asset.id} · {s.intervalMs / 60000} 分钟</option>)}</select></label>
@@ -153,9 +193,6 @@ export function HistoryWorkspace() {
     </div>}
     {catalog && mode === "file" && <button className="btn" onClick={() => { invalidate(); setMode("archive"); if (activeSeries) draftSeries(activeSeries); }}>切回已连接归档</button>}
     {bounds && <HistoryNavigation value={asOf} minimum={bounds.from} maximum={bounds.cutoff} busy={loading} previous={navigation.previous} next={navigation.next} suggested={navigation.suggested} requestedAt={replay?.asOf ?? null} displayedAt={accepted?.mode === "archive" ? accepted.analysis.displayedAt : replay?.horizons.some(h => h.reason !== "missing_endpoint") ? replay?.asOf ?? null : null} onChange={v => { invalidate(); setAsOf(v); }} onQuery={() => handleQuery()} onChoose={at => { setAsOf(inputTime(at)); handleQuery(at); }}/>}
-    {loading && <p role="status">正在校验或查询历史版本… <button className="btn" onClick={() => { const writing = pendingAction.current === "write"; invalidate(); if (!writing) setNotice("已取消本次操作；上一份结果保留。"); }}>停止等待</button></p>}
-    {error && <p role="alert" className="error-text">{error}{accepted && " 已保留上一份有效历史与查询。"}</p>}
-    {notice && <p role="status">{notice}</p>}
     {accepted && replay && research && <div className="history-view" data-history-id={accepted.mode === "file" ? accepted.data.digest : replay.digest}>
       <h3>{replay.asset}</h3><p>{accepted.mode === "file" ? accepted.data.asset.currency : accepted.analysis.series.asset.currency} · {accepted.mode === "file" ? accepted.data.asset.adjustment : accepted.analysis.series.asset.adjustment}</p><p className="history-current-context">当前显示结果：{replay.asset} · 原生 {replay.intervalMs / 60000} 分钟 · {utc(replay.asOf)} · 修订 {replay.readRevision}。{(accepted.mode === "archive" ? !sameDraft : mode !== "file" || requested !== replay.asOf) && "输入已变化；这里仍是上次成功请求的结果。"}</p>
       {accepted.mode === "archive" && <details><summary>覆盖、检索范围与限制</summary><p>固定快照 {accepted.analysis.selection.snapshot} · 取得 {utc(accepted.analysis.snapshotCreatedAt)}</p><p>请求开盘范围 {utc(accepted.analysis.selection.from)} — {utc(accepted.analysis.selection.to)}（完整收盘可等于截止）。</p><p>研究遍历：{accepted.analysis.scan.status} · {accepted.analysis.scan.rows} 根 · 已检查至 {utc(accepted.analysis.scan.checkedTo)} · {accepted.analysis.scan.reason ?? "仅证明该快照查询已遍历，不证明市场完整覆盖"}</p><p>已见间隔缺口 {accepted.analysis.scan.gapCount}；原因未核实，不自动认定为休市。边界预热不足时需显式扩大范围；不插值。</p>{accepted.analysis.scan.gaps.map(g => <p key={g.from}>{utc(g.from)} — {utc(g.to)}</p>)}<p>日线/小时、历史相对表现、对齐与变化比较尚未支持。current-vintage 不证明当时可知。</p></details>}
@@ -170,6 +207,8 @@ export function HistoryWorkspace() {
     {catalog && catalog.series.length > 0 && <details className="history-records"><summary>本地研究记录</summary><p>所有记录为明确模拟身份，不代表真实观察、真实成熟结果或预测有效性。到期核验需手动进行；新数据需操作者打开新快照并复用同一账本。</p><div className="macro-pages"><button className="btn" disabled={loading} onClick={() => void readRecords()}>读取记录</button><button className="btn" disabled={loading || nextRecords === null} onClick={() => { if (nextRecords !== null) void readRecords(nextRecords); }}>下一组记录</button></div>
       <ol className="macro-records">{records.map(r => <li key={r.id}><strong>{r.question}</strong><p>{r.series} · {r.identity} · 登记 {utc(r.registeredAt)} · 输入截止 {utc(r.inputCutoff)}</p><p>{r.correctionOf ? `关联原记录 ${r.correctionOf}` : "独立登记"} · 快照 {r.snapshot}</p>{r.targetEnd && <p>结果截止 {utc(r.targetEnd)} · 尚无结果时不代表成功或失败。</p>}{r.outcomes.map(o => <p key={o.id}>结果 {o.status} · 核验 {utc(o.evaluatedAt)}{o.returnPercent === null ? " · 结果不可得" : ` · 区间收益 ${o.returnPercent}%`}</p>)}<div className="macro-pages"><button className="btn" disabled={loading || r.snapshot !== catalog.snapshot} onClick={() => void reproduce(r.id)}>按原快照重算</button><button className="btn" disabled={loading} onClick={() => { setCorrectionOf(r.id); setQuestion(r.question); setNotice("已选择关联原记录；请在当前成功查询下提交新记录。"); }}>关联更正</button>{r.identity === "fixture_prospective" && <button className="btn" disabled={loading} onClick={() => void evaluate(r.id)}>手动核验到期结果</button>}</div></li>)}</ol>
     </details>}
+    </>}
+    </section>
     <div className="macro-pages"><button className="btn" onClick={leave}>返回实时 Radar</button><a className="btn" style={{ minHeight: 44 }} href="#price-chart" onClick={leave}>返回实时图表</a></div>
   </details>;
 }

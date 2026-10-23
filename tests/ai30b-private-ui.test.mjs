@@ -188,11 +188,22 @@ test('snapshot mismatch, oversized response and route failure retain only the pr
 });
 
 function uiHarness() {
-  let id = 0; const targets = new Map(), focused = [];
+  let id = 0; const targets = new Map(), focused = [], frames = [];
   const jsx = (type, props) => ({ type, props });
-  const require = name => name === 'react' ? { useId: () => `:mock-${++id}:`, useState: initial => [initial, () => {}] } : name === 'react/jsx-runtime' ? { jsx, jsxs: jsx, Fragment: 'fragment' } : name.endsWith('/private-contract') ? privateContract : { interpretationErrors: harness().exports.interpretationErrors };
+  const document = { getElementById: key => targets.get(key) }, navigation = { exports: {} };
+  new Function('require', 'module', 'exports', 'document', 'window', 'CustomEvent', 'requestAnimationFrame', compile('../components/radar/evidence-navigation.ts'))(
+    name => { assert.ok(name.endsWith('/motion-preference')); return { isMotionReduced: () => true }; }, navigation, navigation.exports,
+    document, { scrollY: 100, scrollTo() {} }, class { constructor(type, options) { this.type = type; Object.assign(this, options); } }, fn => frames.push(fn));
+  const require = name => {
+    if (name === 'react') return { useId: () => `:mock-${++id}:`, useState: initial => [initial, () => {}] };
+    if (name === 'react/jsx-runtime') return { jsx, jsxs: jsx, Fragment: 'fragment' };
+    if (name.endsWith('/private-contract')) return privateContract;
+    if (name === './use-interpretation') return { interpretationErrors: harness().exports.interpretationErrors };
+    if (name === './evidence-navigation') return navigation.exports;
+    throw Error(`unexpected UI module ${name}`);
+  };
   const mod = { exports: {} };
-  new Function('require', 'module', 'exports', 'document', compile('../components/radar/ai-interpretation.tsx'))(require, mod, mod.exports, { getElementById: key => targets.get(key) });
+  new Function('require', 'module', 'exports', compile('../components/radar/ai-interpretation.tsx'))(require, mod, mod.exports);
   const expand = node => {
     if (Array.isArray(node)) return node.flatMap(expand);
     if (node == null || typeof node !== 'object') return [node];
@@ -200,20 +211,34 @@ function uiHarness() {
     return [{ ...node, children: expand(node.props?.children) }];
   };
   const flatten = nodes => nodes.flatMap(n => n && typeof n === 'object' ? [n, ...flatten(n.children)] : []);
-  return { render(controller) { const nodes = flatten(expand(mod.exports.AIInterpretation({ controller, context: null, onChart() {} }))); for (const n of nodes) if (n.props?.id) { const detail = { open: false }; targets.set(n.props.id, { closest: () => detail, focus: () => focused.push(n.props.id), detail }); } return nodes; }, focused, targets };
+  return { render(controller) { const nodes = flatten(expand(mod.exports.AIInterpretation({ controller, context: null, onChart() {} }))); for (const n of nodes) if (n.props?.id) { const detail = { tagName: 'DETAILS', open: false, parentElement: null }; targets.set(n.props.id, { tagName: String(n.type).toUpperCase(), isConnected: true, parentElement: detail, closest: () => null, dispatchEvent() {}, scrollIntoView() {}, focus: () => focused.push(n.props.id), detail }); } return nodes; }, focused, targets, flushFrames() { const pending = frames.splice(0); for (const fn of pending) fn(); }, get frameCount() { return frames.length; } };
 }
 const content = nodes => nodes.flatMap(n => (n.children ?? []).filter(x => typeof x === 'string' || typeof x === 'number')).join(' ');
 const subtreeText = node => typeof node === 'string' || typeof node === 'number' ? String(node) : (node?.children ?? []).map(subtreeText).join(' ');
 
 test('private UI renders same-snapshot A/B/C, full disclosure identities, expiry and no demo claim', async () => {
-  const h = harness(); await h.connect(); await h.controller.generate(); const ui = uiHarness(), nodes = ui.render(h.controller), text = content(nodes);
-  assert.match(text, /A · 固定模板/); assert.match(text, /B · 模型选择/); assert.match(text, /C · 最终完整呈现/); assert.match(text, /UNPROVEN/); assert.match(text, /不计入模型贡献/);
+  const h = harness(); await h.connect(); await h.controller.generate(); const ui = uiHarness(), nodes = ui.render(h.controller), text = content(nodes).replace(/\s+/g, ' ');
+  assert.match(text, /程序摘要/); assert.match(text, /模型选择与顺序/); assert.match(text, /系统补齐后的最终呈现/); assert.match(text, /UNPROVEN/); assert.match(text, /不计入模型贡献/);
   for (const disclosure of h.result.systemRequired) { assert.ok(text.includes(disclosure.disclosureId)); assert.ok(text.includes(disclosure.origin)); }
   assert.match(text, /有效期至/); assert.match(text, /mock-snapshot/); assert.doesNotMatch(text, /演示结果|未调用真实模型/);
   const lists = nodes.filter(n => n.type === 'section' && n.props.className === 'ai-comparison');
-  assert.deepEqual(lists.map(n => subtreeText(n).includes('模型选择离线测试事实。')), [false, true, true]);
+  assert.deepEqual(lists.map(n => n.props['aria-label']), ['A 固定模板', 'B 模型选择', 'C 最终完整呈现']);
+  const comparison = nodes.find(n => n.type === 'details' && n.props.className === 'ai-evaluation');
+  assert.ok(!comparison.props.open); assert.match(subtreeText(comparison), /同一快照、同一事实目录/);
+  assert.deepEqual(lists.map(n => subtreeText(n).includes('模型选择离线测试事实。')), [false, true, false]);
   assert.deepEqual(lists.map(n => subtreeText(n).includes('固定模板离线测试事实。')), [true, false, false]);
-  assert.deepEqual(lists.map(n => subtreeText(n).includes('两个窗口存在分歧。')), [false, false, true]);
+  assert.deepEqual(lists.map(n => subtreeText(n).includes('两个窗口存在分歧。')), [false, false, false]);
+  const primary = nodes.find(n => n.type === 'section' && n.props['aria-label'] === '主要观察');
+  assert.match(subtreeText(primary), /模型选择离线测试事实。/); assert.match(subtreeText(lists[2]), /页面上方的主要观察，加上全部冲突与限制/);
+  assert.match(text, /两个窗口存在分歧。/); assert.match(text, /系统补齐 2 条说明/);
+  const citations = nodes.filter(n => n.type === 'span' && n.props.className === 'ai-citation');
+  assert.ok(citations.length > 0);
+  for (const citation of citations) {
+    const count = citation.children.filter(n => n?.type === 'button'), group = citation.children.find(n => n?.props?.className === 'ai-reference-list');
+    assert.equal(count.length, 1); assert.equal(count[0].props['aria-expanded'], false); assert.equal(group.props.hidden, true);
+    assert.equal(count[0].props['aria-controls'], group.props.id); assert.match(subtreeText(count[0]).replace(/\s+/g, ' '), new RegExp(`查看依据 · ${group.children.length}$`));
+    const labels = group.children.map(n => n.props['aria-label']); assert.equal(new Set(labels).size, labels.length); assert.ok(labels.every(label => /^查看.+依据$/.test(label)));
+  }
   assert.equal(nodes.filter(n => n.type === 'input' && n.props.type === 'password').length, 1);
 });
 
@@ -232,9 +257,10 @@ test('expanded evidence preserves method, config and distinct supplied acquisiti
 
 test('capability discovery works without browser context; session form clears the password after submit', async () => {
   const h = harness(), ui = uiHarness();
-  const initial = ui.render(h.controller), discover = initial.find(n => n.type === 'button' && subtreeText(n) === '查看解释');
+  const initial = ui.render(h.controller), discover = initial.find(n => n.type === 'button' && subtreeText(n) === '检查解释服务');
   assert.equal(discover.props.disabled, false);
-  await h.controller.generate(); const pending = ui.render(h.controller), password = { value: 'mock-session-token' };
+  await discover.props.onClick(); assert.equal(h.calls.length, 1); assert.equal(h.calls[0].options.method, undefined); assert.equal(h.controller.error, '');
+  const pending = ui.render(h.controller), password = { value: 'mock-session-token' };
   const form = pending.find(n => n.type === 'form'); form.props.onSubmit({ preventDefault() {}, currentTarget: { elements: { namedItem: () => password } } });
   assert.equal(password.value, ''); await tick(); assert.equal(h.controller.connected, true);
   assert.equal(JSON.stringify(h.controller).includes('mock-session-token'), false);
@@ -246,7 +272,8 @@ test('each mounted panel and context has unique evidence IDs; buttons focus thei
   const ids = panels.flatMap(nodes => nodes.filter(n => n.props.id).map(n => n.props.id)); assert.equal(new Set(ids).size, ids.length);
   for (const nodes of panels) {
     const ownIds = nodes.filter(n => n.type === 'section' && n.props.id).map(n => n.props.id);
-    const button = nodes.find(n => n.type === 'button' && n.props.className === 'ai-reference'); button.props.onClick();
+    const button = nodes.find(n => n.type === 'button' && /^查看.+依据$/.test(n.props['aria-label'] ?? '')); button.props.onClick({ currentTarget: { isConnected: true } });
+    assert.equal(ui.frameCount, 1); ui.flushFrames();
     const target = ui.focused.at(-1); assert.ok(ownIds.includes(target)); assert.ok(target.includes(encodeURIComponent(h.result.contextId))); assert.equal(ui.targets.get(target).detail.open, true);
   }
   assert.notEqual(ui.focused[0], ui.focused[1]);
@@ -257,6 +284,6 @@ test('legacy fixture panels also keep evidence links local and preserve demo wor
   const controller = { ...h.controller, result, mode: 'fixture', resultKind: 'fixture', phase: 'ready' }, ui = uiHarness();
   const panels = [ui.render(controller), ui.render(controller)], ids = panels.flatMap(nodes => nodes.filter(n => n.props.id).map(n => n.props.id));
   assert.equal(new Set(ids).size, ids.length);
-  for (const nodes of panels) { assert.match(content(nodes), /演示结果/); nodes.find(n => n.type === 'button' && n.props.className === 'ai-reference').props.onClick(); assert.ok(nodes.some(n => n.props.id === ui.focused.at(-1))); }
+  for (const nodes of panels) { assert.match(content(nodes), /演示结果/); nodes.find(n => n.type === 'button' && /^查看.+依据$/.test(n.props['aria-label'] ?? '')).props.onClick({ currentTarget: { isConnected: true } }); assert.equal(ui.frameCount, 1); ui.flushFrames(); assert.ok(nodes.some(n => n.props.id === ui.focused.at(-1))); }
   assert.notEqual(ui.focused[0], ui.focused[1]);
 });
