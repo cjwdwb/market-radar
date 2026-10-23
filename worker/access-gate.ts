@@ -3,6 +3,13 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypt
 export type AccessSecrets = { ACCESS_CODE_HASH?: string; ACCESS_SESSION_SECRET?: string };
 const COOKIE = "__Host-radar_access";
 const LIFETIME = 7 * 24 * 60 * 60;
+const VISITOR_COOKIE = "__Host-radar_visitor";
+const VISITOR_LIFETIME = 24 * 60 * 60;
+const VISITOR_READ_PATHS = new Set([
+  "/", "/api/quotes", "/api/history", "/api/reference-history",
+  "/api/information", "/api/asset-information", "/api/interpretation",
+  "/_vinext/image", "/examples/history28-fixture.json", "/examples/fed-monetary-20260923.json",
+]);
 const securityHeaders = {
   "Cache-Control": "private, no-store, max-age=0",
   "X-Content-Type-Options": "nosniff",
@@ -16,27 +23,31 @@ export function accessCodeHash(value: string) {
 function equalHex(a: string, b: string) {
   return /^[a-f0-9]{64}$/.test(a) && /^[a-f0-9]{64}$/.test(b) && timingSafeEqual(Buffer.from(a, "hex"), Buffer.from(b, "hex"));
 }
-function signature(payload: string, config: Required<AccessSecrets>) {
+function signature(payload: string, config: Required<AccessSecrets>, scope = "radar-v1") {
   // Changing the access code also invalidates previously issued sessions.
-  return createHmac("sha256", config.ACCESS_SESSION_SECRET).update(`radar-v1:${config.ACCESS_CODE_HASH}:${payload}`).digest("hex");
+  return createHmac("sha256", config.ACCESS_SESSION_SECRET).update(`${scope}:${config.ACCESS_CODE_HASH}:${payload}`).digest("hex");
 }
 export function createAccessSession(config: Required<AccessSecrets>, now = Date.now()) {
   const payload = `${Math.floor(now / 1000) + LIFETIME}.${randomBytes(16).toString("hex")}`;
   return `${payload}.${signature(payload, config)}`;
 }
-function hasSession(request: Request, config: Required<AccessSecrets>) {
-  const token = request.headers.get("cookie")?.split(";").map(c => c.trim()).find(c => c.startsWith(`${COOKIE}=`))?.slice(COOKIE.length + 1);
+function hasSession(request: Request, config: Required<AccessSecrets>, visitor = false) {
+  const name = visitor ? VISITOR_COOKIE : COOKIE;
+  const lifetime = visitor ? VISITOR_LIFETIME : LIFETIME;
+  const token = request.headers.get("cookie")?.split(";").map(c => c.trim()).find(c => c.startsWith(`${name}=`))?.slice(name.length + 1);
   if (!token || token.length > 160) return false;
   const parts = token.split(".");
   if (parts.length !== 3 || !/^\d{10}$/.test(parts[0]) || !/^[a-f0-9]{32}$/.test(parts[1])) return false;
   const expiry = Number(parts[0]), now = Math.floor(Date.now() / 1000);
-  return expiry > now && expiry <= now + LIFETIME && equalHex(parts[2], signature(`${parts[0]}.${parts[1]}`, config));
+  return expiry > now && expiry <= now + lifetime && equalHex(parts[2], signature(`${parts[0]}.${parts[1]}`, config, visitor ? "radar-visitor-v1" : "radar-v1"));
 }
-function sessionCookie(value: string, age = LIFETIME) {
-  return `${COOKIE}=${value}; Path=/; Max-Age=${age}; HttpOnly; Secure; SameSite=Lax`;
+function sessionCookie(value: string, age = LIFETIME, name = COOKIE) {
+  return `${name}=${value}; Path=/; Max-Age=${age}; HttpOnly; Secure; SameSite=Lax`;
 }
-function redirect(path: string, cookie?: string) {
-  return new Response(null, { status: 303, headers: { ...securityHeaders, Location: path, ...(cookie ? { "Set-Cookie": cookie } : {}) } });
+function redirect(path: string, cookies: string[] = []) {
+  const headers = new Headers({ ...securityHeaders, Location: path });
+  for (const cookie of cookies) headers.append("Set-Cookie", cookie);
+  return new Response(null, { status: 303, headers });
 }
 function accessPage(error = "", status = 200) {
   return new Response(`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="robots" content="noindex,nofollow"><title>访问验证 · 市场雷达</title><meta name="theme-color" content="#080808"><link rel="icon" href="/favicon-v2.png" type="image/png"><link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-v2.png"><style>
@@ -75,17 +86,28 @@ export async function accessGate(request: Request, env: AccessSecrets): Promise<
   if (url.pathname === "/api/access" || url.pathname === "/api/access/logout") {
     if (request.method !== "POST") return new Response("Method not allowed", { status: 405, headers: { ...securityHeaders, Allow: "POST" } });
     if (request.headers.get("origin") !== url.origin) return new Response("请求来源无效", { status: 403, headers: securityHeaders });
-    if (url.pathname.endsWith("/logout")) return redirect("/access", sessionCookie("", 0));
+    if (url.pathname.endsWith("/logout")) return redirect("/access", [sessionCookie("", 0), sessionCookie("", 0, VISITOR_COOKIE)]);
     if (!request.headers.get("content-type")?.toLowerCase().startsWith("application/x-www-form-urlencoded")) return new Response("无效表单", { status: 415, headers: securityHeaders });
     let body: string;
     try { body = await limitedBody(request); } catch { return new Response("请求过大", { status: 413, headers: securityHeaders }); }
     const code = new URLSearchParams(body).get("code") ?? "";
     if (code.length > 64 || !equalHex(accessCodeHash(code), config.ACCESS_CODE_HASH)) return accessPage("访问码不正确，请检查后重试。", 401);
-    return redirect("/", sessionCookie(createAccessSession(config)));
+    return redirect("/", [sessionCookie(createAccessSession(config))]);
   }
   const verified = hasSession(request, config);
+  // This is intentionally a public, shareable reading entrance. A Referer is
+  // neither required nor trusted as an identity or authorization credential.
+  if (url.pathname === "/from-aether") {
+    if (request.method !== "GET") return new Response("Method not allowed", { status: 405, headers: { ...securityHeaders, Allow: "GET" } });
+    if (verified) return redirect("/");
+    const payload = `${Math.floor(Date.now() / 1000) + VISITOR_LIFETIME}.${randomBytes(16).toString("hex")}`;
+    const token = `${payload}.${signature(payload, config, "radar-visitor-v1")}`;
+    return redirect("/", [sessionCookie(token, VISITOR_LIFETIME, VISITOR_COOKIE)]);
+  }
   if (url.pathname === "/access") return verified ? redirect("/") : accessPage();
   if (verified) return null;
+  const readableAsset = /^\/assets\/[a-zA-Z0-9_.-]+\.(?:js|css|woff2?|png|jpe?g|webp|svg|gif)$/.test(url.pathname);
+  if (["GET", "HEAD"].includes(request.method) && (VISITOR_READ_PATHS.has(url.pathname) || readableAsset) && hasSession(request, config, true)) return null;
   if (url.pathname.startsWith("/api/") || request.headers.get("rsc") === "1" || !["GET", "HEAD"].includes(request.method)) {
     return Response.json({ error: "请先输入访问码", code: "ACCESS_REQUIRED" }, { status: 401, headers: securityHeaders });
   }

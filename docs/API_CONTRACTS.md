@@ -1,5 +1,7 @@
 # API 契约索引
 
+2026-10-23主页阅读入口：公开 GET `/from-aether` 发放独立24小时签名访客会话并303到固定 `/`，不依赖Referer、不携带链接秘密。访客只读白名单为 `/`、构建资产、`/_vinext/image`、两份已有examples、GET/HEAD `/api/quotes`、`/api/history`、`/api/reference-history`、`/api/information`、`/api/asset-information`、`/api/interpretation`；各API参数校验仍生效。`/api/monitor`读写、所有写方法和未知路径不开放；完整会话的旧行为不变。退出同时清除访客和完整会话。该入口是公开可分享阅读路径，不承诺来源页限制。见 [MR-HOMEPAGE-VISITOR](../tasks/MR-HOMEPAGE-VISITOR.md)。以下“原门禁不变”为各历史发布时点。
+
 2026-10-23个人历史文件阅读已发布Sitesv34：Radar历史区选择`personal-history-interpretation-v1` JSON，最大64KiB；只用浏览器File API，在当前页面内存保留，刷新/清除即移除。没有新增HTTP路由、文件上传、存储或模型派发；任意网站访问者不能因此读取他人文件。保留Binance SPOT BTCUSDT/USDT/15m和historical_simulation/current_vintage声明，结构/引用/日期范围校验不等于认证来源、金融事实或原调用，UI明确说明。实际个人文件、原档/回复/预算不进入Git/部署包。原生产模型保护和访问门禁不变。[发布卡](../tasks/archive/MR-PUBLISH-PERSONAL-HISTORY.md)。
 
 2026-10-13本地真实合成补证：专用Key就绪后执行DeepSeek官方Responses两次，模型/usage解析成功，分别被原语义校验拒绝missing_conflict/unsupported_claim。一次DeepSeek-only instructions精确引用说明升级prompt v2，不改schema/validator或公开接口。A1连通PASS不等于A2质量或真实市场准入；产品试点已停止，实际账本累计2次保守占用$0.0053184，生产未启用。以下零请求/待Key是前一时点。
@@ -20,7 +22,7 @@
 | PUT /api/monitor | 同源；JSON 设置，正文最多 30000 字符 | 转发云端状态/状态码；来源失败 403，过大 413 |
 | POST /api/access、/api/access/logout | 门禁表单，细节见 worker/access-gate.ts | 设置/清除访问会话，返回重定向 |
 
-- 所有 app API 还受 worker 门禁影响；不把报价接口当作无认证公开端点。
+- 所有 app API 仍经 worker 门禁；明确访客白名单可使用从 `/from-aether` 获取的只读会话，其他接口保持原认证。普通无会话请求不会因伪造来源页获得访问。
 - Quote、QuoteResult、Point、PriceAlert 的唯一类型定义在 lib/market.ts，避免复制整套字段。
 - 时间戳为毫秒；保留 timestamp 与 fetchedAt 的区别、nullable 数值、source、timezone、session。
 - USDT 为 OKX 滚动 24 小时涨跌；Yahoo 相对前收盘价。不得在归一化时混为同一口径。
