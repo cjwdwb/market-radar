@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReferenceCatalog, ReferenceQuery } from "@/lib/history/reference";
 import { ReferenceHistory } from "./reference-history";
 
@@ -12,10 +12,13 @@ async function read<T>(url: string, signal: AbortSignal): Promise<T> {
   return data as T;
 }
 /** 构建时批准的公开资料；不需要本机会话key，也不触发供应商采集。 */
-export function PublishedReferenceHistory() {
+export function PublishedReferenceHistory({ active = true }: { active?: boolean }) {
   const [catalog, setCatalog] = useState<ReferenceCatalog | null>(null);
   const [error, setError] = useState(""), [busy, setBusy] = useState(false);
   const generation = useRef(0), controller = useRef<AbortController | null>(null);
+  const cancel = useCallback(() => { generation.current++; controller.current?.abort(); setBusy(false); }, []);
+  const cancelWhenHidden = useRef(cancel);
+  useEffect(() => { if (!active) cancelWhenHidden.current(); }, [active]);
   useEffect(() => () => { generation.current++; controller.current?.abort(); }, []);
   async function load() {
     controller.current?.abort(); const id = ++generation.current;
@@ -41,6 +44,6 @@ export function PublishedReferenceHistory() {
       {busy ? "正在加载日频资料…" : catalog ? "重新加载日频资料" : "加载已发布日频资料"}
     </button>
     {error && <p role="alert" className="error-text">{error} 实时行情仍可使用。{catalog && "下方保留上次加载的固定版本。"}</p>}
-    {catalog && <ReferenceHistory key={JSON.stringify(catalog)} catalog={catalog} query={query}/>}
+    {catalog && <ReferenceHistory key={JSON.stringify(catalog)} catalog={catalog} query={query} active={active}/>}
   </section>;
 }
