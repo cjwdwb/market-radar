@@ -2,7 +2,7 @@
 
 ## MR-PUBLISH-PERSONAL-HISTORY — 2026-10-23 网站个人文件阅读入口
 
-[任务卡](MR-PUBLISH-PERSONAL-HISTORY.md)：用户要求上传网站试用，独立候选只包含浏览器内存读取个人解释文件和最小展示复用。私人资料不上传/托管、不新增模型请求，原C1/C2未提交工作树不改动。新4项和既有19项相关回归通过；最终682项=681PASS/1既有Windows权限SKIP，build/typecheck/定向lint和五视口/真实保存文件本地导入通过。待独立审计、GitHub CI与Sites部署；生产仍v33。
+[发布归档](archive/MR-PUBLISH-PERSONAL-HISTORY.md)：PR#9已合并d95b2ea，远端build/typecheck/682项Node全部通过；本地五视口新旧历史16组及实际保存文件导入通过，独立产品/包装VERIFY完成。Sitesv34原生succeeded/env3，原网址/门禁不变。个人解释文件仅在浏览器内存读取，未上传私人文件、不新增模型消费；实时AI仍未启用。原C1/C2工作树保持，生产登录后/真机未测，主3.0仍开放。
 
 ## MR-RADAR-EVENT-HISTORY / MR-PUBLISH-AI30-PREPARATION — 2026-10-22 已上传部署
 

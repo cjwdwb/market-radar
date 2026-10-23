@@ -1,6 +1,6 @@
 # API 契约索引
 
-2026-10-23个人历史文件阅读候选：Radar历史区选择`personal-history-interpretation-v1` JSON，最大64KiB；只用浏览器File API，在当前页面内存保留，刷新/清除即移除。没有新增HTTP路由、文件上传、存储或模型派发；任意网站访问者不能因此读取他人文件。保留Binance SPOT BTCUSDT/USDT/15m和historical_simulation/current_vintage声明，结构/引用/日期范围校验不等于认证来源、金融事实或原调用，UI明确说明。实际个人文件、原档/回复/预算不进入Git/部署包。原生产模型保护和访问门禁不变。[发布卡](../tasks/MR-PUBLISH-PERSONAL-HISTORY.md)。
+2026-10-23个人历史文件阅读已发布Sitesv34：Radar历史区选择`personal-history-interpretation-v1` JSON，最大64KiB；只用浏览器File API，在当前页面内存保留，刷新/清除即移除。没有新增HTTP路由、文件上传、存储或模型派发；任意网站访问者不能因此读取他人文件。保留Binance SPOT BTCUSDT/USDT/15m和historical_simulation/current_vintage声明，结构/引用/日期范围校验不等于认证来源、金融事实或原调用，UI明确说明。实际个人文件、原档/回复/预算不进入Git/部署包。原生产模型保护和访问门禁不变。[发布卡](../tasks/archive/MR-PUBLISH-PERSONAL-HISTORY.md)。
 
 2026-10-13本地真实合成补证：专用Key就绪后执行DeepSeek官方Responses两次，模型/usage解析成功，分别被原语义校验拒绝missing_conflict/unsupported_claim。一次DeepSeek-only instructions精确引用说明升级prompt v2，不改schema/validator或公开接口。A1连通PASS不等于A2质量或真实市场准入；产品试点已停止，实际账本累计2次保守占用$0.0053184，生产未启用。以下零请求/待Key是前一时点。
 

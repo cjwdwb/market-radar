@@ -1,5 +1,16 @@
 # MR-PUBLISH-PERSONAL-HISTORY
 
+## 发布完成 — 2026-10-23
+
+- [PR#9](https://github.com/cjwdwb/market-radar/pull/9)已正常合并，产品提交c4cf27ea2d21a32c45370441f16da280092bf076，main/部署源码d95b2ea35afc8d767ea65f3af4a7aabcdf34a497。远端CI39912770616/job120279332740，Ubuntu/Node22.15 npm test的build/typecheck与682/682 Node全部通过。
+- 原网站 https://market-radar-rex.swt-aether.chatgpt.site 已发布Sitesv34；version `appgprj_6a9b9dc23584819190a31ae417863e7a~appgver_d6ca248dcdc08191a57eaebaff17bd52`；deployment `appgdep_6adb024cb80481919596ac375461f971`，原生succeeded，2026-10-23T06:44:37.243642Z，env revision3。
+- 官方source helper同步精确源码并打包；gzip2,022,959bytes，SHA2564389b29473983d39c98507e23f10f7fe4466a80ea38a7ba5734748feb924720e；平台tar6,748,160bytes/46文件，内容hash a0007fa77173cd9c3c02a60daca7572d25a8137b5f433134d26292528d6deaa0。二者格式不同，不混用字节hash。
+- 独立GPT最终产品VERIFY、包装VERIFIED PASS。46个文件均对应当前构建，manifest仅排版差异；无私人记录/预算/Key/SQL/脚本/测试，指定私人catalog指纹无命中。D1/R2仍null、观众public和原应用门禁不变；没有来源采集/真实Provider启用或新增模型消费。
+- 网站提供浏览器本地文件阅读，私人显示文件未上传到GitHub/Sites；不是云端自动读取本机文件，也不是实时AI生成。用户登录后自行选取本地导出。候选五视口及真实保存文件的本机导入通过；生产登录后和真机未代测，原生平台成功不代替这些验证。
+- 原ai30b工作树C1/C2和本地服务均保留，未混入此发布。主3.0及公开AI真实准入仍开放。后续文档收尾提交不重新部署。
+
+下文保留规划与验证过程，早先待发布状态不代表当前生产。
+
 2026-10-23 Planner。用户在本地页面交付后要求“上传一下我看看网站上能不能用”，授权本次网站入口上传发布；不推定真实个人资料可以公开托管或新模型消费。
 
 ## Scope
