@@ -18,11 +18,11 @@ export async function personalWebChecks({browser,fixture,base,output,report,lega
   await p.route('**/*',r=>{if(new URL(r.request().url()).origin!==url.origin){external.push(r.request().url());return r.abort();}return r.fallback();});
   try{
    await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.getByRole('tab',{name:'1 周',exact:true}).click();const symbol=await p.locator('.selected-title h2').innerText();
-   await p.evaluate(()=>{location.hash='radar';});await p.locator('.history-workspace>summary').click();const panel=p.locator('#personal-history-ai'),input=panel.getByLabel('选择个人解释文件'),result=panel.getByRole('region',{name:'个人历史解释结果'});
+   await p.evaluate(()=>{location.hash='radar';});await p.locator('.history-workspace>summary').click();await p.getByRole('group',{name:'历史工作区导航'}).getByRole('button',{name:'已保存解释',exact:true}).click();const panel=p.locator('#personal-history-ai'),input=panel.getByLabel('选择解释文件'),result=panel.getByRole('region',{name:'个人历史解释结果'});
    const dto=personalHistoryFixture(),file=value=>({name:'synthetic-personal.json',mimeType:'application/json',buffer:Buffer.from(typeof value==='string'?value:JSON.stringify(value))});
    await input.setInputFiles(file(dto));await result.waitFor();assert.match(await result.innerText(),/未向服务端验证/);assert.equal(await panel.locator('details[open]').count(),0);
    await result.evaluate(e=>{e.scrollIntoView({block:'start',behavior:'instant'});window.scrollBy({top:-90,behavior:'instant'});});await p.screenshot({path:`${output}/personal-web-${name}.png`});
-   await result.getByRole('button',{name:/核对证据/}).first().focus();await p.keyboard.press('Enter');assert.match(await p.evaluate(()=>document.activeElement.id),/personal-.*-evidence-short.direction/);
+   await result.getByRole('button',{name:/查看依据 ·/}).first().click();await result.getByRole('button',{name:'查看短窗方向结构依据',exact:true}).first().focus();await p.keyboard.press('Enter');await p.waitForFunction(()=>document.activeElement.id.endsWith('-evidence-short.direction'));assert.match(await p.evaluate(()=>document.activeElement.id),/personal-.*-evidence-short.direction/);
    await panel.getByText('同一快照：程序摘要与模型选择',{exact:true}).click();assert.equal(await panel.getByRole('region',{name:'B 模型选择'}).count(),1);assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    await input.setInputFiles(file('{invalid'));await panel.getByRole('status').waitFor();assert.match(await panel.getByRole('status').innerText(),/上次读取/);assert.equal(await result.count(),1);
    await input.setInputFiles(file(' '.repeat(65537)));await p.waitForFunction(()=>document.querySelector('#personal-history-ai')?.textContent.includes('64KiB'));
@@ -38,13 +38,13 @@ export async function personalWebChecks({browser,fixture,base,output,report,lega
    }
    await input.setInputFiles(file(dto));await result.waitFor();await panel.getByRole('button',{name:'清除本页记录'}).click();assert.equal(await result.count(),0);
    await input.setInputFiles(file(dto));await result.waitFor();assert.equal(await p.evaluate(id=>Object.values(localStorage).some(v=>v.includes(id))||Object.values(sessionStorage).some(v=>v.includes(id)),dto.catalogId),false);
-   await p.reload({waitUntil:'networkidle'});await p.locator('.history-workspace>summary').click();assert.equal(await result.count(),0);assert.deepEqual(posts,[]);assert.deepEqual(external,[]);assert.deepEqual(app.errors,[]);
+   await p.reload({waitUntil:'networkidle'});await p.locator('.history-workspace>summary').click();await p.getByRole('group',{name:'历史工作区导航'}).getByRole('button',{name:'已保存解释',exact:true}).click();assert.equal(await result.count(),0);assert.deepEqual(posts,[]);assert.deepEqual(external,[]);assert.deepEqual(app.errors,[]);
    report.viewports.push({name,width,height});report.checks.push(`${name}: local file, unverified provenance label, evidence keyboard, A/B/C, bad/oversize rejection, old result label, clear/reload privacy, no POST/external traffic, same asset/week return`);
   }finally{await app.context.close();}
  }
  if(process.env.RADAR_PERSONAL_FILE_PATH){
   const bytes=readFileSync(process.env.RADAR_PERSONAL_FILE_PATH);assert.ok(bytes.length<=65536);const app=await fixture(browser),p=app.page,posts=[];p.on('request',r=>{if(r.method()!=='GET')posts.push(r.url());});
-  try{await p.goto(base+'/#radar',{waitUntil:'networkidle'});await p.locator('.history-workspace>summary').click();const panel=p.locator('#personal-history-ai');await panel.getByLabel('选择个人解释文件').setInputFiles({name:'personal.json',mimeType:'application/json',buffer:bytes});await panel.getByRole('region',{name:'个人历史解释结果'}).waitFor();assert.match(await panel.innerText(),/2026-10-22 00:00:00 UTC/);assert.deepEqual(posts,[]);assert.deepEqual(app.errors,[]);report.privateLocalCapture='PASS: existing real saved BTC interpretation imported locally; no upload/model call; not CI fixture';}finally{await app.context.close();}
+  try{await p.goto(base+'/#radar',{waitUntil:'networkidle'});await p.locator('.history-workspace>summary').click();await p.getByRole('group',{name:'历史工作区导航'}).getByRole('button',{name:'已保存解释',exact:true}).click();const panel=p.locator('#personal-history-ai');await panel.getByLabel('选择解释文件').setInputFiles({name:'personal.json',mimeType:'application/json',buffer:bytes});await panel.getByRole('region',{name:'个人历史解释结果'}).waitFor();assert.match(await panel.innerText(),/2026-10-22 00:00:00 UTC/);assert.deepEqual(posts,[]);assert.deepEqual(app.errors,[]);report.privateLocalCapture='PASS: existing real saved BTC interpretation imported locally; no upload/model call; not CI fixture';}finally{await app.context.close();}
  }
  await legacyHistoryChecks();
  }finally{await runtime.dispose();}

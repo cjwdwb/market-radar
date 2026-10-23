@@ -51,7 +51,7 @@ export function PersonalHistoryPanel() {
         <details><summary>同一快照：程序摘要与模型选择</summary>
           <section className="ai-comparison" aria-label="A 程序摘要"><h4>程序摘要</h4><ul>{result.baseline.sentences.map(c => <li key={c.claimId}><ClaimText claim={c} scope={scope} /></li>)}</ul><p>{result.baseline.rationale}</p></section>
           <section className="ai-comparison" aria-label="B 模型选择"><h4>模型选择与顺序</h4><ul>{result.modelSelection.sentences.map(c => <li key={c.claimId}><ClaimText claim={c} scope={scope} /></li>)}</ul><p>只由模型选择固定事实编号与顺序，未重新计算指标。</p></section>
-          <section className="ai-comparison" aria-label="C 最终呈现"><h4>系统补齐后的呈现</h4><p>上述选择加下方全部系统披露；系统补齐不计入模型贡献。</p></section>
+          <section className="ai-comparison" aria-label="C 最终呈现"><h4>系统补齐后的呈现</h4><p>主要观察加上全部冲突与限制；系统补齐不计入模型贡献。</p></section>
         </details>
 
         <Evidence context={result.context} scope={scope}/>
