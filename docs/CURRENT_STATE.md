@@ -1,5 +1,7 @@
 # 当前状态
 
+2026-10-23待发布候选：个人历史AI解释文件可在Radar中本地导入阅读；不上传私人文件、不调用模型、不改真实AI生产保护。独立候选只提取该reader，未包含另一个工作树C1/C2未提交后端能力。682项=681PASS/1Windows既有SKIP、build/typecheck/定向lint、五视口及既有真实BTC解释本地导入新测通过，待审计/CI/发布；当前线上仍v33。[任务](../tasks/MR-PUBLISH-PERSONAL-HISTORY.md)。
+
 2026-10-22正式发布：**Radar本机历史事件 + AI准备 / Sites v33**，源码`6f7e1e889e5b714bd3f26ffd560126bd5ea01cbe`。PR#7正常合并，远端build/typecheck及678/678 Node通过，独立审计/FIX/VERIFY与包装审计通过；平台succeeded、env revision3，原网址 https://market-radar-rex.swt-aether.chatgpt.site 。本机7天/120条历史记录、筛选、原证据与当前图表返回已上线，真实AI仍关闭。未开云资源/迁移/调度或修改秘密和访问策略；生产登录后/真机未测。[发布记录](../tasks/archive/MR-PUBLISH-AI30-PREPARATION.md)、[历史事件验收](../tasks/archive/MR-RADAR-EVENT-HISTORY.md)。主3.0真实交付及数据track仍开放，下面是历史时点。后续文档提交不等于生产重新部署。
 
 2026-10-22：PR#6已合并234347dc，AI准备候选CI661/661通过，但尚未部署。用户追加Radar历史事件，本机7天/120条观察记录与筛选已完成；最终本地678项=677PASS/1既有Windows权限SKIP、构建/类型/lint及五视口9+36组通过，3项独立审计P2已修复复核。待正常上传CI和统一发布；当前生产仍Sitesv32、真实AI关闭。[历史任务](../tasks/archive/MR-RADAR-EVENT-HISTORY.md)、[发布卡](../tasks/archive/MR-PUBLISH-AI30-PREPARATION.md)。

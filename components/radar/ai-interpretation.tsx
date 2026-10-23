@@ -8,13 +8,13 @@ import { interpretationErrors } from "./use-interpretation";
 const time = (at: number) => new Date(at).toISOString().replace("T", " ").slice(0, 19) + " UTC";
 const metricLabels: Record<string, string> = { netPercent: "窗口净变化", efficiency: "路径效率", path: "价格路径", minimumNetPercent: "净变化门槛", minimumEfficiency: "效率门槛", currentRmsPercent: "当前RMS", baselineRmsPercent: "参考RMS", ratio: "RMS倍数", minimumBaselinePercent: "最小参考RMS", lowerRatio: "较低倍数边界", higherRatio: "较高倍数边界", price: "报价", deltaPercentagePoints: "相对差", assetReturnPercent: "资产收益", benchmarkReturnPercent: "基准收益", thresholdPercentagePoints: "相对边界" };
 const evidenceId = (scope: string, id: string) => `${scope}-evidence-${encodeURIComponent(id)}`;
-function ClaimText({ claim, scope }: { claim: Pick<Claim, "text" | "evidenceRefs">; scope: string }) {
+export function ClaimText({ claim, scope }: { claim: Pick<Claim, "text" | "evidenceRefs">; scope: string }) {
   return <>{claim.text}{claim.evidenceRefs.map(id => <button type="button" className="ai-reference" key={id} aria-label={`核对证据 ${id}`} onClick={() => { const target = document.getElementById(evidenceId(scope, id)); const detail = target?.closest("details"); if (detail) detail.open = true; target?.focus(); }}>核对依据</button>)}</>;
 }
-function Evidence({ context, scope }: { context: MarketIntelligenceContext; scope: string }) {
+export function Evidence({ context, scope }: { context: MarketIntelligenceContext; scope: string }) {
   return <details className="ai-evidence"><summary>核对窗口、指标与版本</summary>{context.evidence.map(e => <section tabIndex={-1} key={e.id} id={evidenceId(scope, e.id)}><h4>{e.id} · {e.availability}</h4><p>{e.detail}</p><p>{time(e.startAt)} → {time(e.endAt)}</p><dl>{e.metrics.filter(m => !m.id.endsWith("At")).map(m => <div key={m.id}><dt>{metricLabels[m.id] ?? m.id}</dt><dd>{new Intl.NumberFormat("zh-CN", { maximumSignificantDigits: 10 }).format(m.value)} {m.unit}</dd></div>)}</dl>{e.provenance?.methodId && <p>计算方法 {e.provenance.methodId}</p>}{e.provenance?.configId && <p>计算配置 {e.provenance.configId}</p>}{e.provenance?.quoteAt !== undefined && <p>报价时间 {time(e.provenance.quoteAt)}</p>}{e.provenance?.fetchedAt !== undefined && <p>报价取得时间 {time(e.provenance.fetchedAt)}</p>}{e.provenance?.historyFetchedAt !== undefined && <p>历史取得时间 {time(e.provenance.historyFetchedAt)}</p>}{e.provenance?.intervalMs && <p>原生周期 {e.provenance.intervalMs / 60000} 分钟 · {e.provenance.pointCount} 点 / {e.provenance.returnCount} 个收益</p>}{e.provenance?.baselineStartAt && e.provenance.baselineEndAt && <p>参考窗口 {time(e.provenance.baselineStartAt)} → {time(e.provenance.baselineEndAt)}</p>}{e.provenance?.benchmark && <p>同步基准 {e.provenance.benchmark.symbol} · {e.provenance.benchmark.source} · {e.provenance.benchmark.currency} · {time(e.provenance.benchmark.evidenceEndAt)}</p>}<small>{e.source} · {e.currency} · {e.ruleVersion} · 数据版本 {e.dataVersion}</small></section>)}</details>;
 }
-function Disclosures({ result, scope }: { result: PrivateInterpretation; scope: string }) {
+export function Disclosures({ result, scope }: { result: Pick<PrivateInterpretation, "systemRequired" | "systemAdded">; scope: string }) {
   return <>
     {(["conflict", "limitation"] as const).map(category => {
       const rows = result.systemRequired.filter(d => d.category === category);
