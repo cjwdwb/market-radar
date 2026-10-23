@@ -1,5 +1,9 @@
 # 当前任务索引
 
+## MR-HOMEPAGE-VISITOR — 2026-10-23 主页免访问码阅读入口
+
+[任务卡](MR-HOMEPAGE-VISITOR.md)：用户明确要求从SWT Aether主页直达，无需访问码。基于实际Sites v34/d95b2ea独立修改；新增受限公开访客入口，市场读取可用，云监控和写入认证保留。11项门禁及7项监控/AI授权回归通过，本地workerd浏览器验证通过，独立审计发现的站主登录返回路径已修。Sites发布结果由主站UI-002记录继续登记；下列v33等为历史时点。
+
 ## MR-PUBLISH-PERSONAL-HISTORY — 2026-10-23 网站个人文件阅读入口
 
 [任务卡](MR-PUBLISH-PERSONAL-HISTORY.md)：用户要求上传网站试用，独立候选只包含浏览器内存读取个人解释文件和最小展示复用。私人资料不上传/托管、不新增模型请求，原C1/C2未提交工作树不改动。新4项和既有19项相关回归通过；最终682项=681PASS/1既有Windows权限SKIP，build/typecheck/定向lint和五视口/真实保存文件本地导入通过。待独立审计、GitHub CI与Sites部署；生产仍v33。
