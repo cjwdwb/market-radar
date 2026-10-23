@@ -11,7 +11,7 @@ const base=process.env.RADAR_PREVIEW_URL||'http://localhost:5173';
 // This harness creates signed test cookies, simulated data and test storage. Never target production.
 const testUrl=new URL(base);
 if(!['127.0.0.1','localhost','[::1]'].includes(testUrl.hostname)||!['http:','https:'].includes(testUrl.protocol))throw Error('Radar fixture requires a loopback preview URL.');
-if(process.env.RADAR_AI30B_PRIVATE==='1'&&process.env.RADAR_SYNTHETIC_AUTH!=='1')throw Error('Private UI checks require RADAR_SYNTHETIC_AUTH=1; real credentials are not allowed.');
+if((process.env.RADAR_AI30B_PRIVATE==='1'||process.env.RADAR_UI_POLISH)&&process.env.RADAR_SYNTHETIC_AUTH!=='1')throw Error('Private/UI polish checks require RADAR_SYNTHETIC_AUTH=1; real credentials are not allowed.');
 const stamp=1789372800000,output=process.env.RADAR_OUTPUT_DIR||'outputs/radar';fs.mkdirSync(output,{recursive:true});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const observedWarnings=[];
@@ -1034,6 +1034,7 @@ async function eventHistoryChecks(browser,report){
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={browser:browser.version(),viewports:[],checks:[],errors:[],warnings:observedWarnings};let page;
  try{
+  if(process.env.RADAR_UI_POLISH){const {uiPolishChecks}=await import('./ui-polish.mjs');await uiPolishChecks({browser,fixture,base,output,report,phase:process.env.RADAR_UI_POLISH});fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify({phase:report.phase,checks:report.checks.length,screenshots:report.screenshots.length,errors:report.errors,warnings:report.warnings.length}));return;}
   if(process.env.RADAR_PERSONAL_WEB==='1'){const {personalWebChecks}=await import('./personal-web.mjs');await personalWebChecks({browser,fixture,base,output,report,legacyHistoryChecks:()=>history28Checks(browser,report)});fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_EVENT_HISTORY_ONLY==='1'){await eventHistoryChecks(browser,report);fs.writeFileSync(output+'/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_AI30B_PRIVATE==='1'){await aiPrivateChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
