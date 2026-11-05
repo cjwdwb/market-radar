@@ -3,7 +3,7 @@ import type {Point} from './market';
 /** Reuse unchanged bars so React can skip charts on identical upstream snapshots. */
 export function reusePoints(previous:Point[]|undefined,incoming:Point[]):Point[]{
   if(!previous)return incoming;
-  const fields:(keyof Point)[]=['time','open','high','low','close','volume','confirmed'];
+  const fields:(keyof Point)[]=['time','open','high','low','close','volume','confirmed','windowEnded'];
   let same=previous.length===incoming.length;
   const next=incoming.map((point,i)=>{
     const old=previous[i];
