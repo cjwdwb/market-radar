@@ -1,9 +1,10 @@
 // Paired, isolated production-build evidence. Only synthetic data and credentials.
 import assert from 'node:assert/strict';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
+import { performance } from 'node:perf_hooks';
 import { Miniflare } from 'miniflare';
 
 const stamp = 1789372800000;
@@ -49,8 +50,10 @@ async function fixtureScenario(browser,fixture,origin,{motion='reduced',touch=fa
   },{preferences,watchlist,motion});
   await page.route('**/api/history?**',async route=>{
     const params=new URL(route.request().url()).searchParams,symbol=params.get('symbol'),range=params.get('range');
-    const row={kind:'history',symbol,range,epoch:state.epoch,failed:state.historyFailed,done:false};calls.push(row);
-    const data=history(symbol,range,state.epoch);
+    const epoch=state.realtime?state.realtime.epoch+Date.now()-state.realtime.start:state.epoch;
+    const row={kind:'history',symbol,range,epoch,failed:state.historyFailed,done:false};calls.push(row);
+    const data=history(symbol,range,epoch);
+    if(state.realtime){const last=data.points.at(-1),delta=epoch/10000;for(const key of ['open','high','low','close'])last[key]+=delta;}
     if(state.tailShift&&symbol==='BTC-USDT') {
       data.points.forEach(point=>point.time-=state.tailShift);
       for(const key of ['firstAt','lastAt','lastCompleteAt'])data.metadata[key]-=state.tailShift;
@@ -63,9 +66,10 @@ async function fixtureScenario(browser,fixture,origin,{motion='reduced',touch=fa
     finally {row.done=true;}
   });
   await page.route('**/api/quotes?**',async route=>{
-    const symbols=new URL(route.request().url()).searchParams.get('symbols').split(','),row={kind:'quotes',symbols,epoch:state.epoch,mode:state.quoteMode,done:false};calls.push(row);
-    const results=symbols.flatMap(symbol=>state.quoteMode==='missing'&&symbol==='BTC-USDT'?[]:state.quoteMode==='partial'&&symbol==='ETH-USDT'?[{symbol,error:'合成场景：单一标的失败',errorInfo:{code:'upstream_unavailable',stage:'upstream'}}]:[{symbol,quote:quote(symbol,state.epoch)}]);
-    await route.fulfill({json:{results,fetchedAt:stamp+state.epoch+9999}});row.done=true;
+    const epoch=state.realtime?state.realtime.epoch+Date.now()-state.realtime.start:state.epoch;
+    const symbols=new URL(route.request().url()).searchParams.get('symbols').split(','),row={kind:'quotes',symbols,epoch,mode:state.quoteMode,done:false};calls.push(row);
+    const results=symbols.flatMap(symbol=>state.quoteMode==='missing'&&symbol==='BTC-USDT'?[]:state.quoteMode==='partial'&&symbol==='ETH-USDT'?[{symbol,error:'合成场景：单一标的失败',errorInfo:{code:'upstream_unavailable',stage:'upstream'}}]:[{symbol,quote:quote(symbol,epoch)}]);
+    await route.fulfill({json:{results,fetchedAt:stamp+epoch+9999}});row.done=true;
   });
   await page.route('**/*',route=>{
     if(new URL(route.request().url()).origin!==origin){external.push(route.request().url());return route.abort();}
@@ -85,15 +89,16 @@ const chartSnapshot = page => page.locator('.candle-canvas').evaluate(el=>({star
 export async function reliabilityChecks({browser,fixture,base,output,report,phase,observedWarnings=[]}) {
   assert.ok(['before','after'].includes(phase));assert.equal(process.env.RADAR_SYNTHETIC_AUTH,'1');
   const url=new URL(base);assert.equal(url.hostname,'127.0.0.1');
-  const folder=resolve(output,phase),build=resolve(process.env.RADAR_BUILD_DIR||'dist');mkdirSync(folder,{recursive:true});
-  Object.assign(report,{phase,sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),buildDirectory:build,identity:'Synthetic market fixture on a local production build; no private files, credentials, actual market or model requests',screenshots:[],baselineFailures:[],observations:[],externalRequests:[],conditions:{stamp,watchlist,auto:false,displayTimePreference:'UTC',motion:'reduced except explicit standard-motion check',grid:'native 15m/1H/4H/1Dutc; last confirmation unknown',outbound:'browser external abort and Miniflare outbound denial'},notRun:['physical devices','production authenticated refresh','real source availability','FPS measurement']});
+  const only=process.env.RADAR_RELIABILITY_ONLY;assert.ok(!only||['screens','continuous'].includes(only));
+  const folder=resolve(output,phase+(only?'-'+only:'')),build=resolve(process.env.RADAR_BUILD_DIR||'dist');mkdirSync(folder,{recursive:true});
+  Object.assign(report,{phase,only:only??null,testSourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8',cwd:dirname(build)}).trim(),buildServerSha256:createHash('sha256').update(readFileSync(resolve(build,'server/index.js'))).digest('hex'),buildDirectory:build,identity:'Synthetic market fixture on a local production build; no private files, credentials, actual market or model requests',screenshots:[],baselineFailures:[],observations:[],externalRequests:[],conditions:{stamp,watchlist,auto:false,displayTimePreference:'UTC',motion:'reduced except explicit standard-motion check',grid:'native 15m/1H/4H/1Dutc; last confirmation unknown',outbound:'browser external abort and Miniflare outbound denial'},notRun:['physical devices','production authenticated refresh','real source availability','FPS measurement']});
   const check=(name,passed,detail={})=>{report.observations.push({name,passed:!!passed,...detail});if(passed)report.checks.push(name);else if(phase==='before')report.baselineFailures.push({name,...detail});else assert.ok(passed,`${name}: ${JSON.stringify(detail)}`);};
   const runtime=new Miniflare({host:'127.0.0.1',port:Number(url.port),modules:true,scriptPath:resolve(build,'server/index.js'),modulesRoot:resolve(build,'server'),modulesRules:[{type:'ESModule',include:['**/*.js'],fallthrough:true}],compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],bindings:{ACCESS_CODE_HASH:createHash('sha256').update('PERFFIXTUREONLY').digest('hex'),ACCESS_SESSION_SECRET:'perf-fixture-only-not-a-production-secret-275'},assets:{directory:resolve(build,'client'),binding:'ASSETS',routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}},outboundService:()=>new Response('isolated reliability fixture',{status:503})});
   await runtime.ready;
   let current;
   async function capture(app,name,state,width,height) {
     const page=app.page;
-    await page.locator('#price-chart').evaluate(el=>{el.scrollIntoView({block:'start',behavior:'instant'});window.scrollBy({top:-75,behavior:'instant'});});await settle(page);
+    await page.locator(state==='healthy'?'.period-tabs':'.chart-footer').evaluate(el=>{el.scrollIntoView({block:'start',behavior:'instant'});window.scrollBy({top:-90,behavior:'instant'});});await settle(page);
     const path=resolve(folder,`${name}-${state}.png`);await page.screenshot({path,animations:'disabled'});
     const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
     check(`${name} ${state}: no horizontal overflow`,!overflow);report.screenshots.push({name,state,width,height,path});
@@ -110,6 +115,22 @@ export async function reliabilityChecks({browser,fixture,base,output,report,phas
     await until(async()=>await button.isEnabled()&&app.calls.slice(start).every(row=>row.done),'manual refresh did not settle');return start;
   }
   try {
+    if(only==='screens') {
+      for(const [name,width,height] of viewports) {
+        const app=current=await fixtureScenario(browser,fixture,url.origin),p=app.page;
+        try {
+          await open(app,width,height);await capture(app,name,'healthy',width,height);
+          app.state.epoch=1000;await manual(app);
+          app.state.historyFailed=true;app.state.quoteMode='partial';app.state.epoch=2000;await manual(app);
+          if(await p.locator('.market-data-status').count())await p.locator('.market-data-status>summary').click({force:true});
+          await capture(app,name,'failed-retained',width,height);
+          app.state.historyFailed=false;app.state.quoteMode='healthy';app.state.epoch=3000;await manual(app);await capture(app,name,'recovered',width,height);
+          assert.deepEqual(app.errors,[]);assert.deepEqual(app.external,[]);report.viewports.push({name,width,height});
+        } finally {await app.context.close();current=null;}
+      }
+      report.warnings=observedWarnings;return;
+    }
+    if(!only) {
     for(const [name,width,height] of viewports) {
       const app=current=await fixtureScenario(browser,fixture,url.origin,{touch:name==='narrow'}),p=app.page;
       try {
@@ -199,7 +220,7 @@ export async function reliabilityChecks({browser,fixture,base,output,report,phas
       const title=await p.locator('.selected-title').innerText(),range=await p.locator('.range-trigger[aria-selected="true"]').innerText(),footer=await p.locator('.chart-footer').innerText();
       app.held[0].release();await settle(p);await sleep(100);await settle(p);
       check('rapid asset/range: obsolete history cannot replace current BTC month view',title===await p.locator('.selected-title').innerText()&&range===await p.locator('.range-trigger[aria-selected="true"]').innerText()&&footer===await p.locator('.chart-footer').innerText(),{title,range,footer});
-      check('month selection uses native 4H metadata',phase==='before'?false:/原生 4H/.test(footer),{footer});
+      check('month selection uses native 4H metadata',/原生 4H/.test(footer),{footer});
       await chooseRange(p,'15 分钟');await p.locator('.candle-canvas').waitFor();
       await capture(app,'desktop-standard','healthy',1440,1000);
       app.state.tailShift=6*3600000;app.state.epoch=await p.evaluate(()=>Date.now())-stamp;await manual(app);
@@ -209,6 +230,40 @@ export async function reliabilityChecks({browser,fixture,base,output,report,phas
       check('live reduced-motion preference follows the operating-system setting',await p.evaluate(()=>document.documentElement.dataset.motion)==='reduced');
       assert.deepEqual(app.errors,[]);assert.deepEqual(app.external,[]);report.errors.push(...app.errors);
     } finally {for(const held of app.held)held.release();await app.context.close();current=null;}
+    }
+    // A separate observation with advancing browser time and genuine timer intervals.
+    // It records latency/long tasks, not frame rate or an optimization claim.
+    const live=current=await fixtureScenario(browser,fixture,url.origin,{motion:'normal'}),page=live.page;
+    try {
+      await open(live,1440,1000);
+      await page.evaluate(()=>{window.__reliabilityLongTasks=[];if(PerformanceObserver.supportedEntryTypes.includes('longtask'))new PerformanceObserver(list=>window.__reliabilityLongTasks.push(...list.getEntries().map(entry=>({start:entry.startTime,duration:entry.duration})))).observe({type:'longtask'});});
+      const initialPrice=await page.locator('.chart-price strong').innerText(),initialTime=await statusValue(page,'走势实际获取'),startCalls=live.calls.length;
+      live.state.realtime={start:Date.now(),epoch:await page.evaluate(()=>Date.now())-stamp};
+      const started=performance.now(),actions=[];await page.clock.resume();
+      await page.getByRole('switch',{name:'自动刷新与提醒',exact:true}).click();
+      const action=async(name,execute,feedback)=>{const start=performance.now();await execute();if(feedback)await until(feedback,name+' feedback absent');actions.push({name,elapsedMs:+(performance.now()-start).toFixed(2)});};
+      const initialCount=await page.locator('.zoom-tools>span').innerText();
+      await action('zoom while automatic refresh runs',async()=>{await page.getByRole('button',{name:'放大 K 线',exact:true}).click();},async()=>await page.locator('.zoom-tools>span').innerText()!==initialCount);
+      await sleep(Math.max(1,5100-(performance.now()-started)));
+      await action('drag the chart',async()=>{const box=await page.locator('.candle-canvas').boundingBox();await page.mouse.move(box.x+box.width*.5,box.y+box.height*.45);await page.mouse.down();await page.mouse.move(box.x+box.width*.65,box.y+box.height*.45,{steps:8});await page.mouse.up();});
+      await sleep(Math.max(1,10100-(performance.now()-started)));
+      await action('open related Radar and return',async()=>{await page.locator('.asset-radar-awareness').click();await page.getByRole('button',{name:'返回图表',exact:true}).click();},()=>page.locator('.candle-canvas').isVisible());
+      await sleep(Math.max(1,15100-(performance.now()-started)));
+      await action('show local event history and return',async()=>{await page.locator('.desktop-nav a[href="#radar"]').click();await page.getByRole('group',{name:'事件视图'}).getByRole('button',{name:/历史事件/}).click();await page.locator('.event-history').waitFor();await page.locator('.desktop-nav a[href="#overview"]').click();},()=>page.locator('.candle-canvas').isVisible());
+      const remaining=18500-(performance.now()-started);if(remaining>0)await sleep(remaining);
+      await action('keyboard after the 15-second refresh',async()=>{await page.locator('.candle-canvas').focus();await page.keyboard.press('ArrowLeft');},()=>page.locator('.candle-canvas').isVisible());
+      const elapsedMs=performance.now()-started,longTasks=await page.evaluate(()=>window.__reliabilityLongTasks),requests=live.calls.slice(startCalls),histories=requests.filter(row=>row.kind==='history'&&row.symbol==='BTC-USDT'),quotes=requests.filter(row=>row.kind==='quotes'&&row.symbols.includes('BTC-USDT'));
+      const latestTime=await statusValue(page,'走势实际获取');
+      report.continuous={wallElapsedMs:+elapsedMs.toFixed(2),browserClock:'resumed; timers advance normally for this scenario',auto:true,motion:'normal',actions,requests,longTaskCount:longTasks.length,maxLongTaskMs:longTasks.length?Math.max(...longTasks.map(task=>task.duration)):0,longTasks,initialTime,latestTime,historySurface:'local event history, including its truthful empty state',caveat:'One bounded local synthetic observation, not FPS, real-network latency, a benchmark or an optimization claim'};
+      check('continuous: at least 18 seconds of advancing time with automatic monitoring enabled',elapsedMs>=18000&&await page.getByRole('switch',{name:'自动刷新与提醒',exact:true}).getAttribute('aria-checked')==='true');
+      check('continuous: quote cadence produces repeated newer acquisitions during interactions',quotes.length>=3&&quotes.at(-1).epoch>quotes[0].epoch,{quotes});
+      check('continuous: selected history refresh executes after its 15-second interval',histories.some(row=>row.epoch>=live.state.realtime.epoch+14000),{histories});
+      check('continuous: valid updates reach the visible quote and history time',initialPrice!==await page.locator('.chart-price strong').innerText()&&initialTime!==null&&initialTime!==latestTime,{initialPrice,latestPrice:await page.locator('.chart-price strong').innerText(),initialTime,latestTime});
+      check('continuous: navigation preserves the selected candle period',await page.getByRole('tab',{name:'15 分钟',exact:true}).getAttribute('aria-selected')==='true');
+      check('continuous: page has no horizontal overflow',await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      assert.deepEqual(live.errors,[]);assert.deepEqual(live.external,[]);report.errors.push(...live.errors);
+      await page.clock.pauseAt(new Date(await page.evaluate(()=>Date.now())+100));await capture(live,'desktop-continuous','healthy',1440,1000);
+    } finally {await live.context.close();current=null;}
     report.warnings=observedWarnings;
   } catch(cause) {
     report.failure={message:String(cause),stack:cause.stack};
