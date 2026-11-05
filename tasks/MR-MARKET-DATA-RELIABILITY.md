@@ -1,6 +1,6 @@
 # MR-MARKET-DATA-RELIABILITY
 
-2026-11-05 · Planner → bounded implementation / verification. Part of existing 3.0; return to MR-30-AI-PRODUCTION-DELIVERY afterward.
+2026-11-05 · Local product candidate1aac399 verified; final evidence handoff in progress. Part of existing 3.0; return to MR-30-AI-PRODUCTION-DELIVERY afterward. Upload/deployment remain pending explicit authorization for this candidate.
 
 ## Baseline / authority
 
@@ -65,4 +65,12 @@ Total24 countable site/directmarketHTTPattempts, concurrency1, accumulatedbody�
 
 Per-slice affectedoffline tests (no realnetwork evenwithKey); existingdomain+alertregression; stablefullNode,typecheck/build,affectedlint; comparepreexistingmainlintdiagnostics. ActualproductionbuildWorker routefaultmatrix/proxy+gate/timeout; fiveregularviewports andrefreshsequence: partialfailure/recovery/autopause/manual/rapidasset+range/cancel,confirmboundary,selectedtime,timezone/DST/SSR,noextraquery. screenshotsbefore/afterfixeddata. Realdiagnosisreportseparatefromfixtureandoldhistory. NoFPSclaimwithoutrealclockmeasurement. Optimizeronlyreproduciblebottleneck.
 
-IndependentGPT auditstablefulltaskdiff thenfix/VERIFY, focusing403/429bypass,chainbudget/sharedcancel/cachefetchedAt/proxyidentity/timezone/unknownconfirm/analysisfailure/permissions. Finalfourstatuses: CODE_FIX_VERIFIED, LOCAL_RUNTIME_VERIFIED, LIVE_SOURCE_CHECKED, PRODUCTION_REFRESH_VERIFIED; nofalsefullrestoreifsourceunavailable. Finalreporttenquestions,user-facingfreshnessentrypointsandremainingauthorization. CurrentstagePlannercontractsdefined; proceedBuilderaftersharedtypescommit.
+IndependentGPT auditstablefulltaskdiff thenfix/VERIFY, focusing403/429bypass,chainbudget/sharedcancel/cachefetchedAt/proxyidentity/timezone/unknownconfirm/analysisfailure/permissions. Finalfourstatuses: CODE_FIX_VERIFIED, LOCAL_RUNTIME_VERIFIED, LIVE_SOURCE_CHECKED, PRODUCTION_REFRESH_VERIFIED; nofalsefullrestoreifsourceunavailable. Finalreporttenquestions,user-facingfreshnessentrypointsandremainingauthorization. This section is the original Planner contract; actual execution is recorded below.
+
+## Execution handoff
+
+Source/transport/chart/client and main implementation complete on the isolated branch. Independent audit97c2c3e found a P2 old-tail/fresh-acquisition display gap; fixed648010e and verified. Visual inspection identified duplicated/current-offset labels on older quotes; fixed1aac399 and independently verified against a real DST boundary using offline data. No algorithm threshold, provider, auth, private-file or AI change.
+
+Final Node run on1aac399:761 total,760PASS,1Windows-file-symlink SKIP; build/typecheckPASS. Existing lint issues retained with baseline comparison, no new diagnostics. Local production Worker16PASS; fiveviewport behavior125PASS on648010e. Final1aac399 display check15PASS/15screens and18.5s normal-clock combined observation7PASS with automatic polling/standard motion,0pageerrors/externalrequests/observedlongtasks; notFPS orphone evidence. See [full report](../docs/MARKET_DATA_RELIABILITY.md) for actual test identities and limitations. Real prebatch3requests/11,693bytes/no retries stopped after ETH rate-limit response; do not claim source fully restored or probe around the stop.
+
+Current production stays Sitesv36/source84511bf. No push/merge/tag/deploy, monitor deployment, secrets, purchases, collectors or model calls. Remaining release actions if separately authorized: upload candidate→candidateCI→review/merge→mainCI→same-site deployment→bounded production refresh verification; remote monitor upgrade requires its own verified version/authority. Local testing is not production recovery.

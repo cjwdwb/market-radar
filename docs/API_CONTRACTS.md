@@ -1,5 +1,7 @@
 # API 契约索引
 
+2026-11-05 行情可靠性候选（本地，尚未发布）：`/api/history` 保留旧字段，新增 `metadata/readAt/cache/traceId`；`fetchedAt` 始终是实际获取时间，缓存读取不会续期。`Point.confirmed` 仅表示来源确认，Yahoo 固定周期另用 `windowEnded`，日线 session 结束未知时不推算。失败新增 `errorInfo {code,stage,traceId,retryAt?,upstreamStatus?}`；400 参数、404 不支持、429 限流、504 超时、502 上游/代理数据错误、503 配置/环境错误、499 调用取消。访问门禁 401 不变。`/api/quotes` 每个请求标的恰有一个成功或失败结果；包络 `checkedAt/fetchedAt` 是检查时间，报价新鲜度只取各 `quote.timestamp/fetchedAt`。详见 [可靠性契约](RELIABILITY.md)。
+
 2026-10-23 UI发布前实际构建修复：有效访客会话的GET/HEAD只读白名单补上精确 `/.rsc`，即Vinext主页的数据表示；`/?_rsc`单元路径不能覆盖它。其他RSC页面、无/无效会话、Server Action/写方法仍拒绝，monitor和AI写权限不变。见发布任务中的VISITOR-RSC-001。
 
 2026-10-23主页阅读入口：公开 GET `/from-aether` 发放独立24小时签名访客会话并303到固定 `/`，不依赖Referer、不携带链接秘密。访客只读白名单为 `/`、构建资产、`/_vinext/image`、两份已有examples、GET/HEAD `/api/quotes`、`/api/history`、`/api/reference-history`、`/api/information`、`/api/asset-information`、`/api/interpretation`；各API参数校验仍生效。`/api/monitor`读写、所有写方法和未知路径不开放；完整会话的旧行为不变。退出同时清除访客和完整会话。该入口是公开可分享阅读路径，不承诺来源页限制。见 [MR-HOMEPAGE-VISITOR](../tasks/MR-HOMEPAGE-VISITOR.md)。以下“原门禁不变”为各历史发布时点。
@@ -18,8 +20,8 @@
 
 | 接口 | 输入 | 响应/失败 |
 | --- | --- | --- |
-| GET /api/quotes | symbols 逗号分隔，去重后 1–28 个，符合 VALID_SYMBOL | {results: QuoteResult[], fetchedAt}；无效 400；结果内可有单代码 error |
-| GET /api/history | symbol；range 默认 1d，可为 15m/1d/1w/1m/3m | {symbol,range,points,currency,timezone,source,fetchedAt}；无效 400，取数失败 503 |
+| GET /api/quotes | symbols 逗号分隔，去重后 1–28 个，符合 VALID_SYMBOL | {results: QuoteResult[], fetchedAt, checkedAt, traceId}；无效 400；结果内可有单代码 error/errorInfo |
+| GET /api/history | symbol；range 默认 1d，可为 15m/1d/1w/1m/3m | {symbol,range,points,currency,timezone,source,fetchedAt,readAt?,cache?,metadata?,traceId?}；失败按上方稳定分类，不统一伪装 503 |
 | GET /api/monitor | 站主身份及服务端监控配置 | 代理云端状态；身份失败 401，未配置/连接失败 503 |
 | PUT /api/monitor | 同源；JSON 设置，正文最多 30000 字符 | 转发云端状态/状态码；来源失败 403，过大 413 |
 | POST /api/access、/api/access/logout | 门禁表单，细节见 worker/access-gate.ts | 设置/清除访问会话，返回重定向 |

@@ -11,7 +11,7 @@ const base=process.env.RADAR_PREVIEW_URL||'http://localhost:5173';
 // This harness creates signed test cookies, simulated data and test storage. Never target production.
 const testUrl=new URL(base);
 if(!['127.0.0.1','localhost','[::1]'].includes(testUrl.hostname)||!['http:','https:'].includes(testUrl.protocol))throw Error('Radar fixture requires a loopback preview URL.');
-if((process.env.RADAR_AI30B_PRIVATE==='1'||process.env.RADAR_UI_POLISH)&&process.env.RADAR_SYNTHETIC_AUTH!=='1')throw Error('Private/UI polish checks require RADAR_SYNTHETIC_AUTH=1; real credentials are not allowed.');
+if((process.env.RADAR_AI30B_PRIVATE==='1'||process.env.RADAR_UI_POLISH||process.env.RADAR_RELIABILITY)&&process.env.RADAR_SYNTHETIC_AUTH!=='1')throw Error('Private/UI/reliability checks require RADAR_SYNTHETIC_AUTH=1; real credentials are not allowed.');
 const stamp=1789372800000,output=process.env.RADAR_OUTPUT_DIR||'outputs/radar';fs.mkdirSync(output,{recursive:true});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const observedWarnings=[];
@@ -69,8 +69,11 @@ async function fixture(browser,{mode='normal',intro=false,storage=false,delay=0,
  });
  await page.route('**/api/history?**',async route=>{
   if(delay)await pause(delay);
-  const symbol=new URL(route.request().url()).searchParams.get('symbol');
-  await route.fulfill({status:mode==='error'?503:200,json:{symbol,points:mode==='empty'?[]:series(symbol,mode),currency:symbol.endsWith('-USDT')?'USDT':'USD',source:symbol.endsWith('-USDT')?'OKX 欧易':'Yahoo Finance',fetchedAt:mode==='history-stale'?stamp-180000:stamp,timezone:'UTC'}});
+  const params=new URL(route.request().url()).searchParams,symbol=params.get('symbol'),range=params.get('range'),okx=symbol.endsWith('-USDT');
+  const config=okx?({'15m':[900000,'15m'],'1d':[900000,'15m'],'1w':[3600000,'1H'],'1m':[14400000,'4H'],'3m':[86400000,'1Dutc']})[range]:({'15m':[900000,'15m'],'1d':[300000,'5m'],'1w':[3600000,'60m'],'1m':[null,'1d'],'3m':[null,'1d']})[range];
+  const [intervalMs,bar]=config,raw=mode==='empty'?[]:series(symbol,mode),points=raw.map((point,i)=>({...point,time:stamp-(raw.length-i)*(intervalMs??86400000)}));
+  // Site API includes range; explicit fixture metadata describes its actual synthetic grid.
+  await route.fulfill({status:mode==='error'?503:200,json:{symbol,range,points,currency:okx?'USDT':'USD',source:okx?'OKX 欧易':'Yahoo Finance',fetchedAt:mode==='history-stale'?stamp-180000:stamp,timezone:'UTC',metadata:{intervalMs,bar,exchange:okx?'OKX':'fixture',instrument:symbol,marketType:okx?'spot':'equity',volumeUnit:okx?'base':'shares',bucketTimezone:'UTC',completion:okx?'source':intervalMs?'time_window':'unknown',firstAt:points[0]?.time??null,lastAt:points.at(-1)?.time??null,lastCompleteAt:points.at(-1)&&intervalMs?points.at(-1).time+intervalMs:null,invalidRows:0,duplicateRows:0,gapCount:0,path:okx?'candles':'yahoo-chart',limitations:['synthetic_fixture']}}});
  });
  await page.route('**/api/monitor**',route=>route.fulfill({status:401,json:{error:'仅站主管理'}}));
  return {context,page,errors,requests,priceOffset};
@@ -1034,6 +1037,7 @@ async function eventHistoryChecks(browser,report){
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={browser:browser.version(),viewports:[],checks:[],errors:[],warnings:observedWarnings};let page;
  try{
+  if(process.env.RADAR_RELIABILITY){const {reliabilityChecks}=await import("./market-reliability.mjs");await reliabilityChecks({browser,fixture,base,output,report,phase:process.env.RADAR_RELIABILITY,observedWarnings});return;}
   if(process.env.RADAR_UI_POLISH){const {uiPolishChecks}=await import('./ui-polish.mjs');await uiPolishChecks({browser,fixture,base,output,report,phase:process.env.RADAR_UI_POLISH});fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify({phase:report.phase,checks:report.checks.length,screenshots:report.screenshots.length,errors:report.errors,warnings:report.warnings.length}));return;}
   if(process.env.RADAR_PERSONAL_WEB==='1'){const {personalWebChecks}=await import('./personal-web.mjs');await personalWebChecks({browser,fixture,base,output,report,legacyHistoryChecks:()=>history28Checks(browser,report)});fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_EVENT_HISTORY_ONLY==='1'){await eventHistoryChecks(browser,report);fs.writeFileSync(output+'/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
