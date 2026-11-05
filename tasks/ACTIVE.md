@@ -1,5 +1,9 @@
 # 当前任务索引
 
+## MR-MARKET-UPSTREAM-REPAIR — 2026-11-05 修复剩余来源问题
+
+[任务卡](MR-MARKET-UPSTREAM-REPAIR.md)：接续用户“修复”。已确证Yahoo并发请求重试越过新冷却、独立monitor旧拼接构建缺依赖；先修本地并验证，核对独立Worker授权再处理其实际更新。保留v38真实来源未全面恢复，不换源/绕限流或修改其他项目。
+
 ## MR-MARKET-DATA-LIVE-VERIFY — 2026-11-05 Sites v38 已发布；上游恢复复测仍开放
 
 [任务卡](MR-MARKET-DATA-LIVE-VERIFY.md)：v37真实BTC观察24.553秒内5轮报价/2轮K线刷新通过；Yahoo429、ETH/SOL代理503仍未恢复，生产预算23/24后停止。标准代理错误分类、部分报价误报全空两项P2修复经独立VERIFY、PR#14及main CI各771/771、23项Worker/138项五视口检查后发布原站Sitesv38/source9710a79/env3。v38部署原生succeeded，未重复来源探测，不将平台成功追认为来源恢复。原站主/真机/跨bar边界未测；未改秘密/访问/AI或独立monitor。该卡保留外部来源待办，不归档成全面通过。
