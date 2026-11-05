@@ -32,3 +32,11 @@ Sites原站点已确认v38/public/active。配置只核对原MONITOR_URL指向�
 - 本项目独立Worker官方授权使用隔离Edge；用户主动完成账户验证，WRANGLER的XDG配置限定本项目ignored outputs/upstream-repair/cloudflare-profile，不修改全局或其他项目。首次未完成已关闭，用户要求重新打开后启动第二次。暂无管理授权成功证据。
 - 首个Yahoo修复8412f0b加入beforeAttempt，但独立Auditor同轮settlement复现：A已观察429，外层catch尚未发布冷却，B reset重试仍先派发。P2确认，交原Builder FIX：HTTP429被观察时同步登记冷却，再保留attempt guard；加不await A完成的竞态回归，不能弱化断言。
 - monitor构建切片594ba37（原00404a3）：现有Vite独立依赖图，关闭网站config/env加载；产物workerd8项通过，独立Auditor重跑8/8。没有部署该产物，远端503原因仍未确证。
+
+## 稳定候选 2cb3503
+
+Yahoo同轮竞态FIX fba6cbf（原e85cf34）经独立Auditor重新复现及30项测试VERIFY；监控产物8项独立VERIFY，两个切片合并后内容一致，无未解决confirmed finding。审计不代表来源恢复。
+
+本地Node24.22.1新测：`node node_modules/vinext/dist/cli.js build`、`node scripts/build-monitor.mjs`、`node scripts/typecheck.mjs`均PASS；分项Node全量784项，783PASS/1Windows文件symlink权限SKIP。`tests/reliability-runtime.mjs dist outputs/upstream-repair/runtime.json`实际workerd23PASS，外部网络全部隔离。5修改文件eslint与diffcheck通过。server SHA256 `05ceb9e7752bbe2433d18c086d7292dbd731055678ebf733e5cc2cd847c1f668`；独立monitor SHA256 `b604834a74f90935bc853bf23920c4aa0b9b68a3706ab4cbdb96bcabd9f2dc43`。浏览器、远端CI和发布状态待实测续记，不预填。
+
+用户在自动化登录窗口遇到Google“不安全浏览器/应用”提示后，已停止该登录方式；按用户Google Chrome偏好改为无自动化控制的普通Chrome、项目独立profile和官方OAuth页面。没有关闭证书或安全校验、伪装浏览器或绕过拒绝。真实登录/授权尚未确认，独立Worker仍未更新。
