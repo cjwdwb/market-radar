@@ -1,5 +1,9 @@
 # 当前任务索引
 
+## MR-MARKET-LIVE-SOAK — 2026-11-05 长时间与跨收盘验证
+
+[任务卡](MR-MARKET-LIVE-SOAK.md)：接续用户明确要求，基于v39/a42b95b，独立生产只读浏览器30分钟前台Crypto观察，保持实际刷新频率，冻结请求/字节/时间上限及拒绝后停止。先验证，confirmed defect才修复；旧QA与本轮新测分开，不冒称全市场/全天/真机通过。
+
 ## MR-MARKET-UPSTREAM-REPAIR — 2026-11-05 Sites v39 与独立代理已发布
 
 [归档](archive/MR-MARKET-UPSTREAM-REPAIR.md)：Yahoo并发冷却竞态/monitor依赖构建已修，PR#15与main CI各784项全PASS，138项五视口、23项Worker及独立FIX/VERIFY。源码1f4161d已发布原站Sitesv39/env3；官方授权后同步原monitor version7a16fae6，原DB/秘密/配置/cron保持。新生产两轮20.409秒观察ETH/SOL各96根原生15m、0gap，获取时间和盘中成交量真实前进，报价时间前进；NVDA单次成功。仅两资产有限接口恢复，不宣称全市场/跨bar/真机/长时全面通过；原诊断历史保留，主3.0继续开放。
