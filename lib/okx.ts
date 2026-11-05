@@ -32,7 +32,7 @@ async function requestOnce(path: string, params: Record<string, string>, scope: 
     try {
       const url = new URL(path, origin);
       for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-      const body = await marketJson<{ code?: unknown; data?: unknown }>(url, { ...scope, timeoutMs: 8_000 });
+      const body = await marketJson<{ code?: unknown; data?: unknown }>(url, { ...scope, timeoutMs: 8_000, onRateLimit: rememberOKXRateLimit });
       if (!body || typeof body !== "object") throw marketError("invalid_data", scope, { stage: "parse" });
       if (body.code === "50011") throw marketError("rate_limited", scope, { upstreamStatus: 429, retryAt: Date.now() + 60_000, businessCode: "50011" });
       if (body.code !== "0") throw marketError("upstream_business_error", scope, { businessCode: typeof body.code === "string" && /^[A-Za-z0-9_-]{1,20}$/.test(body.code) ? body.code : undefined });
