@@ -37,3 +37,19 @@ test('spring-forward omits nonexistent local times without shifting timestamps',
   assert.equal(formatMarketTime(after, 'America/New_York', 'clock'), '03:30:00 UTC−04:00');
   assert.equal(formatMarketTime(after, 'America/New_York', 'short', false), '03/08 03:30');
 });
+
+test('UTC midnight, Shanghai local midnight and the year boundary retain the same instant',()=>{
+  const at=Date.parse('2027-01-01T00:00:00Z');
+  assert.equal(formatMarketTime(at,'UTC'),'2027/01/01 00:00:00 UTC');
+  assert.equal(formatMarketTime(at,'Asia/Shanghai'),'2027/01/01 08:00:00 UTC+08:00');
+  assert.equal(formatMarketTime(at,'America/Los_Angeles'),'2026/12/31 16:00:00 UTC−08:00');
+  assert.equal(formatMarketTime(Date.parse('2026-12-31T16:00:00Z'),'Asia/Shanghai'),'2027/01/01 00:00:00 UTC+08:00');
+});
+
+test('Los Angeles device-zone spring jump and repeated fall hour use the offset at each bar',()=>{
+  const zone=resolveDisplayTimezone('device','America/Los_Angeles');
+  for(const [iso,expected] of [
+    ['2026-03-08T09:30:00Z','01:30:00 UTC−08:00'],['2026-03-08T10:30:00Z','03:30:00 UTC−07:00'],
+    ['2026-11-01T08:30:00Z','01:30:00 UTC−07:00'],['2026-11-01T09:30:00Z','01:30:00 UTC−08:00'],
+  ])assert.equal(formatMarketTime(Date.parse(iso),zone,'clock'),expected);
+});
