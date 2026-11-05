@@ -1,5 +1,9 @@
 # 当前任务索引
 
+## MR-PUBLISH-MARKET-RELIABILITY — 2026-11-05 已获准上传部署
+
+[发布卡](MR-PUBLISH-MARKET-RELIABILITY.md)：用户明确批准已验证候选上传GitHub并部署原站点。正常PR/CI、同源包装/独立审计、Sites原生终态与有界线上复测进行中。原v36继续运行；不启用AI、不改秘密或访问设置，不单独发布monitor。
+
 ## MR-MARKET-DATA-RELIABILITY — 2026-11-05 本地候选完成，待发布决定
 
 [任务卡](MR-MARKET-DATA-RELIABILITY.md)、[专项报告](../docs/MARKET_DATA_RELIABILITY.md)：独立 reliability30 接续 main4352b73，产品候选1aac399。已修复受控回退/共享取消/缓存时效/刷新接续/K线确认/时间显示；760项Node通过、1项Windows链接权限跳过，构建/类型及16项Worker通过。五视口125项行为检查通过；最终显示修复另完成三状态15张截图/15项无横向溢出检查和7项正常计时联合检查。独立审计的末端延迟与旧报价DST标签均修复VERIFY，最终报告及证据已只读核对。真实线上仅3次受控请求，BTC成功、ETH限流后停止，历史503唯一根因仍未知。保留生产v36、访客/门禁/AI关闭；未上传、未重新部署，发布待本专项明确授权。后续回接原3.0，不扩模型或采集。
