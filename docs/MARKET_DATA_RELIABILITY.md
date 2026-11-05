@@ -2,6 +2,8 @@
 
 任务：MR-MARKET-DATA-RELIABILITY。日期：2026-11-05（Asia/Shanghai）。本文件区分代码候选、隔离验证和真实线上观察，不把模拟输入当生产行情。
 
+**最新修复已随Sites v39与原独立monitor上线。** 源码1f4161d/PR#15；Yahoo同轮429冷却竞态和monitor依赖打包修复经过独立审计，PR/main CI各784项全PASS。旧monitor仍是9月代码已实际确认，官方授权后更新为7a16fae6，保持绑定、秘密和调度。2026-11-05 13:44UTC新生产20.409秒/7次有限观察：ETH/SOL原生15m各两轮96根、0gap，同根未收盘成交量真实变化，两资产报价时间均前进，行情请求全部200。NVDA先前单次成功；本批累计10次后停止。全市场/跨bar/长时/真机未验证，不推断旧503唯一上游根因。[完整修复/发布/证据及限制](../tasks/archive/MR-MARKET-UPSTREAM-REPAIR.md)。以下v37/v38和开发记录保留原时点。
+
 **后续发布已完成：Sites v37 / source2d2d08b，PR#13正常合并，PR与main CI各761/761通过，独立包装审计通过。** 生产环境仍revision3，原网址及AI关闭保持。发布后2次请求确认入口303/首页200，但首页出现验证相关标记而停止；后续行情刷新BLOCKED/NOT RUN，不宣称全面恢复。详见[发布归档](../tasks/archive/MR-PUBLISH-MARKET-RELIABILITY.md)。下文为开发阶段交接记录；其“未上传/未部署”描述属于发布前时点，不能覆盖本段最新结果。
 
 ## 基线与边界

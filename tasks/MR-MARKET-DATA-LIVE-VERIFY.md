@@ -61,3 +61,5 @@ Builder独立worktree提交8c6a240/22a8407，协调者分别cherry-pick为ad4e0b
 - 保留原public audience、秘密/访问/关闭的产品AI，未部署独立monitor、未建资源/标签/调度；旧v37可回退。本卡随后文档收尾不代表再部署。未重复真实来源请求，v38的页面/来源复测NOT RUN（既定有界预算/拒绝后停止）；原生成功验证发布，不验证行情恢复。
 
 本批结果：CODE_FIX/LOCAL_VERIFICATION/INDEPENDENT_REVIEW/GITHUB_CI/PUBLISHED=PASS；v37 BTC短时真实刷新=PASS；全市场来源恢复=BLOCKED；新bar边界、长期运行、站主与真机=NOT RUN。保留该任务为部分验证，不能归档为全面恢复。下一步仅在对应来源恢复/具备独立monitor诊断条件后，对Yahoo、ETH/SOL及新bar边界做低频补证；不以重复刷新、直连绕过或更换来源来制造通过。
+
+后续2026-11-05用户“修复”另开有限任务：[MR-MARKET-UPSTREAM-REPAIR](archive/MR-MARKET-UPSTREAM-REPAIR.md)。源码1f4161d已发布Sitesv39，并经官方授权更新原monitor；新批两轮ETH/SOL原生15m历史与报价200、获取/报价时间及同根成交量前进，NVDA单次报价成功。旧23/24请求和失败记录不修改；ETH/SOL有限接口恢复已获新证据，旧事故唯一上游原因/所有股票/新bar/长时/真机/站主仍未验证。这里继续保留剩余验证范围，不把新结果追认到v37/v38。

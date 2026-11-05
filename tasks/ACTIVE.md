@@ -1,12 +1,12 @@
 # 当前任务索引
 
-## MR-MARKET-UPSTREAM-REPAIR — 2026-11-05 修复剩余来源问题
+## MR-MARKET-UPSTREAM-REPAIR — 2026-11-05 Sites v39 与独立代理已发布
 
-[任务卡](MR-MARKET-UPSTREAM-REPAIR.md)：接续用户“修复”。已确证Yahoo并发请求重试越过新冷却、独立monitor旧拼接构建缺依赖；先修本地并验证，核对独立Worker授权再处理其实际更新。保留v38真实来源未全面恢复，不换源/绕限流或修改其他项目。
+[归档](archive/MR-MARKET-UPSTREAM-REPAIR.md)：Yahoo并发冷却竞态/monitor依赖构建已修，PR#15与main CI各784项全PASS，138项五视口、23项Worker及独立FIX/VERIFY。源码1f4161d已发布原站Sitesv39/env3；官方授权后同步原monitor version7a16fae6，原DB/秘密/配置/cron保持。新生产两轮20.409秒观察ETH/SOL各96根原生15m、0gap，获取时间和盘中成交量真实前进，报价时间前进；NVDA单次成功。仅两资产有限接口恢复，不宣称全市场/跨bar/真机/长时全面通过；原诊断历史保留，主3.0继续开放。
 
-## MR-MARKET-DATA-LIVE-VERIFY — 2026-11-05 Sites v38 已发布；上游恢复复测仍开放
+## MR-MARKET-DATA-LIVE-VERIFY — 2026-11-05 原记录保留；后续 ETH/SOL 有限恢复已验证
 
-[任务卡](MR-MARKET-DATA-LIVE-VERIFY.md)：v37真实BTC观察24.553秒内5轮报价/2轮K线刷新通过；Yahoo429、ETH/SOL代理503仍未恢复，生产预算23/24后停止。标准代理错误分类、部分报价误报全空两项P2修复经独立VERIFY、PR#14及main CI各771/771、23项Worker/138项五视口检查后发布原站Sitesv38/source9710a79/env3。v38部署原生succeeded，未重复来源探测，不将平台成功追认为来源恢复。原站主/真机/跨bar边界未测；未改秘密/访问/AI或独立monitor。该卡保留外部来源待办，不归档成全面通过。
+[任务卡](MR-MARKET-DATA-LIVE-VERIFY.md)：保留v37 BTC真实刷新及v38修复/当时Yahoo429、ETH/SOL503失败记录。后续独立修复/新批次见上项：ETH/SOL两轮接口已恢复，NVDA单次成功；不把新证据追认到旧版本。全市场、站主/真机/跨bar和长期运行待办继续开放，不归档为全面验证。
 
 ## MR-PUBLISH-MARKET-RELIABILITY — 2026-11-05 已上传部署 Sites v37
 

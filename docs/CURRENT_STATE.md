@@ -1,5 +1,9 @@
 # 当前状态
 
+2026-11-05最新正式发布：**来源冷却与独立代理修复 / Sites v39**，源码`1f4161d84bb7e4266ff2c2406efc20026981d6a9`，原生succeeded/env3，原网址 https://market-radar-rex.swt-aether.chatgpt.site 。[PR#15](https://github.com/cjwdwb/market-radar/pull/15)和main CI均build/typecheck/784项全PASS；本地23项Worker/138项五视口及独立审计FIX/VERIFY完成。同步原Cloudflare monitor新version`7a16fae6-0fb7-4ba9-a3d5-2b6fda4e6668`，原DB/secret/compat/observability/cron保持。
+
+新生产真实检查：ETH/SOL各两轮96根原生15m、0gap/invalid/duplicate；20.409秒内两者获取时间和同根未收盘成交量前进，报价时间前进，全部行情请求200。NVDA早先单次有效前收盘报价200；未验证所有股票。应用本批累计10次/62641bytes后停止，非浏览器长期/跨bar/真机验收。旧v38失败记录不改写；[修复与发布归档](../tasks/archive/MR-MARKET-UPSTREAM-REPAIR.md)。未改来源、刷新、访问、AI或金融语义，主3.0/历史数据track继续开放；后续文档提交不重新部署。以下为历史时点。
+
 2026-11-05最新正式发布：**线上刷新补证与局部修复 / Sites v38**，源码`9710a7951eeb9d371b7afa5ddf3a766e6af045aa`，原生succeeded/env3，原网址 https://market-radar-rex.swt-aether.chatgpt.site 。[PR#14](https://github.com/cjwdwb/market-radar/pull/14)正常合并，PR/main CI各build/typecheck/771项Node全PASS；23项Worker、138项五视口浏览器及独立源码/包装VERIFY。修正标准代理错误被统一改写、部分报价成功仍显示全空两项P2；行情来源/阈值/刷新/访问设置/AI保持。
 
 新生产证据属于v37：正常浏览器可进工作台，无可见挑战；受控Crypto观察24.553秒内BTC报价5轮/K线2轮，同根未收盘bar真实变化并显示。Yahoo429、ETH/SOL代理503仍未恢复；第二次观察提前停止Yahoo请求，不代表全市场通过。生产非静态请求累计23/24后停止，v38没有再次请求行情；不能将新部署或本地模拟追认为上游恢复。站主/真机/新bar边界/长时未测。[任务与待办](../tasks/MR-MARKET-DATA-LIVE-VERIFY.md)、[证据说明](MARKET_DATA_RELIABILITY.md)。后续文档提交不重新部署，主3.0继续开放。以下为历史时点。
