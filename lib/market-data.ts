@@ -37,7 +37,7 @@ function yahooMetadata(symbol: string, range: Range, data: YahooResult, parsed: 
   const config = yahooRanges[range]; const market = assetFor(symbol).market;
   const metadata = historyMetadata(parsed.points, {
     intervalMs: config.intervalMs, bar: config.interval, exchange: data.meta.exchangeName ?? "unknown", instrument: symbol,
-    marketType: market === "crypto" ? "spot" : symbol.startsWith("^") ? "index" : "equity", volumeUnit: market === "crypto" ? "unknown" : "shares",
+    marketType: market === "crypto" ? "spot" : symbol.startsWith("^") ? "index" : "equity", volumeUnit: market === "crypto" || symbol.startsWith("^") ? "unknown" : "shares",
     bucketTimezone: data.meta.exchangeTimezoneName ?? "UTC", completion: config.intervalMs ? "time_window" : "unknown", invalidRows: parsed.invalidRows, duplicateRows: parsed.duplicateRows,
     path: "yahoo-chart", limitations: ["source_confirmation_unavailable", ...(config.intervalMs ? [] : ["daily_session_end_unknown"]), ...(parsed.invalidRows ? ["invalid_rows"] : []), ...(parsed.duplicateRows ? ["duplicate_rows"] : [])],
   });

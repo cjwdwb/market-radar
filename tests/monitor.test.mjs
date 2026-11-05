@@ -26,3 +26,11 @@ test('cloud records one trigger, preserves it on stale sync, rearms and pauses s
   await save({...config,alerts:[]});assert.equal((await state()).alerts.length,0);
  }finally{globalThis.fetch=original;}
 });
+
+test('monitor history preserves forwarded trace and expired absolute deadline without dispatch',async t=>{
+ let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json({});});
+ const traceId='12345678-1234-4234-8234-123456789abc';
+ const request=new Request('https://monitor.test/history?symbol=BTC-USDT&range=1d',{headers:{Authorization:'Bearer test-token','X-Market-Deadline':String(Date.now()-1),'X-Market-Trace':traceId}});
+ const response=await worker.fetch(request,{MONITOR_TOKEN:'test-token'});const body=await response.json();
+ assert.equal(response.status,504);assert.equal(body.errorInfo.code,'timeout');assert.equal(body.errorInfo.traceId,traceId);assert.equal(calls,0);
+});
