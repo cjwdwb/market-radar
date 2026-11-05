@@ -1,5 +1,9 @@
 # 当前任务索引
 
+## MR-MARKET-DATA-RELIABILITY — 2026-11-05 专项进行中
+
+[任务卡](MR-MARKET-DATA-RELIABILITY.md)：独立reliability30工作树接续main4352b73/生产v36。已复现403跨端点回退和Yahoo缓存fetchedAt续命，历史503根因仍未知；按冻结的请求/时效/K线/显示时区四份契约修复并做三环境验证。保留v36/访客/门禁/AI关闭，未获本专项新发布授权；完成后回接原3.0主任务，不扩模型或数据采集。
+
 ## MR-PUBLISH-UI30-POLISH — 2026-10-23 已上传部署 Sites v36
 
 [发布归档](archive/MR-PUBLISH-UI30-POLISH.md)：PR#10/#11/#12已合并，源码84511bf；最终远端build/typecheck及701/701 Node PASS，独立源码/包装VERIFY。Sitesv36原生succeeded/env3。UI收口、同期v35访客入口保留，实际构建发现的访客root RSC重复401已修并复测。原网址、模型关闭及私人文件内存边界不变；主3.0与其他数据任务继续开放。
