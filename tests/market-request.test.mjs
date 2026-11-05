@@ -1,6 +1,6 @@
 import test,{beforeEach} from 'node:test';
 import assert from 'node:assert/strict';
-import {marketJson,marketScope,SharedMarketRequests,errorInfo,publicError} from '../lib/market-request.ts';
+import {marketJson,marketScope,SharedMarketRequests,errorInfo,publicError,marketError,errorResponse} from '../lib/market-request.ts';
 import {getOKXTickers,getOKXHistory,getOKXQuote} from '../lib/okx.ts';
 import {getQuote,getHistory,getQuotes} from '../lib/market-data.ts';
 
@@ -29,6 +29,95 @@ test('Retry-After seconds/date and unsuccessful cleanup preserve longest wait',a
  for(const header of ['120',new Date(now+180000).toUTCString()]){
   t.mock.method(globalThis,'fetch',async()=>({ok:false,status:429,headers:new Headers({'Retry-After':header}),body:{cancel:async()=>{throw reset();}}}));
   await assert.rejects(marketJson(url,{timeoutMs:100}),error=>error.retryAt===(header==='120'?now+120000:Date.parse(header)));
+ }
+});
+
+test('only opted-in monitor errors preserve standard codes with local trace and no retries',async t=>{
+ const standards=[['invalid_parameter'],['unsupported_asset',404],['timeout'],['upstream_denied',403],['upstream_denied',401],['upstream_denied',451],['invalid_data'],['environment_denied'],['transport_error'],['upstream_unavailable',503],['unexpected_content_type'],['invalid_json'],['upstream_business_error'],['upstream_business_error',302],['empty'],['insufficient']];
+ for(const [code,upstreamStatus] of standards){
+  let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return errorResponse(marketError(code,{traceId:'remote-trace'},{upstreamStatus}));});
+  const scope=marketScope({traceId:'site-trace'},1000,2);
+  await assert.rejects(marketJson(url,{...scope,timeoutMs:1000,attempts:2,stage:'proxy',monitorErrors:true}),error=>{
+   assert.equal(error.code,code);assert.equal(error.status,upstreamStatus);assert.equal(error.traceId,'site-trace');assert.equal(error.stage,'proxy');assert.equal(error.validatedMonitorError,true);assert.equal(error.message,publicError(marketError(code)));return true;
+  });assert.equal(calls,1,code);assert.equal(scope.budget.used,1);
+ }
+ let reads=0;t.mock.method(globalThis,'fetch',async()=>({ok:false,status:504,headers:new Headers({'Content-Type':'application/json'}),body:{getReader(){reads++;throw Error('must not read');},cancel:async()=>{}}}));
+ await assert.rejects(marketJson(url,{timeoutMs:1000}),error=>error.code==='upstream_unavailable'&&!error.validatedMonitorError);assert.equal(reads,0);
+});
+
+test('monitor rejects mismatched code/status and invalid standard shapes using original HTTP cause',async t=>{
+ const valid={error:'untrusted free text',errorInfo:{code:'timeout',stage:'upstream',traceId:'remote'}};
+ const cases=[
+  [503,valid],[503,{error:'old monitor: rate limit 429'}],[503,{error:'busy',errorInfo:{code:'rate_limited',retryAt:now+180000}}],
+  [502,{...valid,errorInfo:{code:'not_a_code'}}],[502,{...valid,errorInfo:{code:'proxy_auth_error'}}],
+  [502,{...valid,errorInfo:{code:'upstream_denied',upstreamStatus:503}}],[502,{...valid,errorInfo:{code:'upstream_unavailable',upstreamStatus:403}}],
+  [502,{...valid,errorInfo:{code:'invalid_data',upstreamStatus:200}}],[502,{...valid,errorInfo:{code:'upstream_denied',upstreamStatus:'403'}}],
+  [502,{...valid,errorInfo:{code:'invalid_data',retryAt:now+180000}}],[502,{...valid,errorInfo:{code:'invalid_data',stage:'unknown'}}],
+  [502,{...valid,errorInfo:{code:'invalid_data',traceId:42}}],[502,{errorInfo:{code:'invalid_data'}}],
+  [502,{error:42,errorInfo:{code:'invalid_data'}}],[502,{error:'oops',errorInfo:[]}],[502,null],[502,[]],
+  [499,{...valid,errorInfo:{code:'caller_cancelled'}}],[499,{...valid,errorInfo:{code:'superseded'}}],
+ ];
+ for(const [status,body] of cases){
+  let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json(body,{status});});
+  await assert.rejects(marketJson(url,{timeoutMs:1000,attempts:2,monitorErrors:true}),error=>error.code===(status>=500?'upstream_unavailable':'upstream_business_error')&&error.status===status&&!error.validatedMonitorError);assert.equal(calls,1);
+ }
+});
+
+test('monitor error body limits, malformed JSON and interrupted streams retain HTTP failure without retry',async t=>{
+ for(const mode of ['html','json','declared-size','stream-size','caller-size','stream-failure']){
+  let calls=0,cancelled=0;
+  t.mock.method(globalThis,'fetch',async()=>{
+   calls++;
+   if(mode==='html')return new Response('<html>429</html>',{status:503,headers:{'Content-Type':'text/html'}});
+   if(mode==='json')return new Response('{',{status:503,headers:{'Content-Type':'application/json'}});
+   return new Response(new ReadableStream({pull(controller){if(mode==='stream-failure')controller.error(reset());else controller.enqueue(new Uint8Array(mode==='caller-size'?64:8193));},cancel(){cancelled++;}}),{status:503,headers:{'Content-Type':'application/json',...(mode==='declared-size'?{'Content-Length':'8193'}:{})}});
+  });
+  await assert.rejects(marketJson(url,{timeoutMs:1000,attempts:2,monitorErrors:true,maxBytes:mode==='caller-size'?32:512*1024}),error=>error.code==='upstream_unavailable'&&error.status===503&&!error.validatedMonitorError);assert.equal(calls,1,mode);
+  if(['declared-size','stream-size','caller-size'].includes(mode))assert.equal(cancelled,1,mode);
+ }
+});
+
+test('monitor error parsing retains the original body deadline, cancellation and attempt budget',async t=>{
+ for(const mode of ['deadline','timer','caller_cancelled','superseded']){
+  let calls=0,cancelled=0;const controller=new AbortController();
+  t.mock.method(globalThis,'fetch',async()=>{calls++;return new Response(new ReadableStream({pull(stream){if(mode==='deadline'){now+=101;stream.enqueue(new TextEncoder().encode('{}'));}},cancel(){cancelled++;}}),{status:502,headers:{'Content-Type':'application/json'}});});
+  const scope=marketScope({signal:controller.signal,deadline:now+100},1000,1);
+  const pending=marketJson(url,{...scope,timeoutMs:mode==='timer'?10:1000,attempts:2,monitorErrors:true});
+  if(['caller_cancelled','superseded'].includes(mode)){await turn();controller.abort(mode==='superseded'?'superseded':undefined);}
+  await assert.rejects(pending,error=>error.code===(['deadline','timer'].includes(mode)?'timeout':mode));assert.equal(calls,1);assert.equal(cancelled,1);assert.equal(scope.budget.used,1);
+ }
+ const scope=marketScope({},1000,0);let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json({});});
+ await assert.rejects(marketJson(url,{...scope,timeoutMs:1000,monitorErrors:true}),error=>error.code==='upstream_unavailable');assert.equal(calls,0);
+});
+
+test('monitor 429 takes the longest safe typed/header/default cooldown without trusting malformed fields',async t=>{
+ for(const [retryAt,header,expected,validated] of [
+  [now+180000,'120',now+180000,true],[now+120000,'180',now+180000,true],[now-1000,'0',now+60000,true],
+  [now+120000,new Date(now+240000).toUTCString(),now+240000,true],
+  [Number.MAX_SAFE_INTEGER,'0',Number.MAX_SAFE_INTEGER,true],[now+120000,'9'.repeat(400),Number.MAX_SAFE_INTEGER,true],
+  [Number.MAX_SAFE_INTEGER+1,'180',now+180000,false],['2000000000000','180',now+180000,false],[-1,'180',now+180000,false],[now+0.5,'180',now+180000,false],
+ ]){
+  let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json({error:'remote-secret',errorInfo:{code:'rate_limited',stage:'upstream',retryAt,upstreamStatus:429,traceId:'remote'}},{status:429,headers:{'Retry-After':header}});});
+  await assert.rejects(marketJson(url,{timeoutMs:1000,attempts:2,monitorErrors:true,traceId:'site'}),error=>error.code==='rate_limited'&&error.retryAt===expected&&error.validatedMonitorError===validated&&error.traceId==='site'&&!error.message.includes('remote-secret'));assert.equal(calls,1);
+ }
+});
+
+test('known proxy HTTP denial and rate limits survive unusable details while caller cancellation still wins',async t=>{
+ for(const status of [401,403]){
+  let reads=0;t.mock.method(globalThis,'fetch',async()=>({ok:false,status,headers:new Headers({'Content-Type':'application/json'}),body:{getReader(){reads++;throw Error('must not read');},cancel:async()=>{}}}));
+  await assert.rejects(marketJson(url,{timeoutMs:1000,monitorErrors:true}),error=>error.code==='upstream_denied'&&error.status===status&&!error.validatedMonitorError);assert.equal(reads,0);
+ }
+ for(const mode of ['deadline','timer','caller_cancelled','html','json','size']){
+  let calls=0,cancelled=0;const controller=new AbortController();
+  t.mock.method(globalThis,'fetch',async()=>{
+   calls++;const headers={'Content-Type':mode==='html'?'text/html':'application/json','Retry-After':'180'};
+   if(mode==='html'||mode==='json')return new Response(mode==='html'?'<html>':'{',{status:429,headers});
+   return new Response(new ReadableStream({pull(stream){if(mode==='deadline'){now+=101;stream.enqueue(new TextEncoder().encode('{}'));}if(mode==='size')stream.enqueue(new Uint8Array(8193));},cancel(){cancelled++;}}),{status:429,headers});
+  });
+  const until=now+180000;const pending=marketJson(url,{timeoutMs:mode==='timer'?10:1000,deadline:now+100,attempts:2,monitorErrors:true,signal:controller.signal});
+  if(mode==='caller_cancelled'){await turn();controller.abort();}
+  await assert.rejects(pending,error=>mode==='caller_cancelled'?error.code==='caller_cancelled':error.code==='rate_limited'&&error.retryAt>=until&&error.retryAt<=now+180000);assert.equal(calls,1,mode);
+  if(!['html','json'].includes(mode))assert.equal(cancelled,1,mode);
  }
 });
 test('bounded body and deadline cover body reading, with stream cancellation',async t=>{

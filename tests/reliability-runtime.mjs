@@ -7,6 +7,7 @@ import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {execFileSync} from 'node:child_process';
 import {accessCodeHash} from '../worker/access-gate.ts';
+import {marketError,errorResponse} from '../lib/market-request.ts';
 
 const build=resolve(process.argv[2]??'dist');
 const reportPath=resolve(process.argv[3]??'outputs/reliability/runtime.json');
@@ -16,6 +17,7 @@ const sourceDirty=Boolean(execFileSync('git',['status','--porcelain'],{encoding:
 const workerSha256=createHash('sha256').update(await readFile(resolve(build,'server/index.js'))).digest('hex');
 const startedAt=new Date().toISOString();
 const checks=[],outbound=[];let mode='valid',unexpected=0,stalledController;
+const standardErrors={'typed-timeout':['timeout'],'typed-denied':['upstream_denied',403],'typed-invalid':['invalid_data'],'typed-environment':['environment_denied'],'typed-transport':['transport_error'],'typed-unavailable':['upstream_unavailable',503]};
 function fixtureHistory(){
  const fetchedAt=Date.now()-1000,open=Math.floor(fetchedAt/900000)*900000;
  return {symbol:'BTC-USDT',range:'1d',currency:'USDT',source:'OKX 欧易',timezone:'UTC',fetchedAt,points:[{time:open-900000,open:99,high:102,low:98,close:100,volume:20,confirmed:true},{time:open,open:100,high:103,low:99,close:102,volume:5,confirmed:false}]};
@@ -33,11 +35,14 @@ const runtime=new Miniflare({
    return Response.json({code:'0',data:[{instId:'BTC-USDT',last:'102',open24h:'100',ts:String(Date.now()),high24h:'103',low24h:'99',volCcy24h:'1000'}]});
   }
   if(url.origin!=='https://monitor-fixture.invalid'||url.pathname!=='/history'){unexpected++;return new Response('Unexpected outbound denied',{status:403});}
-  outbound.push({mode,method:request.method,symbol:url.searchParams.get('symbol'),range:url.searchParams.get('range'),at:new Date().toISOString()});
+  outbound.push({mode,method:request.method,symbol:url.searchParams.get('symbol'),range:url.searchParams.get('range'),traceId:request.headers.get('X-Market-Trace'),at:new Date().toISOString()});
+  if(standardErrors[mode]){const [code,upstreamStatus]=standardErrors[mode];return errorResponse(marketError(code,{traceId:'remote-fixture-trace'},{upstreamStatus}));}
+  if(mode==='mismatched-503')return Response.json({error:'remote text',errorInfo:{code:'rate_limited',retryAt:Date.now()+180000}},{status:503});
+  if(mode==='429')return Response.json({error:'remote text',errorInfo:{code:'rate_limited',upstreamStatus:429,retryAt:Date.now()+180000,traceId:'remote-fixture-trace'}},{status:429,headers:{'Retry-After':'120'}});
   if(mode==='timeout')return new Response(new ReadableStream({start(controller){stalledController=controller;}}),{headers:{'Content-Type':'application/json'}});
   if(mode==='html')return new Response('<html>synthetic challenge</html>',{headers:{'Content-Type':'text/html'}});
   if(mode==='json')return new Response('{',{headers:{'Content-Type':'application/json'}});
-  if(['401','403','429','503'].includes(mode))return new Response('',{status:Number(mode),headers:mode==='429'?{'Retry-After':'120'}:{}});
+  if(['401','403','503'].includes(mode))return new Response('',{status:Number(mode)});
   const history=fixtureHistory();if(mode==='identity')history.symbol='ETH-USDT';if(mode==='invalid')history.points[0].high=1;
   return Response.json(history);
  },
@@ -55,14 +60,14 @@ try{
  const write=await runtime.dispatchFetch('http://localhost/api/history',{method:'POST',headers});assert.equal(write.status,401);await write.arrayBuffer();
  assert.equal(outbound.length,0,'server rendering and access checks must not fetch market data');
  mode='quotes';const quotes=await runtime.dispatchFetch('http://localhost/api/quotes?symbols=BTC-USDT,ETH-USDT',{headers});const batch=await quotes.json();assert.equal(quotes.status,200);assert.equal(batch.results.length,2);assert.equal(batch.results[0].quote.currency,'USDT');assert.equal(batch.results[1].errorInfo.code,'unsupported_asset');assert.equal(outbound.length,1);checks.push({name:'direct-quote-partial-result',status:'PASS',observableProviderAttempts:1});
- for(const [next,expected,code] of [['valid',200,null],['identity',502,'invalid_data'],['invalid',502,'invalid_data'],['html',502,'unexpected_content_type'],['json',502,'invalid_json'],['401',502,'proxy_auth_error'],['403',502,'proxy_auth_error'],['503',502,'proxy_unavailable'],['timeout',504,'timeout'],['429',429,'rate_limited']]){
+ for(const [next,expected,code] of [['valid',200,null],['identity',502,'invalid_data'],['invalid',502,'invalid_data'],['html',502,'unexpected_content_type'],['json',502,'invalid_json'],['401',502,'proxy_auth_error'],['403',502,'proxy_auth_error'],['503',502,'proxy_unavailable'],['mismatched-503',502,'proxy_unavailable'],['typed-timeout',504,'timeout'],['typed-denied',502,'upstream_denied'],['typed-invalid',502,'invalid_data'],['typed-environment',503,'environment_denied'],['typed-transport',502,'transport_error'],['typed-unavailable',502,'upstream_unavailable'],['timeout',504,'timeout'],['429',429,'rate_limited']]){
   mode=next;const count=outbound.length,start=performance.now();
   const response=await runtime.dispatchFetch('http://localhost/api/history?symbol=BTC-USDT&range=1d',{headers});const body=await response.json();const elapsedMs=Math.round(performance.now()-start);
   assert.equal(response.status,expected,next);assert.equal(outbound.length-count,1,`${next}: no direct fallback/fanout`);assert.match(response.headers.get('Cache-Control')??'',/no-store/);
-  if(code){assert.equal(body.errorInfo.code,code,next);assert.ok(body.errorInfo.traceId);assert.doesNotMatch(JSON.stringify(body),/monitor-fixture|reliability-fixture-token|stack/);}
+  if(code){assert.equal(body.errorInfo.code,code,next);assert.equal(body.errorInfo.traceId,outbound.at(-1).traceId);assert.equal(response.headers.get('X-Market-Trace'),body.errorInfo.traceId);assert.doesNotMatch(JSON.stringify(body),/monitor-fixture|reliability-fixture-token|remote-fixture-trace|validatedMonitorError|stack/);}
   else{assert.equal(body.symbol,'BTC-USDT');assert.equal(body.currency,'USDT');assert.ok(body.fetchedAt<Date.now());assert.ok(body.metadata.limitations.includes('legacy_proxy_metadata_unverified'));}
   if(next==='timeout'){assert.ok(elapsedMs>=5500&&elapsedMs<9000,`actual proxy deadline: ${elapsedMs}ms`);try{stalledController?.close();}catch{ /* The Worker may already have cancelled the stream. */ }}
-  if(next==='429')assert.equal(response.headers.get('Retry-After'),'120');
+  if(next==='429')assert.ok(Number(response.headers.get('Retry-After'))>=179&&Number(response.headers.get('Retry-After'))<=180);
   checks.push({name:`proxy-${next}`,status:'PASS',httpStatus:response.status,errorCode:code,elapsedMs,observableProxyAttempts:1,remoteProviderAttempts:'UNKNOWN'});
  }
  const before=outbound.length;const cooling=await runtime.dispatchFetch('http://localhost/api/history?symbol=ETH-USDT&range=1d',{headers});assert.equal(cooling.status,429);await cooling.arrayBuffer();assert.equal(outbound.length,before);checks.push({name:'provider-cooldown-no-dispatch',status:'PASS'});
