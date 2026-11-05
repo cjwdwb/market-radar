@@ -143,7 +143,7 @@ export function validateClientHistory(value: unknown, symbol: string, range: Ran
       || ![m.firstAt, m.lastAt, m.lastCompleteAt].every(nullableTime) || m.firstAt !== data.points[0].time || m.lastAt !== data.points.at(-1)!.time
       || ![m.invalidRows, m.duplicateRows, m.gapCount].every(value => Number.isSafeInteger(value) && value >= 0)
       || !Array.isArray(m.limitations) || m.limitations.length > 32 || !m.limitations.every(value => typeof value === "string" && value.length <= 500)
-      || (symbol.endsWith("-USDT") && (m.exchange !== "OKX" || m.marketType !== "spot"))) throw new ClientMarketError("走势来源或周期信息无效", { code: "invalid_data", stage: "admission" });
+      || (symbol.endsWith("-USDT") && (m.exchange !== "OKX" || m.marketType !== "spot" || m.intervalMs !== ({ "15m": 900_000, "1d": 900_000, "1w": 3_600_000, "1m": 14_400_000, "3m": 86_400_000 })[range]))) throw new ClientMarketError("走势来源或周期信息无效", { code: "invalid_data", stage: "admission" });
   }
   return data;
 }

@@ -183,8 +183,17 @@ test('all requested stocks share one server batch instead of multiplying its wor
 
 test('malformed optional metadata is rejected before chart/footer consumers can render it', () => {
   const body=history('/api/history?symbol=BTC-USDT&range=1d');
-  for(const metadata of [null,{}, {...body.metadata,limitations:'bad'}, {...body.metadata,limitations:[1]}, {...body.metadata,intervalMs:-1}, {...body.metadata,gapCount:-1}, {...body.metadata,lastCompleteAt:'wrong'}, {...body.metadata,lastAt:123}]) {
+  for(const metadata of [null,{}, {...body.metadata,limitations:'bad'}, {...body.metadata,limitations:[1]}, {...body.metadata,intervalMs:-1}, {...body.metadata,intervalMs:14400000}, {...body.metadata,gapCount:-1}, {...body.metadata,lastCompleteAt:'wrong'}, {...body.metadata,lastAt:123}]) {
     assert.throws(()=>validateClientHistory({...body,metadata},'BTC-USDT','1d'),error=>error.info.code==='invalid_data');
   }
   assert.equal(validateClientHistory({...body,metadata:undefined},'BTC-USDT','1d').metadata,undefined);
+});
+
+test('successful overview clears a previously failed chart error before a cache-only revisit', async t => {
+  let fail=true,calls=0;setup(t,async path=>{calls++;return fail?json({error:'fixture unavailable'},502):json(history(path));});
+  const controller=new MarketHistoryController(new ClientCooldown());t.after(controller.dispose);
+  controller.update(historyOptions());await flush();assert.ok(controller.getSnapshot().historyError);
+  fail=false;controller.update(historyOptions({selected:'ETH-USDT'}));await flush();t.mock.timers.tick(1500);await flush();
+  const before=calls;controller.update(historyOptions());await flush();
+  assert.equal(calls,before);assert.equal(controller.getSnapshot().history.key,'BTC-USDT:15m');assert.equal(controller.getSnapshot().historyError,'');
 });

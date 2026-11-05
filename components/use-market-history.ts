@@ -75,11 +75,19 @@ export class MarketHistoryController {
   private markTrend(data: MarketHistory, network: boolean) {
     const previous = this.state.trends[data.symbol];
     if (!network && previous?.error) return;
+    let recovered: Partial<HistorySnapshot> = {};
+    if (network) {
+      // The overview and these two chart views share one verified acquisition.
+      // Recovery must also clear a chart failure saved while it was unselected.
+      this.failures.delete(clientHistoryKey(data.symbol, "1d"));
+      const options = this.options;
+      if (options?.selected === data.symbol && (options.range === "15m" || options.range === "1d")) recovered = { history: { ...data, range: options.range, key: viewKey(options) }, historyError: "" };
+    }
     const intervalMs = data.metadata?.intervalMs;
     const trend: Trend = { points: reusePoints(previous?.points, data.points), source: data.source, currency: data.currency, fetchedAt: data.fetchedAt,
       intervalMs: typeof intervalMs === "number" && Number.isFinite(intervalMs) && intervalMs > 0 ? intervalMs : 0 };
     const errors = { ...this.state.trendErrors }; delete errors[data.symbol];
-    this.emit({ trends: { ...this.state.trends, [data.symbol]: trend }, trendErrors: errors });
+    this.emit({ ...recovered, trends: { ...this.state.trends, [data.symbol]: trend }, trendErrors: errors });
   }
   private failTrend(symbol: string, error: unknown) {
     const failure = clientFailure(error), previous = this.state.trends[symbol];
