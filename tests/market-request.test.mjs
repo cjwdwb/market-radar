@@ -160,6 +160,40 @@ test('OKX provider cooldown blocks all origins/endpoints/symbols and preserves l
  now+=61000;await assert.rejects(getOKXHistory('SOL-USDT','1d'),error=>error.retryAt>now);await assert.rejects(getOKXTickers());assert.equal(calls,2);
  now+=60000;t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json({code:'0',data:[ticker('SOL-USDT')]});});assert.equal((await getOKXQuote('SOL-USDT',false)).price,110);assert.equal(calls,3);
 });
+
+for(const order of ['rate-first','reset-first'])test(`OKX publishes a same-turn 429 before concurrent fallback (${order})`,async t=>{
+ const pending=new Map(),calls=[];
+ t.mock.method(globalThis,'fetch',input=>{
+  const symbol=input.searchParams.get('instId');calls.push({symbol,origin:input.origin,path:input.pathname});
+  if(pending.has(symbol))return Promise.resolve(Response.json({code:'0',data:candleRows()}));
+  return new Promise((resolve,reject)=>pending.set(symbol,{resolve,reject}));
+ });
+ const firstScope=marketScope(),secondScope=marketScope(),queuedScope=marketScope(),until=now+180000;
+ const collect=promise=>promise.then(value=>({value}),error=>({error}));
+ const first=collect(getOKXHistory('BTC-USDT','15m',firstScope)),second=collect(getOKXHistory('ETH-USDT','15m',secondScope));await turn();
+ const rate=()=>pending.get('BTC-USDT').resolve(new Response('',{status:429,headers:{'Retry-After':'180'}}));
+ const fail=()=>pending.get('ETH-USDT').reject(reset());
+ if(order==='rate-first'){rate();fail();}else{fail();rate();}
+ const results=await Promise.all([first,second]);
+ assert.deepEqual(calls,[{symbol:'BTC-USDT',origin:'https://openapi.okx.com',path:'/api/v5/market/candles'},{symbol:'ETH-USDT',origin:'https://openapi.okx.com',path:'/api/v5/market/candles'}]);
+ for(const [index,result] of results.entries()){assert.equal(result.error?.code,'rate_limited');assert.equal(result.error?.retryAt,until);assert.equal(result.error?.traceId,[firstScope,secondScope][index].traceId);}
+ assert.deepEqual(firstScope.budget,{remaining:3,used:1});assert.deepEqual(secondScope.budget,{remaining:3,used:1});
+ await assert.rejects(getOKXTickers(queuedScope),error=>error.code==='rate_limited'&&error.retryAt===until);
+ assert.deepEqual(queuedScope.budget,{remaining:4,used:0});assert.equal(calls.length,2);
+ now=until+1;assert.equal((await getOKXHistory('ETH-USDT','15m')).symbol,'ETH-USDT');assert.equal(calls.length,3);
+});
+
+test('OKX concurrent caller cancellation preserves the observed cooldown and never falls back',async t=>{
+ const pending=new Map(),calls=[];t.mock.method(globalThis,'fetch',input=>{const symbol=input.searchParams.get('instId');calls.push(symbol);return new Promise((resolve,reject)=>pending.set(symbol,{resolve,reject}));});
+ const controller=new AbortController(),scope=marketScope({signal:controller.signal}),until=now+180000;
+ const first=assert.rejects(getOKXHistory('BTC-USDT','15m'),error=>error.code==='rate_limited'&&error.retryAt===until);
+ const second=assert.rejects(getOKXHistory('ETH-USDT','15m',scope),error=>error.code==='caller_cancelled');await turn();
+ pending.get('BTC-USDT').resolve(new Response('',{status:429,headers:{'Retry-After':'180'}}));await first;
+ controller.abort();pending.get('ETH-USDT').reject(reset());await second;await turn();
+ await assert.rejects(getOKXHistory('SOL-USDT','15m'),error=>error.code==='rate_limited'&&error.retryAt===until);
+ assert.deepEqual(calls,['BTC-USDT','ETH-USDT']);assert.deepEqual(scope.budget,{remaining:3,used:1});
+});
+
 test('OKX business rate limit is terminal across both historical endpoints',async t=>{
  let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json({code:'50011',data:[]});});await assert.rejects(getOKXHistory('ETH-USDT','15m'),error=>error.code==='rate_limited');await assert.rejects(getOKXHistory('BTC-USDT','1d'));await assert.rejects(getOKXTickers());assert.equal(calls,1);
 });
