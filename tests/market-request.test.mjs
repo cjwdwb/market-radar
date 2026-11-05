@@ -187,6 +187,52 @@ test('Yahoo retries reset, coalesces, and cache reads preserve acquisition and d
 test('Yahoo rate limit remains typed across symbols and longer cooldown',async t=>{
  let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return new Response('',{status:429,headers:{'Retry-After':'180'}});});await assert.rejects(getQuote('MSFT'),error=>error.code==='rate_limited');await assert.rejects(getQuote('AAPL'),error=>error.code==='rate_limited'&&error.retryAt===now+180000);assert.equal(calls,1);
 });
+test('Yahoo transport retry and newly queued symbols honor another request cooldown without spending attempts',async t=>{
+ const pending=new Map(),calls=[];let recovering=false;
+ t.mock.method(globalThis,'fetch',async input=>{
+  const symbol=input.pathname.split('/').at(-1);calls.push(symbol);
+  if(recovering||pending.has(symbol))return Response.json(yahoo(symbol));
+  return new Promise((resolve,reject)=>pending.set(symbol,{resolve,reject}));
+ });
+ const firstScope=marketScope({},12000,2),secondScope=marketScope({},12000,2),queuedScope=marketScope({},12000,2),until=now+180000;
+ const first=assert.rejects(getQuote('YRETRYA',false,firstScope),error=>error.code==='rate_limited'&&error.retryAt===until);
+ const second=assert.rejects(getQuote('YRETRYB',false,secondScope),error=>error.code==='rate_limited'&&error.retryAt===until&&error.traceId===secondScope.traceId);
+ await turn();assert.deepEqual(calls,['YRETRYA','YRETRYB']);
+ pending.get('YRETRYA').resolve(new Response('',{status:429,headers:{'Retry-After':'180'}}));await first;
+ await assert.rejects(getQuote('YRETRYC',false,queuedScope),error=>error.code==='rate_limited'&&error.retryAt===until);
+ pending.get('YRETRYB').reject(reset());await second;
+ assert.deepEqual(calls,['YRETRYA','YRETRYB']);assert.deepEqual(firstScope.budget,{remaining:1,used:1});assert.deepEqual(secondScope.budget,{remaining:1,used:1});assert.deepEqual(queuedScope.budget,{remaining:2,used:0});
+ now=until+1;recovering=true;assert.equal((await getQuote('YRETRYB',false)).price,110);assert.deepEqual(calls,['YRETRYA','YRETRYB','YRETRYB']);
+});
+test('concurrent Yahoo rate responses retain the longest provider cooldown',async t=>{
+ const pending=[];let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return new Promise(resolve=>pending.push(resolve));});
+ const until=now+180000;
+ const first=assert.rejects(getQuote('YLONGA'),error=>error.code==='rate_limited'&&error.retryAt===until);
+ const second=assert.rejects(getQuote('YLONGB'),error=>error.code==='rate_limited');await turn();
+ pending[0](new Response('',{status:429,headers:{'Retry-After':'180'}}));await first;
+ pending[1](new Response('',{status:429,headers:{'Retry-After':'60'}}));await second;
+ now+=61000;await assert.rejects(getQuote('YLONGC'),error=>error.code==='rate_limited'&&error.retryAt===until);assert.equal(calls,2);
+});
+test('Yahoo cancellation during a concurrent cooldown stays cancellation and does not retry',async t=>{
+ const pending=new Map();let calls=0;t.mock.method(globalThis,'fetch',async input=>{calls++;return new Promise((resolve,reject)=>pending.set(input.pathname.split('/').at(-1),{resolve,reject}));});
+ const controller=new AbortController(),scope=marketScope({signal:controller.signal},12000,2);
+ const first=assert.rejects(getQuote('YCANCELA'),error=>error.code==='rate_limited');
+ const second=assert.rejects(getQuote('YCANCELB',false,scope),error=>error.code==='caller_cancelled');await turn();
+ pending.get('YCANCELA').resolve(new Response('',{status:429,headers:{'Retry-After':'180'}}));await first;
+ controller.abort();pending.get('YCANCELB').reject(reset());await second;await turn();
+ assert.equal(calls,2);assert.deepEqual(scope.budget,{remaining:1,used:1});
+});
+test('provider attempt guards cannot mask caller cancellation or an expired deadline',async t=>{
+ let checks=0,calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;throw reset();});
+ const beforeAttempt=scope=>{checks++;throw marketError('rate_limited',scope,{retryAt:now+180000});};
+ for(const code of ['caller_cancelled','timeout']){
+  const controller=new AbortController();if(code==='caller_cancelled')controller.abort();
+  const scope=marketScope({signal:controller.signal,...(code==='timeout'?{deadline:now}: {})},12000,2);
+  await assert.rejects(marketJson(url,{...scope,timeoutMs:12000,attempts:2,beforeAttempt}),error=>error.code===code);
+  assert.deepEqual(scope.budget,{remaining:2,used:0});
+ }
+ assert.equal(checks,0);assert.equal(calls,0);
+});
 test('batch preserves every requested asset and separates provider failures',async t=>{
  t.mock.method(globalThis,'fetch',async input=>input.hostname.includes('okx')?new Response('',{status:403}):Response.json(yahoo(decodeURIComponent(input.pathname.split('/').at(-1)))));
  const results=await getQuotes(['BTC-USDT','ETH-USDT','AAPL'],false);assert.equal(results.length,3);assert.equal(results[0].errorInfo.code,'upstream_denied');assert.equal(results[1].errorInfo.code,'upstream_denied');assert.equal(results[2].quote.price,110);

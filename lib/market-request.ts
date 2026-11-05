@@ -105,11 +105,13 @@ function interrupted<T>(promise: Promise<T>, signal: AbortSignal, scope: MarketS
     promise.then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
   });
 }
-export async function marketJson<T>(url: URL, options: MarketRequestOptions & { timeoutMs: number; attempts?: number; headers?: Record<string, string>; maxBytes?: number; stage?: MarketErrorInfo["stage"]; monitorErrors?: boolean; onMonitorRateLimit?: (retryAt: number) => void }): Promise<T> {
+export async function marketJson<T>(url: URL, options: MarketRequestOptions & { timeoutMs: number; attempts?: number; headers?: Record<string, string>; maxBytes?: number; stage?: MarketErrorInfo["stage"]; monitorErrors?: boolean; onMonitorRateLimit?: (retryAt: number) => void; beforeAttempt?: (scope: MarketScope) => void }): Promise<T> {
   const scope = marketScope(options, options.timeoutMs, Math.max(1, Math.min(2, options.attempts ?? 1)));
   const attempts = Math.max(1, Math.min(2, options.attempts ?? 1));
   for (let attempt = 0; attempt < attempts; attempt++) {
     checkScope(scope);
+    // Synchronous provider checks apply to retries too, before spending an attempt.
+    options.beforeAttempt?.(scope);
     if (scope.budget.remaining <= 0) throw marketError("upstream_unavailable", scope);
     scope.budget.remaining--; scope.budget.used++;
     const controller = new AbortController();
