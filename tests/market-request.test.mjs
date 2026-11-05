@@ -204,6 +204,23 @@ test('Yahoo transport retry and newly queued symbols honor another request coold
  assert.deepEqual(calls,['YRETRYA','YRETRYB']);assert.deepEqual(firstScope.budget,{remaining:1,used:1});assert.deepEqual(secondScope.budget,{remaining:1,used:1});assert.deepEqual(queuedScope.budget,{remaining:2,used:0});
  now=until+1;recovering=true;assert.equal((await getQuote('YRETRYB',false)).price,110);assert.deepEqual(calls,['YRETRYA','YRETRYB','YRETRYB']);
 });
+test('Yahoo observes a 429 before a concurrent transport retry settled in the same turn',async t=>{
+ const pending=new Map(),calls=[];
+ t.mock.method(globalThis,'fetch',async input=>{
+  const symbol=input.pathname.split('/').at(-1);calls.push(symbol);
+  if(pending.has(symbol))return Response.json(yahoo(symbol));
+  return new Promise((resolve,reject)=>pending.set(symbol,{resolve,reject}));
+ });
+ const firstScope=marketScope({},12000,2),secondScope=marketScope({},12000,2),until=now+180000;
+ const first=getQuote('YSAMEA',false,firstScope).then(value=>({value}),error=>({error}));
+ const second=getQuote('YSAMEB',false,secondScope).then(value=>({value}),error=>({error}));await turn();
+ pending.get('YSAMEA').resolve(new Response('',{status:429,headers:{'Retry-After':'180'}}));
+ pending.get('YSAMEB').reject(reset());
+ const results=await Promise.all([first,second]);
+ assert.deepEqual(calls,['YSAMEA','YSAMEB']);
+ for(const result of results){assert.equal(result.error?.code,'rate_limited');assert.equal(result.error?.retryAt,until);}
+ assert.deepEqual(firstScope.budget,{remaining:1,used:1});assert.deepEqual(secondScope.budget,{remaining:1,used:1});
+});
 test('concurrent Yahoo rate responses retain the longest provider cooldown',async t=>{
  const pending=[];let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return new Promise(resolve=>pending.push(resolve));});
  const until=now+180000;

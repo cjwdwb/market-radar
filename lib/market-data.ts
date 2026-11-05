@@ -15,6 +15,7 @@ type ChartSnapshot = { data: YahooResult; fetchedAt: number; expires: number };
 const cache = new Map<string, ChartSnapshot>();
 const inFlight = new SharedMarketRequests<ChartSnapshot>();
 let upstreamRetryAt = 0;
+function rememberYahooRateLimit(until: number) { upstreamRetryAt = Math.max(upstreamRetryAt, until); }
 function checkYahooCooldown(scope: MarketScope) {
   if (Date.now() < upstreamRetryAt) throw marketError("rate_limited", scope, { upstreamStatus: 429, retryAt: upstreamRetryAt });
 }
@@ -70,8 +71,8 @@ async function fetchChart(symbol: string, range: Range, options: MarketRequestOp
     const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`);
     url.searchParams.set("interval", config.interval); url.searchParams.set("range", assetFor(symbol).market === "crypto" && range === "1w" ? "7d" : config.range); url.searchParams.set("includePrePost", "false");
     let body: { chart?: { result?: YahooResult[]; error?: unknown } };
-    try { body = await marketJson<typeof body>(url, { ...shared, headers: { "User-Agent": "MarketRadar/1.0", Accept: "application/json" }, timeoutMs: 12_000, attempts: 2, beforeAttempt: checkYahooCooldown }); }
-    catch (error) { if (error instanceof MarketRequestError && error.retryAt) upstreamRetryAt = Math.max(upstreamRetryAt, error.retryAt); throw error; }
+    try { body = await marketJson<typeof body>(url, { ...shared, headers: { "User-Agent": "MarketRadar/1.0", Accept: "application/json" }, timeoutMs: 12_000, attempts: 2, beforeAttempt: checkYahooCooldown, onRateLimit: rememberYahooRateLimit }); }
+    catch (error) { if (error instanceof MarketRequestError && error.retryAt) rememberYahooRateLimit(error.retryAt); throw error; }
     if (!body || typeof body !== "object" || body.chart?.error) throw marketError("upstream_business_error", shared);
     const data = body.chart?.result?.[0];
     if (!data?.meta || data.meta.symbol !== symbol || typeof data.meta.currency !== "string" || !/^[A-Z]{3,5}$/.test(data.meta.currency) || (data.timestamp !== undefined && !Array.isArray(data.timestamp))) throw marketError("invalid_data", shared, { stage: "admission" });

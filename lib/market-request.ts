@@ -105,7 +105,7 @@ function interrupted<T>(promise: Promise<T>, signal: AbortSignal, scope: MarketS
     promise.then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
   });
 }
-export async function marketJson<T>(url: URL, options: MarketRequestOptions & { timeoutMs: number; attempts?: number; headers?: Record<string, string>; maxBytes?: number; stage?: MarketErrorInfo["stage"]; monitorErrors?: boolean; onMonitorRateLimit?: (retryAt: number) => void; beforeAttempt?: (scope: MarketScope) => void }): Promise<T> {
+export async function marketJson<T>(url: URL, options: MarketRequestOptions & { timeoutMs: number; attempts?: number; headers?: Record<string, string>; maxBytes?: number; stage?: MarketErrorInfo["stage"]; monitorErrors?: boolean; onMonitorRateLimit?: (retryAt: number) => void; onRateLimit?: (retryAt: number) => void; beforeAttempt?: (scope: MarketScope) => void }): Promise<T> {
   const scope = marketScope(options, options.timeoutMs, Math.max(1, Math.min(2, options.attempts ?? 1)));
   const attempts = Math.max(1, Math.min(2, options.attempts ?? 1));
   for (let attempt = 0; attempt < attempts; attempt++) {
@@ -129,6 +129,8 @@ export async function marketJson<T>(url: URL, options: MarketRequestOptions & { 
       response = await interrupted(fetching, controller.signal, scope);
       if (!response.ok) {
         httpFailure = marketError(response.status === 429 ? "rate_limited" : [401, 403, 451].includes(response.status) ? "upstream_denied" : response.status === 404 ? "unsupported_asset" : response.status >= 500 ? "upstream_unavailable" : "upstream_business_error", scope, { upstreamStatus: response.status, ...(response.status === 429 ? { retryAt: (options.monitorErrors ? monitorRetryAfterAt : retryAfterAt)(response.headers.get("Retry-After")) } : {}) });
+        // Publish observed HTTP cooldown synchronously, before another request can retry.
+        if (httpFailure.retryAt) options.onRateLimit?.(httpFailure.retryAt);
         // Observe the header before optional body reading; a cancelled waiter must not clear provider cooldown.
         if (options.monitorErrors && httpFailure.retryAt) options.onMonitorRateLimit?.(httpFailure.retryAt);
         // Proxy authentication failures are authoritative HTTP errors, never provider envelopes.
