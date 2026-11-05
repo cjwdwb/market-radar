@@ -20,7 +20,7 @@ import { CandleChart } from "@/components/candle-chart";
 import { PricePulse } from "@/components/price-pulse";
 import { applyMotionPreference, MOTION_CHANGE_EVENT, normalizeMotionPreference, PREFERENCES_KEY, type MotionPreference } from "@/lib/motion-preference";
 import { canMonitor } from "@/lib/monitoring";
-import { chartGapSeries, clientJson, completeQuoteResults } from "@/lib/market-client";
+import { chartGapSeries, clientJson, completeQuoteResults, historyEvidenceLag } from "@/lib/market-client";
 import { useMarketHistory } from "@/components/use-market-history";
 import { useMarketQuotes } from "@/components/use-market-quotes";
 import { formatMarketTime, marketTimezoneLabel, normalizeDisplayTimePreference, resolveDisplayTimezone, type DisplayTimePreference } from "@/lib/market-time";
@@ -238,6 +238,7 @@ export default function MarketRadar(){
   const chartInterval=chartMetadata?.intervalMs;
   const chartSeries=useMemo(()=>chartGapSeries(chartPoints,chartInterval),[chartPoints,chartInterval]);
   const chartStale=!!chartFetchedAt&&!!now&&now-chartFetchedAt>(range==="15m"||range==="1d"?120_000:300_000);
+  const chartEvidenceLag=historyEvidenceLag(chartMetadata,now);
   const zoneLabel=displayTimePreference==="device"&&!deviceTimezone?"UTC · 等待设备时区":marketTimezoneLabel(displayTimezone,now);
   const chartBusy=quoteChart?!quote&&loading:historyLoading;
   const chartProblem=quoteChart?quoteError:historyError;
@@ -324,12 +325,12 @@ export default function MarketRadar(){
                 {chartBusy&&chartPoints.length<2?<div className="chart-empty"><Loader2 size={24} className="spin"/><span>正在获取真实行情…</span></div>:chartPoints.length<2?<div className="chart-empty"><Activity size={30}/><span>{chartProblem||"暂无足够走势数据"}</span><button className="small-link" onClick={refreshAll}>重新获取</button></div>:range==="15m"?<CandleChart key={selected} points={chartPoints} currency={displayedHistory?.currency??quote?.currency??"USD"} timezone={chartTimezone} intervalMs={chartInterval} metadata={chartMetadata}/>:<div className="price-chart"><AreaChart responsive style={{width:"100%",height:"100%"}} data={chartSeries} margin={{top:10,right:8,bottom:0,left:5}} accessibilityLayer><defs><linearGradient id="radar-price-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={chartColor} stopOpacity={.09}/><stop offset="96%" stopColor={chartColor} stopOpacity={0}/></linearGradient></defs><CartesianGrid vertical={false} stroke="#252525" strokeDasharray="3 5"/><XAxis dataKey="time" tickFormatter={v=>new Intl.DateTimeFormat("zh-CN",range==="1d"?{hour:"2-digit",minute:"2-digit",hour12:false,timeZone:chartTimezone}:{month:"numeric",day:"numeric",timeZone:chartTimezone}).format(v)} minTickGap={60} tick={{fill:"#858585",fontSize:12}} axisLine={false} tickLine={false} dy={8}/><YAxis orientation="right" domain={["auto","auto"]} tickFormatter={chartPrice} tick={{fill:"#858585",fontSize:12}} axisLine={false} tickLine={false} width="auto" tickCount={4}/><Tooltip content={<ChartTip currency={quote?.currency??"USD"} timezone={chartTimezone}/>} cursor={{stroke:"#a0a0a0",strokeDasharray:"4 4"}}/><Area connectNulls={false} type="linear" dataKey="close" name="价格" stroke={chartColor} strokeWidth={2.3} fill="url(#radar-price-fill)" isAnimationActive={false} activeDot={{r:4,stroke:"#111111",strokeWidth:2,fill:chartColor}}/></AreaChart></div>}
               </TabsContent>
             </Tabs>
-            <div className="chart-footer"><span className={chartProblem||chartStale?"error-text":""}>{chartProblem?`走势更新失败 · ${chartProblem}`:chartBusy?"正在更新 · 保留当前图表":chartStale?"走势获取时间已过期 · 保留上次数据":`${quoteChart?quote?.source??"行情源":displayedHistory?.source??"行情源"} · ${range==="1d"?(activeAsset.market==="crypto"?"最近窗口（非自然日）":"最近交易日"):"历史行情"}`}</span><span>{chartMetadata?.bar?`原生 ${chartMetadata.bar} · `:""}{zoneLabel}</span></div>
+            <div className="chart-footer"><span className={chartProblem||chartStale||chartEvidenceLag?"error-text":""}>{chartProblem?`走势更新失败 · ${chartProblem}`:chartBusy?"正在更新 · 保留当前图表":chartStale?"走势获取时间已过期 · 保留上次数据":chartEvidenceLag?"最新 K 线时间落后 · 保留旧走势":`${quoteChart?quote?.source??"行情源":displayedHistory?.source??"行情源"} · ${range==="1d"?(activeAsset.market==="crypto"?"最近窗口（非自然日）":"最近交易日"):"历史行情"}`}</span><span>{chartMetadata?.bar?`原生 ${chartMetadata.bar} · `:""}{zoneLabel}</span></div>
             <details className="market-data-status"><summary>数据时间与状态{trendErrors[selected]?" · 分析基线更新失败":""}{chartMetadata?.gapCount?` · ${chartMetadata.gapCount} 处间隔缺口`:""}</summary><dl>
               <div><dt>来源报价时间</dt><dd>{formatTime(quote?.timestamp,true)}{quoteError?" · 更新失败":quoteOld?" · 过期":""}</dd></div>
               <div><dt>报价实际获取</dt><dd>{formatTime(quote?.fetchedAt,true)}{quote?.cache?.hit?" · 缓存读取":""}</dd></div>
               <div><dt>走势实际获取</dt><dd>{formatTime(chartFetchedAt,true)}{chartStale?" · 过期":""}</dd></div>
-              <div><dt>实际开盘时间范围</dt><dd>{formatTime(chartPoints[0]?.time,true)} — {formatTime(chartPoints.at(-1)?.time,true)}</dd></div>
+              <div><dt>实际开盘时间范围</dt><dd>{formatTime(chartPoints[0]?.time,true)} — {formatTime(chartPoints.at(-1)?.time,true)}{chartEvidenceLag?" · 末端延迟，刚获取不代表行情新鲜":""}</dd></div>
               <div><dt>最近完整 K 线结束</dt><dd>{formatTime(chartMetadata?.lastCompleteAt??undefined,true)} · {chartMetadata?.completion==="source"?"来源确认":chartMetadata?.completion==="time_window"?"仅时间窗口结束":"完整性未知"}</dd></div>
               <div><dt>分析基线</dt><dd>{selected.endsWith("-USDT")?(trendErrors[selected]?`${trendErrors[selected]} · 保留旧基线仅供查看`:trends[selected]?`${formatTime(trends[selected].fetchedAt,true)} · ${now&&now-trends[selected].fetchedAt>120_000?"已过期":trends[selected].intervalMs===900000?"原生 15m":"周期待验证"}`:"等待获取"):"使用股票报价内的历史；独立检查交易时段与时效"}</dd></div>
             </dl>{chartMetadata?.gapCount? <p>缺口保留，不补值；走势与均线在缺口处断开。</p>:null}{chartMetadata?.limitations.map(item=><p key={item}>{HISTORY_LIMITS[item]??"部分来源信息尚未验证。"}</p>)}</details>

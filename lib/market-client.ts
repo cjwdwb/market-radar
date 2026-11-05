@@ -1,5 +1,6 @@
-import { type MarketErrorInfo, type MarketHistory, type QuoteResult, type Range } from "./market";
+import { type HistoryMetadata, type MarketErrorInfo, type MarketHistory, type QuoteResult, type Range } from "./market";
 import { reusePoints } from "./refresh-policy";
+import { CANDLE_LAG_ALLOWANCE } from "./radar/market-input";
 
 export class ClientMarketError extends Error {
   readonly info: MarketErrorInfo;
@@ -8,6 +9,15 @@ export class ClientMarketError extends Error {
 export const clientCancelled = (reason?: unknown) => new ClientMarketError("读取已取消", { code: reason === "superseded" ? "superseded" : "caller_cancelled", stage: "browser" });
 export const isClientCancelled = (error: unknown) => error instanceof ClientMarketError && ["caller_cancelled", "superseded"].includes(error.info.code);
 export const clientFailure = (error: unknown) => error instanceof ClientMarketError ? error : new ClientMarketError("行情连接暂时中断", { code: "transport_error", stage: "browser" });
+
+/** A new HTTP response does not make an old 24×7 evidence tail current.
+ * Reuse the existing one-interval + allowance boundary; exchange sessions need
+ * their own calendar and are deliberately not inferred by this display hint. */
+export function historyEvidenceLag(metadata: HistoryMetadata | undefined, now: number | undefined): boolean {
+  if (!metadata || metadata.exchange !== "OKX" || metadata.marketType !== "spot" || !metadata.instrument.endsWith("-USDT") || !Number.isFinite(now)
+    || typeof metadata.intervalMs !== "number" || metadata.intervalMs <= 0 || !Number.isFinite(metadata.intervalMs) || !Number.isFinite(metadata.lastAt) || metadata.lastAt === null) return false;
+  return now! - (metadata.lastAt + metadata.intervalMs) > metadata.intervalMs + CANDLE_LAG_ALLOWANCE;
+}
 
 /** In-flight sharing is scoped to one mounted workbench, never to another visitor. */
 export class ClientRequestPool {

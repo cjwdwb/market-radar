@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setImmediate as turn } from 'node:timers/promises';
-import { ClientRequestPool, ClientCooldown, ClientHistoryCache, clientHistoryKey, clientJson, completeQuoteResults, validateClientHistory } from '../lib/market-client.ts';
+import { ClientRequestPool, ClientCooldown, ClientHistoryCache, clientHistoryKey, clientJson, completeQuoteResults, validateClientHistory, historyEvidenceLag } from '../lib/market-client.ts';
 import { MarketHistoryController } from '../components/use-market-history.ts';
 import { MarketQuotesController } from '../components/use-market-quotes.ts';
 
@@ -10,6 +10,18 @@ const deferred = () => { let resolve, reject; const promise = new Promise((yes,n
 const flush = async () => { await turn(); await turn(); };
 const historyOptions = (extra = {}) => ({ selected: 'BTC-USDT', range: '15m', requestKey: 'BTC-USDT,ETH-USDT,SOL-USDT', hydrated: true, visible: true, online: true, auto: false, ...extra });
 const quoteOptions = (extra = {}) => ({ requestKey: 'BTC-USDT,ETH-USDT', symbolKey: 'BTC-USDT,ETH-USDT', hydrated: true, visible: true, online: true, auto: false, backgroundTabs: true, ...extra });
+test('fresh acquisition cannot hide an old OKX evidence tail; session-based and unknown grids are not guessed',()=>{
+  const now=Date.UTC(2026,10,5,9),intervalMs=900000;
+  const m=Object.freeze({exchange:'OKX',marketType:'spot',instrument:'BTC-USDT',intervalMs,lastAt:now-24*intervalMs});
+  assert.equal(historyEvidenceLag(m,now),true);
+  const boundary={...m,lastAt:now-2*intervalMs-60000};
+  assert.equal(historyEvidenceLag(boundary,now),false);
+  assert.equal(historyEvidenceLag(boundary,now+1),true);
+  assert.equal(historyEvidenceLag({...m,lastAt:now-intervalMs},now),false);
+  for(const metadata of [undefined,{...m,exchange:'NASDAQ',marketType:'equity',instrument:'NVDA'},{...m,intervalMs:null},{...m,intervalMs:NaN},{...m,lastAt:null}])assert.equal(historyEvidenceLag(metadata,now),false);
+  assert.equal(historyEvidenceLag(m,undefined),false);
+  assert.equal(m.lastAt,now-24*intervalMs);
+});
 function history(path, extra = {}) {
   const url = new URL(path, 'http://localhost'), symbol = url.searchParams.get('symbol');
   return { symbol, range: url.searchParams.get('range'), source: 'OKX 欧易', currency: 'USDT', timezone: 'UTC', fetchedAt: Date.now(),
