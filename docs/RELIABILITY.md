@@ -2,7 +2,7 @@
 
 ## 2026-11-05 行情刷新与 K 线候选契约
 
-任务 [MR-MARKET-DATA-RELIABILITY](../tasks/MR-MARKET-DATA-RELIABILITY.md)，基线 main `4352b73`、已上线 Sites v36/source `84511bf`。以下是新候选契约；后面的 2026-09-15 报告保留为历史证据，不代表本轮执行或本候选已发布。
+任务 [MR-MARKET-DATA-RELIABILITY](../tasks/archive/MR-MARKET-DATA-RELIABILITY.md)，开发基线 main `4352b73`、原生产 Sites v36/source `84511bf`。以下契约已随v37/source2d2d08b发布；平台成功与真实刷新验证分开，见[发布记录](../tasks/archive/MR-PUBLISH-MARKET-RELIABILITY.md)。后面的 2026-09-15 报告保留为历史证据，不代表本轮执行。
 
 - 历史读取绝对截止 26 秒，包含排队和响应体；直接上游最多 4 次、单跳最多 8 秒。配置代理最多 6 秒且不与直接源叠加。仅传输/瞬时 5xx 可走现有受控回退；403、429、业务拒绝、超时、环境拒绝、无效数据和取消均不换地址试探。OKX 所有历史/报价路径共享当前服务实例的限流冷却，最少 60 秒并尊重更长 Retry-After；没有跨实例协调保证。
 - 已配置代理的 200 必须验证身份、币种、周期、OHLC、时间、原获取时间和元数据；半配置及代理错误明确失败，不无声绕回直接源。旧代理内部重试/取消状态 UNKNOWN；不能凭本地源码推断远端已升级。monitor 兼容改动也只在本地候选，未单独部署。

@@ -1,12 +1,12 @@
 # 当前任务索引
 
-## MR-PUBLISH-MARKET-RELIABILITY — 2026-11-05 已获准上传部署
+## MR-PUBLISH-MARKET-RELIABILITY — 2026-11-05 已上传部署 Sites v37
 
-[发布卡](MR-PUBLISH-MARKET-RELIABILITY.md)：用户明确批准已验证候选上传GitHub并部署原站点。正常PR/CI、同源包装/独立审计、Sites原生终态与有界线上复测进行中。原v36继续运行；不启用AI、不改秘密或访问设置，不单独发布monitor。
+[发布归档](archive/MR-PUBLISH-MARKET-RELIABILITY.md)：PR#13正常合并/source2d2d08b，PR和main CI均build/typecheck/761项Node全PASS；同源包装独立VERIFY，Sitesv37原生succeeded/env3，原网址不变。线上入口303/首页200，首页验证相关标记触发停止；后续行情刷新BLOCKED/NOT RUN，不能宣称全面恢复。未改秘密/访问策略、未启用AI或单独发布monitor，产品调用0。主3.0继续开放；后续文档提交不再次部署。
 
-## MR-MARKET-DATA-RELIABILITY — 2026-11-05 本地候选完成，待发布决定
+## MR-MARKET-DATA-RELIABILITY — 2026-11-05 修复已随 Sites v37 发布
 
-[任务卡](MR-MARKET-DATA-RELIABILITY.md)、[专项报告](../docs/MARKET_DATA_RELIABILITY.md)：独立 reliability30 接续 main4352b73，产品候选1aac399。已修复受控回退/共享取消/缓存时效/刷新接续/K线确认/时间显示；760项Node通过、1项Windows链接权限跳过，构建/类型及16项Worker通过。五视口125项行为检查通过；最终显示修复另完成三状态15张截图/15项无横向溢出检查和7项正常计时联合检查。独立审计的末端延迟与旧报价DST标签均修复VERIFY，最终报告及证据已只读核对。真实线上仅3次受控请求，BTC成功、ETH限流后停止，历史503唯一根因仍未知。保留生产v36、访客/门禁/AI关闭；未上传、未重新部署，发布待本专项明确授权。后续回接原3.0，不扩模型或采集。
+[任务归档](archive/MR-MARKET-DATA-RELIABILITY.md)、[专项报告](../docs/MARKET_DATA_RELIABILITY.md)：产品1aac399已整合为上项2d2d08b发布。受控回退/共享取消/缓存时效/刷新接续/K线确认/时间显示已修；本地760PASS/1Windows权限SKIP、16项Worker、五视口125项行为检查及最终显示补测通过，审计/FIX/VERIFY完成。开发阶段真实BTC当次成功、ETH限流；历史503唯一根因仍未知。发布后真实刷新缺口见上项，不把代码修复或平台成功当来源全面恢复。
 
 ## MR-PUBLISH-UI30-POLISH — 2026-10-23 已上传部署 Sites v36
 

@@ -1,5 +1,9 @@
 # 当前状态
 
+2026-11-05最新正式发布：**行情刷新与K线可靠性 / Sites v37**，源码`2d2d08b831fb7131d100eade153918fed52e5355`，原生succeeded/env3，原网址 https://market-radar-rex.swt-aether.chatgpt.site 。[PR#13](https://github.com/cjwdwb/market-radar/pull/13)正常合并，PR/main CI各build/typecheck/761项Node全PASS，独立源码/修复/包装VERIFY。上线共享刷新、有限回退、局部失败与真实获取时间、K线确认/周期/缺口和显示时区修复；访客/站主边界、v36 UI、私人文件内存阅读与关闭的真实AI保持。未部署独立monitor、未改秘密/资源/调度，产品模型0调用。
+
+本次线上只读检查：新访客入口303、首页200；首页出现验证相关标记后按规则停止，具体挑战状态未确证。后续RSC/能力/行情/刷新未运行，**PRODUCTION_REFRESH_VERIFIED=BLOCKED**。开发阶段BTC当次成功/ETH限流不代表当前所有来源已恢复；生产浏览器交互/站主登录/真机本轮NOT RUN。见[发布记录](../tasks/archive/MR-PUBLISH-MARKET-RELIABILITY.md)及[专项报告](MARKET_DATA_RELIABILITY.md)。后续文档提交不重新部署；主3.0和独立数据目标继续开放。以下保留历史时点。
+
 最新线上复查限制：v36新访客UI/三区/手机窄屏与root RSC可用，但2026-10-23 08:29UTC的BTC/ETH/SOL-USDT、1d历史请求出现3次503，Worker未崩溃；上游根因未确证，待后续诊断。不能以UI通过声称所有实时历史源健康。站主登录后/真机未测。
 
 2026-10-23最新正式发布：**UI与交互收口 / Sites v36**，源码`84511bfdf4189db7a0495e82a52727aeb72a7401`，原生succeeded/env3，原网址 https://market-radar-rex.swt-aether.chatgpt.site 。PR#10/#11/#12正常合并，最终CI39924196391 build/typecheck/701项全PASS，独立源码/包装VERIFY。保留同期v35的`/from-aether`只读访客入口，并修复其实际构建root RSC误拒绝；模型写入/站主管理边界不变。Radar层级、精确证据返回、历史三区已上线，个人文件仍仅浏览器内存读取，实时AI仍关闭、产品模型0调用。主3.0与数据track继续开放；[发布记录](../tasks/archive/MR-PUBLISH-UI30-POLISH.md)。后续文档提交不等于重新部署，下方为历史时点。

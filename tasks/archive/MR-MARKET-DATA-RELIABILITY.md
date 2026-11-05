@@ -1,5 +1,9 @@
 # MR-MARKET-DATA-RELIABILITY
 
+## 发布后补记 — 2026-11-05
+
+用户明确批准后已随Sitesv37/source2d2d08b上传部署；PR#13/main CI各761/761、build/typecheck及独立包装VERIFY通过。下文是本地开发交接时点，旧“未发布/待授权”不代表当前状态。线上入口303/首页200后因验证相关标记停止，后续刷新仍BLOCKED/NOT RUN；来源全面恢复未确认。[发布归档](MR-PUBLISH-MARKET-RELIABILITY.md)、[专项报告](../../docs/MARKET_DATA_RELIABILITY.md)。
+
 2026-11-05 · Local product candidate1aac399 verified; final evidence handoff in progress. Part of existing 3.0; return to MR-30-AI-PRODUCTION-DELIVERY afterward. Upload/deployment remain pending explicit authorization for this candidate.
 
 ## Baseline / authority
@@ -71,6 +75,6 @@ IndependentGPT auditstablefulltaskdiff thenfix/VERIFY, focusing403/429bypass,cha
 
 Source/transport/chart/client and main implementation complete on the isolated branch. Independent audit97c2c3e found a P2 old-tail/fresh-acquisition display gap; fixed648010e and verified. Visual inspection identified duplicated/current-offset labels on older quotes; fixed1aac399 and independently verified against a real DST boundary using offline data. No algorithm threshold, provider, auth, private-file or AI change.
 
-Final Node run on1aac399:761 total,760PASS,1Windows-file-symlink SKIP; build/typecheckPASS. Existing lint issues retained with baseline comparison, no new diagnostics. Local production Worker16PASS; fiveviewport behavior125PASS on648010e. Final1aac399 fiveviewport/three-state screenshots15 and no-horizontal-overflow checks15PASS;18.5s normal-clock combined observation7PASS with automatic polling/standard motion,0pageerrors/externalrequests/observedlongtasks; notFPS orphone evidence. Independent finalreport/test-diff audit on e441d28 matched raw evidence and build hash; two documentation precision corrections applied without product changes. See [full report](../docs/MARKET_DATA_RELIABILITY.md) for actual test identities and limitations. Real prebatch3requests/11,693bytes/no retries stopped after ETH rate-limit response; do not claim source fully restored or probe around the stop.
+Final Node run on1aac399:761 total,760PASS,1Windows-file-symlink SKIP; build/typecheckPASS. Existing lint issues retained with baseline comparison, no new diagnostics. Local production Worker16PASS; fiveviewport behavior125PASS on648010e. Final1aac399 fiveviewport/three-state screenshots15 and no-horizontal-overflow checks15PASS;18.5s normal-clock combined observation7PASS with automatic polling/standard motion,0pageerrors/externalrequests/observedlongtasks; notFPS orphone evidence. Independent finalreport/test-diff audit on e441d28 matched raw evidence and build hash; two documentation precision corrections applied without product changes. See [full report](../../docs/MARKET_DATA_RELIABILITY.md) for actual test identities and limitations. Real prebatch3requests/11,693bytes/no retries stopped after ETH rate-limit response; do not claim source fully restored or probe around the stop.
 
 Current production stays Sitesv36/source84511bf. No push/merge/tag/deploy, monitor deployment, secrets, purchases, collectors or model calls. Remaining release actions if separately authorized: upload candidate→candidateCI→review/merge→mainCI→same-site deployment→bounded production refresh verification; remote monitor upgrade requires its own verified version/authority. Local testing is not production recovery.

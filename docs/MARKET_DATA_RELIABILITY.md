@@ -2,6 +2,8 @@
 
 任务：MR-MARKET-DATA-RELIABILITY。日期：2026-11-05（Asia/Shanghai）。本文件区分代码候选、隔离验证和真实线上观察，不把模拟输入当生产行情。
 
+**后续发布已完成：Sites v37 / source2d2d08b，PR#13正常合并，PR与main CI各761/761通过，独立包装审计通过。** 生产环境仍revision3，原网址及AI关闭保持。发布后2次请求确认入口303/首页200，但首页出现验证相关标记而停止；后续行情刷新BLOCKED/NOT RUN，不宣称全面恢复。详见[发布归档](../tasks/archive/MR-PUBLISH-MARKET-RELIABILITY.md)。下文为开发阶段交接记录；其“未上传/未部署”描述属于发布前时点，不能覆盖本段最新结果。
+
 ## 基线与边界
 
 - 开始时 fetch 后 GitHub main：`4352b732660dbfd200d629d5f6d1b3349687a6e1`。远端 CI `39925525573` / job `120320829913` 成功是重新核对的历史执行，不是本轮新 CI。
