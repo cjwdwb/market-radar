@@ -122,6 +122,15 @@ body{background:var(--surface-page);color:var(--text-primary)}
 .chart-interaction-hint span{color:var(--text-secondary)}
 .chart-footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px 12px;padding:12px 20px;border-top:1px solid var(--line-subtle);font-size:12px;color:var(--text-tertiary);line-height:1.6}
 .chart-footer>span:first-child{overflow-wrap:anywhere;min-width:0}
+.market-data-status{padding:0 20px 12px;font-size:12px;line-height:1.7;color:var(--text-secondary)}
+.market-data-status summary{min-height:44px;display:flex;align-items:center;cursor:pointer;list-style:revert}
+.market-data-status summary:focus-visible{outline:2px solid var(--text-primary);outline-offset:3px}
+.market-data-status dl{display:grid;gap:8px;margin:0}
+.market-data-status dl>div{display:flex;flex-wrap:wrap;gap:2px 16px;justify-content:space-between}
+.market-data-status dt{color:var(--text-tertiary)}
+.market-data-status dd{margin:0;overflow-wrap:anywhere;font-variant-numeric:tabular-nums}
+.market-data-status p{margin:8px 0 0}
+.overview-history-status{font-size:12px;color:var(--text-secondary);margin-top:6px}
 .chart-empty{min-height:var(--chart-body-height,460px);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;text-align:center;font-size:14px;line-height:1.8;color:var(--text-secondary);overflow-wrap:anywhere}
 .price-chart{height:var(--chart-body-height,460px);padding:16px 12px 12px 8px}
 .chart-tooltip{background:var(--surface-raised);border:1px solid var(--line-strong);border-radius:var(--radius-control);padding:12px 16px}

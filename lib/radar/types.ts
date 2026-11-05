@@ -7,6 +7,8 @@ export type RadarHistory = {
   currency: string;
   fetchedAt: number;
   intervalMs: number;
+  /** A failed refresh must not endorse a retained baseline as current. */
+  error?: string;
 };
 export type RadarSignalType = "price_move" | "volume_spike" | "breakout" | "breakdown" | "volatility_spike" | "relative_strength" | "relative_weakness";
 export type RadarEvidenceItem = { label: string; value: number | string; unit?: "%" | "×" | "bars"; baseline?: number; threshold?: number };
