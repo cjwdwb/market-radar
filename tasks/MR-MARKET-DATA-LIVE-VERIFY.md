@@ -19,3 +19,11 @@
 任务卡/ACTIVE/专项报告/发布索引及ignored本批证据；仅确证问题所需lib/market-request.ts、market-data.ts、okx.ts、market-history.ts、API routes、现有行情hooks/主图与关联tests。任何新增实现先在本卡写触发条件/原因/最小修复；不做无关UI重构。源码修复跑相关回归，影响集成时build/typecheck/fullNode、浏览器及独立审计；无产品改动不重跑全套。
 
 产出分开：当前生产、实际页面/数据后续刷新、缺陷/修复候选、重新发布与复测。已有预算限制保留，需扩大时先说明；原历史503根因不追认。开发DS不强制，产品AI0。
+
+## Confirmed finding P2 / Builder slice
+
+独立GPT离线复现：配置代理若返回现有标准errorInfo（timeout/504、upstream_denied/502、invalid_data/502、environment_denied/503），通用marketJson先拒绝HTTP，history route又将5xx改为proxy_unavailable；具体分类丢失。此问题已确证，但不是当前线上旧代理503的已知根因。线上12:11:17/31两条仅证明proxy503，12:11:46路由已恢复200。
+
+最小修复允许lib/market-request.ts、app/api/history/route.ts、相关transport/runtime tests。只对配置代理显式开启标准错误读取：小型有界JSON、原截止/取消/字节/尝试预算内，严格枚举及HTTP错误码一致性校验；不接受远端自由消息/trace作为本地权威，保留网站trace及固定文案。保留已验证远端错误分类/必要状态，区分代理自身401/403与代理报告供应商拒绝，429冷却取保守最长。HTML/旧消息/畸形/不一致正文继续按原HTTP分类，不从503推断429，不新增回退/重试，不改成功数据与鉴权。
+
+纯离线mock覆盖标准timeout/denied/invalid/environment/rate、旧503、畸形/超限/不一致body、原trace、bodytimeout/cancel、拒绝不回退；实际Worker必要专项后全量验证，独立VERIFY。并行Builder独立live37-proxy worktree，只写上述文件，协调者集成与发布。
