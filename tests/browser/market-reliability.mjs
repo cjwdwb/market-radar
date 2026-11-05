@@ -37,10 +37,10 @@ async function until(predicate,message) {
 async function settle(page,ms=48) { await page.clock.runFor(ms); await sleep(35); await page.clock.runFor(32); }
 async function chooseRange(page,label) { await page.getByRole('tab',{name:label,exact:true}).focus();await page.keyboard.press('Enter');await settle(page); }
 
-async function fixtureScenario(browser,fixture,origin,{motion='reduced',touch=false}={}) {
+async function fixtureScenario(browser,fixture,origin,{motion='reduced',touch=false,quoteMode='healthy'}={}) {
   const browserOptions=touch?{newContext:options=>browser.newContext({...options,hasTouch:true})}:browser;
   const app=await fixture(browserOptions,{mode:'normal',os:motion==='reduced'?'reduce':'no-preference',motionPreference:motion,watchlist});
-  const {page}=app,state={epoch:0,quoteMode:'healthy',historyFailed:false,tailShift:0,hold:null},calls=[],external=[],held=[];
+  const {page}=app,state={epoch:0,quoteMode,historyFailed:false,tailShift:0,hold:null},calls=[],external=[],held=[];
   await page.addInitScript(({preferences,watchlist,motion})=>{
     const old=JSON.parse(localStorage.getItem(preferences)||'{}');
     localStorage.setItem(preferences,JSON.stringify({...old,watchlist,auto:false,backgroundTabs:true,marketMode:'classic',motionPreference:motion,displayTimePreference:old.displayTimePreference??'UTC'}));
@@ -68,7 +68,7 @@ async function fixtureScenario(browser,fixture,origin,{motion='reduced',touch=fa
   await page.route('**/api/quotes?**',async route=>{
     const epoch=state.realtime?state.realtime.epoch+Date.now()-state.realtime.start:state.epoch;
     const symbols=new URL(route.request().url()).searchParams.get('symbols').split(','),row={kind:'quotes',symbols,epoch,mode:state.quoteMode,done:false};calls.push(row);
-    const results=symbols.flatMap(symbol=>state.quoteMode==='missing'&&symbol==='BTC-USDT'?[]:state.quoteMode==='partial'&&symbol==='ETH-USDT'?[{symbol,error:'合成场景：单一标的失败',errorInfo:{code:'upstream_unavailable',stage:'upstream'}}]:[{symbol,quote:quote(symbol,epoch)}]);
+    const results=symbols.flatMap(symbol=>state.quoteMode==='missing'&&symbol==='BTC-USDT'?[]:state.quoteMode==='none'||state.quoteMode==='partial'&&symbol==='ETH-USDT'?[{symbol,error:'合成场景：报价暂不可用',errorInfo:{code:'upstream_unavailable',stage:'upstream'}}]:[{symbol,quote:quote(symbol,epoch)}]);
     await route.fulfill({json:{results,fetchedAt:stamp+epoch+9999}});row.done=true;
   });
   await page.route('**/*',route=>{
@@ -89,7 +89,7 @@ const chartSnapshot = page => page.locator('.candle-canvas').evaluate(el=>({star
 export async function reliabilityChecks({browser,fixture,base,output,report,phase,observedWarnings=[]}) {
   assert.ok(['before','after'].includes(phase));assert.equal(process.env.RADAR_SYNTHETIC_AUTH,'1');
   const url=new URL(base);assert.equal(url.hostname,'127.0.0.1');
-  const only=process.env.RADAR_RELIABILITY_ONLY;assert.ok(!only||['screens','continuous'].includes(only));
+  const only=process.env.RADAR_RELIABILITY_ONLY;assert.ok(!only||['screens','continuous','summary'].includes(only));
   const folder=resolve(output,phase+(only?'-'+only:'')),build=resolve(process.env.RADAR_BUILD_DIR||'dist');mkdirSync(folder,{recursive:true});
   Object.assign(report,{phase,only:only??null,testSourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),sourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8',cwd:dirname(build)}).trim(),buildServerSha256:createHash('sha256').update(readFileSync(resolve(build,'server/index.js'))).digest('hex'),buildDirectory:build,identity:'Synthetic market fixture on a local production build; no private files, credentials, actual market or model requests',screenshots:[],baselineFailures:[],observations:[],externalRequests:[],conditions:{stamp,watchlist,auto:false,displayTimePreference:'UTC',motion:'reduced except explicit standard-motion check',grid:'native 15m/1H/4H/1Dutc; last confirmation unknown',outbound:'browser external abort and Miniflare outbound denial'},notRun:['physical devices','production authenticated refresh','real source availability','FPS measurement']});
   const check=(name,passed,detail={})=>{report.observations.push({name,passed:!!passed,...detail});if(passed)report.checks.push(name);else if(phase==='before')report.baselineFailures.push({name,...detail});else assert.ok(passed,`${name}: ${JSON.stringify(detail)}`);};
@@ -115,6 +115,27 @@ export async function reliabilityChecks({browser,fixture,base,output,report,phas
     await until(async()=>await button.isEnabled()&&app.calls.slice(start).every(row=>row.done),'manual refresh did not settle');return start;
   }
   try {
+    if(!only||only==='summary') {
+      for(const quoteMode of ['partial','none']) {
+        const app=current=await fixtureScenario(browser,fixture,url.origin,{quoteMode}),p=app.page;
+        try {
+          await open(app,390,844);
+          const runtime=await p.locator('.runtime-summary small').innerText(),price=await p.locator('.chart-price strong').innerText();
+          if(quoteMode==='partial') {
+            check('runtime: a valid BTC price with incomplete quotes reports partial acquisition',/\d/.test(price)&&runtime.includes('部分报价已取得，其他标的待更新')&&!runtime.includes('尚未取得有效报价'),{price,runtime});
+            app.state.quoteMode='healthy';app.state.epoch=1000;await manual(app);
+            const batch=(await p.locator('.runtime-summary small').innerText()).split(' · ')[0];
+            check('runtime: a successful complete batch is labelled as a batch acquisition',batch.startsWith('最近整批报价获取'),{batch});
+            app.state.quoteMode='partial';app.state.epoch=2000;await manual(app);
+            const later=await p.locator('.runtime-summary small').innerText();
+            check('runtime: a later partial failure retains the previous batch time and states pending quotes',later.startsWith(batch)&&later.includes('部分报价待更新'),{batch,later});
+          } else check('runtime: no valid quotes still reports waiting',runtime.includes('尚未取得有效报价')&&!/\d/.test(price),{price,runtime});
+          check(`runtime ${quoteMode}: no horizontal overflow at 390px`,await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+          assert.deepEqual(app.errors,[]);assert.deepEqual(app.external,[]);
+        } finally {await app.context.close();current=null;}
+      }
+      if(only==='summary'){report.warnings=observedWarnings;return;}
+    }
     if(only==='screens') {
       for(const [name,width,height] of viewports) {
         const app=current=await fixtureScenario(browser,fixture,url.origin),p=app.page;
