@@ -130,3 +130,5 @@ node --experimental-strip-types --import ./tests/register-types.mjs tests/reliab
 脱敏证据保留于本地ignored `outputs/live-verify37/normal/report.json`、`crypto-isolated/report.json`与`crypto-isolated/desktop-first.png`。正常浏览器首次响应被限流后停止，第二次股票故意不可用；不把此约束隐去。报价/K线证据保留有限字段、hash、时间和来源，没有Cookie/Authorization/访问码或完整响应日志。
 
 两项确定P2修复：配置代理丢失标准错误分类；部分报价成功却显示全空。前者严格验证标准错误、保留网站trace/固定文案与原停止边界，不能诊断旧proxy503的内部原因；后者只修运行摘要，不改变报价准备/整批时间/提醒/算法。候选验证及发布结果由任务卡续记；股票限流、ETH/SOL上游错误保持开放。
+
+补证修复已完成：固定产品f6bb908、独立GPT审计无新增finding；本地770PASS/1 Windows symlink SKIP、build/typecheck通过，23项实际Worker隔离检查、138项五视口浏览器通过（21条预期模拟warning）。PR#14/main各771/771全PASS并正常合并为9710a79，同源46文件包装经独立VERIFY，发布Sitesv38于2026-11-05T12:42:35Z原生succeeded/env3。后续文档不重新部署；真实BTC测量属于v37，v38没有重试受限来源。完整命令、源码/部署/证据身份和剩余限制见任务卡；不宣称股票/ETH/SOL已恢复。

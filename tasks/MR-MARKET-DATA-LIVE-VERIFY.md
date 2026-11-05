@@ -51,3 +51,13 @@ Builder独立worktree提交8c6a240/22a8407，协调者分别cherry-pick为ad4e0b
 - 固定server SHA256 `b114bea0943fd5e2a126e0439802a6fb01c60f791356e26ec8761fdd68f00944`。证据：outputs/live-verify37/{build.log,typecheck.log,node.log,runtime.json,browser/verification.json}。独立审计/CI/发布待续记；本条不预填上线。
 
 真实来源仍开放：Yahoo429；ETH/SOL代理503内部原因UNKNOWN，未获独立monitor变更范围、未改其秘密或部署。23/24生产非静态请求已用，停止进一步行情探测，不将稍后部署成功或本地通过追认为这些来源恢复。BTC只证明本次短观察的同根更新，新bar边界/站主/真机/长时NOT RUN。开发DS与产品AI本次均0调用。
+
+## 独立审计、上传与发布 — 本批收口
+
+- GPT Auditor只读审计固定f6bb908（任务记录35416bb），独立6项transport测试PASS；两项P2修复VERIFY，无新增可操作finding。原真实失败不追认。浏览器来源测试脚本22a8407与合并测试相同，构建身份f6bb908/hash见上。
+- [PR#14](https://github.com/cjwdwb/market-radar/pull/14)正常合并，源码`9710a7951eeb9d371b7afa5ddf3a766e6af045aa`。PR CI42028719058/job127249365086、main CI42028970169/job127250216388均build/typecheck/771PASS/0SKIP；GitHub实际执行npm test通过，区别本地分项入口。
+- 官方Sites helper将同源上传并包装：outputs/live-verify37/site.tar.gz，2,051,585bytes，SHA256 `dcf5d20c039630fa1afd0fb416b28fa93a8dbebc60aaf26bad112fa476ff2cb3`。独立包装审计46文件、44个server/client文件逐字节一致；产品输入f6bb908→9710a79不变，只有文档/合并，未无益重建；无敏感文件/数据库/测试工具，原project/D1/R2保持。
+- **Sites v38**，version `appgprj_6a9b9dc23584819190a31ae417863e7a~appgver_d10a127b0e9481919a314433159ddc75`，deployment `appgdep_6aec79b1dc588191974396b9b53792d9`，原生`succeeded`，2026-11-05T12:42:35.755168Z，env revision3。原网址 https://market-radar-rex.swt-aether.chatgpt.site 。平台存储归一化tar 6,860,800bytes/hash9bd4b04f…ae9ce77与本地压缩包身份分开，不假称二者bytes/hash一致。
+- 保留原public audience、秘密/访问/关闭的产品AI，未部署独立monitor、未建资源/标签/调度；旧v37可回退。本卡随后文档收尾不代表再部署。未重复真实来源请求，v38的页面/来源复测NOT RUN（既定有界预算/拒绝后停止）；原生成功验证发布，不验证行情恢复。
+
+本批结果：CODE_FIX/LOCAL_VERIFICATION/INDEPENDENT_REVIEW/GITHUB_CI/PUBLISHED=PASS；v37 BTC短时真实刷新=PASS；全市场来源恢复=BLOCKED；新bar边界、长期运行、站主与真机=NOT RUN。保留该任务为部分验证，不能归档为全面恢复。下一步仅在对应来源恢复/具备独立monitor诊断条件后，对Yahoo、ETH/SOL及新bar边界做低频补证；不以重复刷新、直连绕过或更换来源来制造通过。

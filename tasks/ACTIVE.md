@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-MARKET-DATA-LIVE-VERIFY — 2026-11-05 补齐线上验证
+## MR-MARKET-DATA-LIVE-VERIFY — 2026-11-05 Sites v38 已发布；上游恢复复测仍开放
 
-[任务卡](MR-MARKET-DATA-LIVE-VERIFY.md)：用户要求继续核验v37线上报价/K线后续刷新，确证问题则修复。正常独立浏览器与有限日志诊断先行，保留上次停止报告，不用模拟替代生产结果；不改秘密/访问/AI或独立monitor。
+[任务卡](MR-MARKET-DATA-LIVE-VERIFY.md)：v37真实BTC观察24.553秒内5轮报价/2轮K线刷新通过；Yahoo429、ETH/SOL代理503仍未恢复，生产预算23/24后停止。标准代理错误分类、部分报价误报全空两项P2修复经独立VERIFY、PR#14及main CI各771/771、23项Worker/138项五视口检查后发布原站Sitesv38/source9710a79/env3。v38部署原生succeeded，未重复来源探测，不将平台成功追认为来源恢复。原站主/真机/跨bar边界未测；未改秘密/访问/AI或独立monitor。该卡保留外部来源待办，不归档成全面通过。
 
 ## MR-PUBLISH-MARKET-RELIABILITY — 2026-11-05 已上传部署 Sites v37
 

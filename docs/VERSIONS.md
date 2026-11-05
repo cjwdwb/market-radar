@@ -1,5 +1,7 @@
 # 版本与回退索引
 
+2026-11-05最新发布：**线上刷新补证与局部修复 / Sites v38**，源码`9710a7951eeb9d371b7afa5ddf3a766e6af045aa`，deployment `appgdep_6aec79b1dc588191974396b9b53792d9` 原生succeeded/env3。[PR#14](https://github.com/cjwdwb/market-radar/pull/14)及main CI各771/771、build/typecheck通过，独立源码/包装VERIFY；23项Worker及138项五视口检查通过。修正代理错误分类与部分报价状态，不改来源/刷新/AI/访问。生产真实刷新证据为v37的BTC短时观察，Yahoo429及ETH/SOL代理503仍开放，v38未重复请求来源；不把发布等同全面恢复。[任务记录](../tasks/MR-MARKET-DATA-LIVE-VERIFY.md)。原站网址不变，v37保留为回退版本，未新建/移动标签，文档收尾不再部署。
+
 2026-11-05正式发布：**行情刷新与K线可靠性 / Sites v37**，源码`2d2d08b831fb7131d100eade153918fed52e5355`，deployment `appgdep_6aec6f00209c8191bc21f08000959f96` 原生succeeded/env3。[PR#13](https://github.com/cjwdwb/market-radar/pull/13)及main CI各761/761 Node、build/typecheck通过，独立源码/FIX/包装VERIFY完成。刷新与时间语义修复保留原来源/金融阈值/访客和v36 UI；AI仍关闭，未上传私人数据、未发布独立monitor。原网址 https://market-radar-rex.swt-aether.chatgpt.site 。线上入口303/首页200，验证相关标记触发停止，后续行情刷新BLOCKED/NOT RUN；不把部署成功记为行情全面恢复。[发布归档](../tasks/archive/MR-PUBLISH-MARKET-RELIABILITY.md)。v36保留为既有回退版本，未新建或移动标签；后续文档收尾不再次部署。
 
 2026-10-23正式发布：**UI与交互收口 / Sites v36**，源码`84511bfdf4189db7a0495e82a52727aeb72a7401`，平台succeeded/env3。PR#10/#11/#12已合并，最终build/typecheck/701项Node全PASS，独立源码/包装VERIFY。保留同期v35/source`b647c43b76fca21cc437e5d6c9a9d376aabd4407`的访客入口，补精确root RSC只读路径修复；访客浏览器复测通过。实时AI仍关闭，无新产品模型请求、私人资料上传或环境变更。原网址 https://market-radar-rex.swt-aether.chatgpt.site ，[发布记录](../tasks/archive/MR-PUBLISH-UI30-POLISH.md)。v35为历史回退点，未新建或移动标签；文档收尾不再次部署。
