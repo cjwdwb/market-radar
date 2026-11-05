@@ -1,5 +1,6 @@
 import { getQuotes, getHistory } from '../lib/market-data.ts';
 import { VALID_SYMBOL, alertMatches } from '../lib/market.ts';
+import { errorResponse, marketScope } from '../lib/market-request.ts';
 
 function json(body, status=200) { return Response.json(body,{status,headers:{'Cache-Control':'no-store'}}); }
 export function validConfig(body) {
@@ -49,7 +50,9 @@ export default {
       if(request.method==='GET'&&url.pathname==='/history'){
         const symbol=url.searchParams.get('symbol')||'',range=url.searchParams.get('range')||'15m';
         if(!VALID_SYMBOL.test(symbol)||!['15m','1d','1w','1m','3m'].includes(range))return json({error:'无效行情参数'},400);
-        return json(await getHistory(symbol,range));
+        const suppliedDeadline=Number(request.headers.get('X-Market-Deadline'));
+        const scope=marketScope({signal:request.signal,...(Number.isFinite(suppliedDeadline)&&suppliedDeadline>0?{deadline:suppliedDeadline}:{})});
+        try{return json(await getHistory(symbol,range,scope));}catch(error){return errorResponse(error,scope);}
       }
       if(request.method==='GET')return json(await status(env));
       if(request.method==='POST'&&new URL(request.url).pathname==='/run'){await run(env);return json(await status(env));}
