@@ -107,6 +107,26 @@ node --experimental-strip-types --import ./tests/register-types.mjs tests/reliab
 - CODE_FIX_VERIFIED：PASS（独立源码审计及两个修复 VERIFY；原有 lint 限制见上表）。
 - LOCAL_RUNTIME_VERIFIED：PASS（Worker、五视口行为/截图、正常计时联合观察；模拟/真实与版本范围见上表）。
 - LIVE_SOURCE_CHECKED：有限观察完成，部分来源失败，非全面 PASS。
-- PRODUCTION_REFRESH_VERIFIED：NOT RUN（本候选未部署）。
+- PRODUCTION_REFRESH_VERIFIED：NOT RUN（上述开发阶段候选尚未部署；其后发布与新测见下节）。
 
 剩余动作集中为一次发布决定：上传当前分支 → 候选 CI/PR → 审阅并合并 → main CI → 原站点部署 → 有限生产访客/行情后续刷新复测。此决定不包含秘密变更、远端 monitor 自动升级、新资源或 AI 启用；当前任务第 14 节要求核对对应授权，本轮未取得对该新候选的发布授权，旧 UI 发布授权未自动沿用。若获准，保留有限生产复测预算，遇拒绝/限流仍停止。上游或远端代理问题不能靠前端重试掩盖。专项后回接 MR-30-AI-PRODUCTION-DELIVERY，未开启另一套 3.0 路线。
+
+## 2026-11-05 发布后补证（MR-MARKET-DATA-LIVE-VERIFY）
+
+以上未部署描述属于历史开发阶段。v37实际已发布source `2d2d08b`；本节是用户随后要求的真实刷新复查，与模拟证据分开。
+
+| 项目 | 实际对象与证据 | 结论 |
+| --- | --- | --- |
+| 正常入口/工作台 | 新Edge149上下文，12:25:57Z进入；303→200，标题和工作台可见、无可见挑战、0 pageerror | PASS；旧通用脚本字符串不能证明挑战 |
+| 股票报价 | Yahoo整批明确rate_limited/upstream429，立即停止；6非静态/14静态，行情2388 bytes | BLOCKED；不是页面刷新坏了，也不追认为恢复 |
+| BTC自动报价 | 12:29UTC独立受控观察中5轮有效报价，真实获取时间前进19864ms，页面显示随结果更新 | PASS（限定24.553秒、真实生产v37） |
+| BTC原生15m图表 | 两次96根真实K线，获取时间前进15067ms；同一未收盘bar的低/收/量变化，界面同步显示 | PASS（同根更新；未观察跨15分钟新bar收盘） |
+| ETH/SOL小图 | 各一次502，proxy/upstream503；只确认远端monitor暂不可用，内部原因UNKNOWN | BLOCKED；不是BTC成功就全源正常 |
+| 运行摘要 | BTC有真实价格/图表但仍称尚未取得有效报价；整批时间依赖所有资产/基准成功 | FAIL，局部提示修复候选 |
+| 手机/暂停恢复/手动刷新线上 | 请求额度用尽前没有执行这些额外路径 | NOT RUN；原本地模拟不替代 |
+
+第二次观察为来源隔离：提前中止已经被429拒绝的Yahoo请求，其余真实Crypto请求不变，没有模拟/替换响应、伪造会话或绕门禁。它不能证明全市场正常。使用12非静态/14静态，行情31666 bytes；两次合计18个非静态请求，加前批5为23/24，停止再探测。代理内部尝试数UNKNOWN，未降低产品刷新频率；没有生产写入、模型调用、秘密或访问设置变更。
+
+脱敏证据保留于本地ignored `outputs/live-verify37/normal/report.json`、`crypto-isolated/report.json`与`crypto-isolated/desktop-first.png`。正常浏览器首次响应被限流后停止，第二次股票故意不可用；不把此约束隐去。报价/K线证据保留有限字段、hash、时间和来源，没有Cookie/Authorization/访问码或完整响应日志。
+
+两项确定P2修复：配置代理丢失标准错误分类；部分报价成功却显示全空。前者严格验证标准错误、保留网站trace/固定文案与原停止边界，不能诊断旧proxy503的内部原因；后者只修运行摘要，不改变报价准备/整批时间/提醒/算法。候选验证及发布结果由任务卡续记；股票限流、ETH/SOL上游错误保持开放。

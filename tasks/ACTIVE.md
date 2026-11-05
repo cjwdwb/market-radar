@@ -1,5 +1,9 @@
 # 当前任务索引
 
+## MR-MARKET-DATA-LIVE-VERIFY — 2026-11-05 补齐线上验证
+
+[任务卡](MR-MARKET-DATA-LIVE-VERIFY.md)：用户要求继续核验v37线上报价/K线后续刷新，确证问题则修复。正常独立浏览器与有限日志诊断先行，保留上次停止报告，不用模拟替代生产结果；不改秘密/访问/AI或独立monitor。
+
 ## MR-PUBLISH-MARKET-RELIABILITY — 2026-11-05 已上传部署 Sites v37
 
 [发布归档](archive/MR-PUBLISH-MARKET-RELIABILITY.md)：PR#13正常合并/source2d2d08b，PR和main CI均build/typecheck/761项Node全PASS；同源包装独立VERIFY，Sitesv37原生succeeded/env3，原网址不变。线上入口303/首页200，首页验证相关标记触发停止；后续行情刷新BLOCKED/NOT RUN，不能宣称全面恢复。未改秘密/访问策略、未启用AI或单独发布monitor，产品调用0。主3.0继续开放；后续文档提交不再次部署。

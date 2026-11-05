@@ -12,11 +12,13 @@ const messages: Record<MarketErrorCode, string> = {
 /** status remains the upstream status; public HTTP mapping is separate. */
 export class MarketRequestError extends Error {
   readonly status?: number; readonly retryAt?: number; readonly blocked: boolean;
+  readonly validatedMonitorError: boolean;
   readonly code: MarketErrorCode; readonly stage: MarketErrorInfo["stage"]; readonly traceId?: string; readonly businessCode?: string;
-  constructor(message: string, status?: number, retryAt?: number, blocked = false, info: Partial<MarketErrorInfo> & { businessCode?: string } = {}) {
+  constructor(message: string, status?: number, retryAt?: number, blocked = false, info: Partial<MarketErrorInfo> & { businessCode?: string; validatedMonitorError?: boolean } = {}) {
     const code = info.code ?? (blocked ? "environment_denied" : status === 429 ? "rate_limited" : status === 401 || status === 403 || status === 451 ? "upstream_denied" : status === 404 ? "unsupported_asset" : status && status >= 500 ? "upstream_unavailable" : "transport_error");
     super(message); this.name = "MarketRequestError"; this.status = status; this.retryAt = retryAt; this.blocked = blocked;
     this.code = code; this.stage = info.stage ?? "upstream"; this.traceId = info.traceId; this.businessCode = info.businessCode;
+    this.validatedMonitorError = info.validatedMonitorError === true;
   }
 }
 export type AttemptBudget = { remaining: number; used: number };
@@ -60,6 +62,39 @@ export function retryAfterAt(header: string | null, now = Date.now()) {
   const supplied = Number.isFinite(seconds) ? now + seconds * 1000 : header ? Date.parse(header) : NaN;
   return Math.max(now + 60_000, Number.isFinite(supplied) ? supplied : 0);
 }
+/** Only the configured monitor may report these standard provider errors. */
+function monitorError(body: unknown, status: number, scope: MarketScope, httpFailure: MarketRequestError) {
+  if (!body || typeof body !== "object" || Array.isArray(body)) return;
+  const envelope = body as Record<string, unknown>;
+  if (typeof envelope.error !== "string" || !envelope.errorInfo || typeof envelope.errorInfo !== "object" || Array.isArray(envelope.errorInfo)) return;
+  const info = envelope.errorInfo as Record<string, unknown>;
+  const codes = ["invalid_parameter", "unsupported_asset", "upstream_denied", "rate_limited", "timeout", "transport_error", "environment_denied", "unexpected_content_type", "invalid_json", "upstream_business_error", "upstream_unavailable", "empty", "insufficient", "invalid_data"];
+  if (typeof info.code !== "string" || !codes.includes(info.code)) return;
+  if (info.stage !== undefined && !["browser", "site", "proxy", "upstream", "parse", "admission"].includes(info.stage as string)) return;
+  if (info.traceId !== undefined && typeof info.traceId !== "string") return;
+  const code = info.code as MarketErrorCode;
+  if (errorStatus(marketError(code)) !== status) return;
+  const upstream = info.upstreamStatus;
+  if (upstream !== undefined) {
+    if (typeof upstream !== "number" || !Number.isInteger(upstream) || upstream < 300 || upstream > 599) return;
+    const consistent = code === "upstream_denied" ? [401, 403, 451].includes(upstream)
+      : code === "rate_limited" ? upstream === 429
+      : code === "unsupported_asset" ? upstream === 404
+      : code === "upstream_unavailable" ? upstream >= 500
+      : code === "upstream_business_error" ? upstream < 500 && ![401, 403, 404, 429, 451].includes(upstream)
+      : false;
+    if (!consistent) return;
+  }
+  if (info.retryAt !== undefined && (code !== "rate_limited" || typeof info.retryAt !== "number" || !Number.isSafeInteger(info.retryAt) || info.retryAt <= 0)) return;
+  const retryAt = code === "rate_limited" ? Math.max(httpFailure.retryAt ?? 0, (info.retryAt as number | undefined) ?? 0) : undefined;
+  // Remote prose, trace and stage never become local diagnostics. The marker is local only.
+  return new MarketRequestError(messages[code], upstream as number | undefined, retryAt, code === "environment_denied", { code, stage: "proxy", traceId: scope.traceId, validatedMonitorError: true });
+}
+function monitorRetryAfterAt(header: string | null) {
+  // Very large numeric waits saturate instead of overflowing or shortening the cooldown.
+  const supplied = header !== null && /^\s*\d+(?:\.\d+)?\s*$/.test(header) ? Date.now() + Number(header) * 1000 : retryAfterAt(header);
+  return Math.min(Number.MAX_SAFE_INTEGER, Math.ceil(Math.max(Date.now() + 60_000, supplied)));
+}
 /** Also bounds runtimes that cannot propagate abort into fetch/body reads. */
 function interrupted<T>(promise: Promise<T>, signal: AbortSignal, scope: MarketScope): Promise<T> {
   if (signal.aborted) return Promise.reject(cancellation(signal, scope));
@@ -70,7 +105,7 @@ function interrupted<T>(promise: Promise<T>, signal: AbortSignal, scope: MarketS
     promise.then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
   });
 }
-export async function marketJson<T>(url: URL, options: MarketRequestOptions & { timeoutMs: number; attempts?: number; headers?: Record<string, string>; maxBytes?: number; stage?: MarketErrorInfo["stage"] }): Promise<T> {
+export async function marketJson<T>(url: URL, options: MarketRequestOptions & { timeoutMs: number; attempts?: number; headers?: Record<string, string>; maxBytes?: number; stage?: MarketErrorInfo["stage"]; monitorErrors?: boolean; onMonitorRateLimit?: (retryAt: number) => void }): Promise<T> {
   const scope = marketScope(options, options.timeoutMs, Math.max(1, Math.min(2, options.attempts ?? 1)));
   const attempts = Math.max(1, Math.min(2, options.attempts ?? 1));
   for (let attempt = 0; attempt < attempts; attempt++) {
@@ -82,7 +117,7 @@ export async function marketJson<T>(url: URL, options: MarketRequestOptions & { 
     scope.signal?.addEventListener("abort", abort, { once: true });
     const hop = { ...scope, deadline: Math.min(scope.deadline, Date.now() + 8_000) };
     const timer = setTimeout(() => controller.abort(marketError("timeout", scope)), Math.max(1, hop.deadline - Date.now()));
-    let response: Response | undefined; let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+    let response: Response | undefined; let reader: ReadableStreamDefaultReader<Uint8Array> | undefined; let httpFailure: MarketRequestError | undefined;
     try {
       // workerd supports follow/manual only. Manual leaves all 3xx terminal below.
       const fetching = fetch(url, { headers: options.headers ?? { Accept: "application/json" }, signal: controller.signal, redirect: "manual" }).then(value => {
@@ -90,9 +125,15 @@ export async function marketJson<T>(url: URL, options: MarketRequestOptions & { 
         return value;
       });
       response = await interrupted(fetching, controller.signal, scope);
-      if (!response.ok) throw marketError(response.status === 429 ? "rate_limited" : [401, 403, 451].includes(response.status) ? "upstream_denied" : response.status === 404 ? "unsupported_asset" : response.status >= 500 ? "upstream_unavailable" : "upstream_business_error", scope, { upstreamStatus: response.status, ...(response.status === 429 ? { retryAt: retryAfterAt(response.headers.get("Retry-After")) } : {}) });
+      if (!response.ok) {
+        httpFailure = marketError(response.status === 429 ? "rate_limited" : [401, 403, 451].includes(response.status) ? "upstream_denied" : response.status === 404 ? "unsupported_asset" : response.status >= 500 ? "upstream_unavailable" : "upstream_business_error", scope, { upstreamStatus: response.status, ...(response.status === 429 ? { retryAt: (options.monitorErrors ? monitorRetryAfterAt : retryAfterAt)(response.headers.get("Retry-After")) } : {}) });
+        // Observe the header before optional body reading; a cancelled waiter must not clear provider cooldown.
+        if (options.monitorErrors && httpFailure.retryAt) options.onMonitorRateLimit?.(httpFailure.retryAt);
+        // Proxy authentication failures are authoritative HTTP errors, never provider envelopes.
+        if (!options.monitorErrors || [401, 403].includes(response.status)) throw httpFailure;
+      }
       if (!/^application\/(?:[\w.+-]+\+)?json(?:\s*;|$)/i.test(response.headers.get("Content-Type") ?? "")) throw marketError("unexpected_content_type", scope, { stage: "parse" });
-      const limit = options.maxBytes ?? 2 * 1024 * 1024;
+      const limit = Math.min(options.maxBytes ?? 2 * 1024 * 1024, httpFailure ? 8 * 1024 : Infinity);
       if (Number(response.headers.get("Content-Length")) > limit) throw marketError("invalid_data", scope, { stage: "parse" });
       reader = response.body?.getReader();
       const chunks: Uint8Array[] = []; let bytes = 0;
@@ -106,19 +147,25 @@ export async function marketJson<T>(url: URL, options: MarketRequestOptions & { 
       const data = new Uint8Array(bytes); let offset = 0;
       for (const chunk of chunks) { data.set(chunk, offset); offset += chunk.byteLength; }
       const result = JSON.parse(new TextDecoder().decode(data)) as T;
-      checkScope(hop); return result;
+      checkScope(hop);
+      if (httpFailure) throw monitorError(result, response.status, scope, httpFailure) ?? httpFailure;
+      return result;
     } catch (error) {
       let failure: MarketRequestError;
       if (controller.signal.aborted) failure = cancellation(controller.signal, scope);
       else if (Date.now() >= hop.deadline) failure = marketError("timeout", scope);
+      else if (error instanceof MarketRequestError && error.validatedMonitorError) failure = error;
+      else if (httpFailure) failure = httpFailure;
       else if (error instanceof MarketRequestError) failure = error;
       else if (error instanceof SyntaxError) failure = marketError("invalid_json", scope, { stage: "parse" });
       else {
         const cause = error instanceof Error ? error.cause as { code?: string } | undefined : undefined;
         failure = marketError(cause?.code === "EACCES" || cause?.code === "EPERM" ? "environment_denied" : error instanceof Error && error.name === "TimeoutError" ? "timeout" : "transport_error", scope);
       }
-      if (options.stage) failure = new MarketRequestError(failure.message, failure.status, failure.retryAt, failure.blocked, { ...errorInfo(failure), stage: options.stage, businessCode: failure.businessCode });
-      if (failure.code !== "transport_error" || attempt + 1 >= attempts || scope.budget.remaining <= 0 || Date.now() >= scope.deadline) throw failure;
+      // Reading optional details must not erase an already authoritative HTTP cooldown.
+      if (options.monitorErrors && httpFailure?.code === "rate_limited" && failure.code === "timeout" && !scope.signal?.aborted) failure = httpFailure;
+      if (options.stage) failure = new MarketRequestError(failure.message, failure.status, failure.retryAt, failure.blocked, { ...errorInfo(failure), stage: options.stage, businessCode: failure.businessCode, validatedMonitorError: failure.validatedMonitorError });
+      if (failure.validatedMonitorError || failure.code !== "transport_error" || attempt + 1 >= attempts || scope.budget.remaining <= 0 || Date.now() >= scope.deadline) throw failure;
     } finally {
       clearTimeout(timer); scope.signal?.removeEventListener("abort", abort);
       if (reader) { void reader.cancel().catch(() => {}); reader.releaseLock(); }

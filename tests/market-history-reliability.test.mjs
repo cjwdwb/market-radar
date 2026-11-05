@@ -4,7 +4,7 @@ import {GET as historyRoute} from '../app/api/history/route.ts';
 import {GET as quotesRoute} from '../app/api/quotes/route.ts';
 import {getHistory,parsePoints} from '../lib/market-data.ts';
 import {getOKXHistory,parseCandles} from '../lib/okx.ts';
-import {marketScope} from '../lib/market-request.ts';
+import {marketScope,marketError,errorResponse,publicError} from '../lib/market-request.ts';
 import {validateProxyHistory} from '../lib/market-history.ts';
 
 let now,sequence=0;
@@ -26,6 +26,31 @@ test('proxy HTTP errors never trigger a direct request and remain distinct from 
  for(const [status,expected,code] of [[401,502,'proxy_auth_error'],[403,502,'proxy_auth_error'],[451,502,'upstream_denied'],[503,502,'proxy_unavailable']]){
   proxy();let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return new Response('',{status});});const response=await historyRoute(request());const body=await response.json();assert.equal(response.status,expected);assert.equal(body.errorInfo.code,code);assert.equal(body.errorInfo.stage,'proxy');assert.equal(calls,1);
  }
+});
+test('configured proxy standard errors preserve the cause, public status and website trace without fallback',async t=>{
+ proxy();
+ for(const [code,status,upstreamStatus] of [['timeout',504],['upstream_denied',502,401],['upstream_denied',502,403],['invalid_data',502],['environment_denied',503],['transport_error',502],['upstream_unavailable',502,503],['empty',502],['unsupported_asset',404,404]]){
+  let calls=0,siteTrace;
+  t.mock.method(globalThis,'fetch',async(url,options)=>{calls++;assert.equal(url.hostname,'monitor.example.test');siteTrace=options.headers['X-Market-Trace'];const standard=errorResponse(marketError(code,{traceId:'untrusted-remote-trace'},{upstreamStatus}));const body=await standard.json();body.error='https://private.invalid/remote-secret';return Response.json(body,{status:standard.status,headers:{'X-Market-Trace':'untrusted-remote-trace'}});});
+  const response=await historyRoute(request()),body=await response.json();assert.equal(response.status,status,code);assert.equal(body.errorInfo.code,code);assert.equal(body.errorInfo.upstreamStatus,upstreamStatus);assert.equal(body.error,publicError(marketError(code)));assert.equal(body.errorInfo.stage,'proxy');assert.equal(body.errorInfo.traceId,siteTrace);assert.equal(response.headers.get('X-Market-Trace'),siteTrace);assert.equal(response.headers.get('Cache-Control'),'no-store');assert.doesNotMatch(JSON.stringify(body),/remote-secret|untrusted-remote-trace|validatedMonitorError/);assert.equal(calls,1);
+ }
+});
+test('proxy own authentication and old/inconsistent 503 bodies cannot become typed upstream errors or cooldown',async t=>{
+ proxy();
+ for(const [status,code,body] of [[401,'proxy_auth_error',{error:'remote',errorInfo:{code:'upstream_denied',upstreamStatus:403}}],[403,'proxy_auth_error',{error:'remote',errorInfo:{code:'rate_limited',retryAt:now+180000}}],[503,'proxy_unavailable',{error:'old upstream 429'}],[503,'proxy_unavailable',{error:'remote',errorInfo:{code:'rate_limited',retryAt:now+180000}}],[503,'proxy_unavailable',{error:'remote',errorInfo:{code:'timeout'}}]]){
+  let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json(body,{status});});const response=await historyRoute(request());const result=await response.json();assert.equal(response.status,502);assert.equal(result.errorInfo.code,code);assert.equal(result.errorInfo.upstreamStatus,status);assert.equal(calls,1);assert.equal(response.headers.get('Retry-After'),null);
+ }
+ let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json(legacy());});assert.equal((await historyRoute(request())).status,200);assert.equal(calls,1,'inconsistent rate body must not start provider cooldown');
+});
+test('typed proxy rate limit keeps the longest cooldown across later requests',async t=>{
+ proxy();let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json({error:'untrusted',errorInfo:{code:'rate_limited',upstreamStatus:429,retryAt:now+180000}},{status:429,headers:{'Retry-After':'120'}});});
+ const first=await historyRoute(request());assert.equal(first.status,429);assert.equal(first.headers.get('Retry-After'),'180');assert.equal((await first.json()).errorInfo.code,'rate_limited');now+=121000;const second=await historyRoute(request());assert.equal(second.status,429);assert.equal(second.headers.get('Retry-After'),'59');assert.equal(calls,1);
+});
+test('caller cancellation during a 429 body keeps the observed provider cooldown for other requests',async t=>{
+ proxy();let calls=0,cancelled=0;const controller=new AbortController();
+ t.mock.method(globalThis,'fetch',async()=>{calls++;return new Response(new ReadableStream({cancel(){cancelled++;}}),{status:429,headers:{'Content-Type':'application/json','Retry-After':'180'}});});
+ const pending=historyRoute(request('1d',controller.signal));await new Promise(resolve=>setImmediate(resolve));controller.abort();const first=await pending;assert.equal(first.status,499);assert.equal((await first.json()).errorInfo.code,'caller_cancelled');assert.equal(cancelled,1);
+ const second=await historyRoute(request());assert.equal(second.status,429);assert.equal(second.headers.get('Retry-After'),'180');assert.equal(calls,1);
 });
 test('proxy 429 enforces provider cooldown and carries a reliable Retry-After',async t=>{
  proxy();let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;return new Response('',{status:429,headers:{'Retry-After':'180'}});});const a=await historyRoute(request());assert.equal(a.status,429);assert.equal(a.headers.get('Retry-After'),'180');const b=await historyRoute(request());assert.equal(b.status,429);assert.equal(calls,1);

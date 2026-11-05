@@ -20,11 +20,12 @@ export async function GET(request: Request) {
       upstream.searchParams.set("symbol", symbol); upstream.searchParams.set("range", range);
       try {
         const deadline = Math.min(scope.deadline, Date.now() + 6_000);
-        const body = await marketJson<unknown>(upstream, { ...scope, deadline, timeoutMs: 6_000, maxBytes: 512 * 1024, stage: "proxy", headers: { Authorization: `Bearer ${token}`, Accept: "application/json", "X-Market-Deadline": String(deadline), "X-Market-Trace": scope.traceId } });
+        const body = await marketJson<unknown>(upstream, { ...scope, deadline, timeoutMs: 6_000, maxBytes: 512 * 1024, stage: "proxy", monitorErrors: true, onMonitorRateLimit: rememberOKXRateLimit, headers: { Authorization: `Bearer ${token}`, Accept: "application/json", "X-Market-Deadline": String(deadline), "X-Market-Trace": scope.traceId } });
         checkScope(scope);
         return Response.json(validateProxyHistory(body, symbol, range as Range, scope), { headers: { "Cache-Control": "no-store", "X-Market-Trace": scope.traceId } });
       } catch (error) {
         if (error instanceof MarketRequestError && error.code === "rate_limited") rememberOKXRateLimit(error.retryAt ?? Date.now() + 60_000);
+        if (error instanceof MarketRequestError && error.validatedMonitorError) throw error;
         if (error instanceof MarketRequestError && [401, 403].includes(error.status ?? 0)) throw marketError("proxy_auth_error", scope, { stage: "proxy", upstreamStatus: error.status });
         if (error instanceof MarketRequestError && ["upstream_unavailable", "transport_error"].includes(error.code)) throw marketError("proxy_unavailable", scope, { stage: "proxy", upstreamStatus: error.status });
         throw error;
