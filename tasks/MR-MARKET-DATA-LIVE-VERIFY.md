@@ -27,3 +27,9 @@
 最小修复允许lib/market-request.ts、app/api/history/route.ts、相关transport/runtime tests。只对配置代理显式开启标准错误读取：小型有界JSON、原截止/取消/字节/尝试预算内，严格枚举及HTTP错误码一致性校验；不接受远端自由消息/trace作为本地权威，保留网站trace及固定文案。保留已验证远端错误分类/必要状态，区分代理自身401/403与代理报告供应商拒绝，429冷却取保守最长。HTML/旧消息/畸形/不一致正文继续按原HTTP分类，不从503推断429，不新增回退/重试，不改成功数据与鉴权。
 
 纯离线mock覆盖标准timeout/denied/invalid/environment/rate、旧503、畸形/超限/不一致body、原trace、bodytimeout/cancel、拒绝不回退；实际Worker必要专项后全量验证，独立VERIFY。并行Builder独立live37-proxy worktree，只写上述文件，协调者集成与发布。
+
+## 本轮真实浏览器观察与来源隔离续测
+
+2026-11-05T12:25:57Z正常新Edge进入/from-aether→工作台，页面标题/布局正确，没有可见挑战，无pageerror。6个非静态请求、14个静态请求，行情正文2388bytes；Yahoo股票批次返回明确rate_limited/429，立即关闭上下文，BTC报价/K线尚在途，不能记后续刷新PASS。原生Worker日志证实K线请求被客户端取消。前批5+本批6=11/24；报告/锁保留，未重跑。
+
+下一次只核对未被拒绝的加密来源：普通新浏览器，提前拒绝已知限流的Yahoo股票报价/历史请求，不替换任何响应，不改URL/凭据/存储。界面股票因此不可用，不能将此约束实验称作完整市场正常。其余Crypto自然请求保留；Crypto出现拒绝/限流即停。最多12非静态请求、60秒，合计至多23/24，静态与字节上限沿用。此处是停止受限来源后的独立来源观察，不是通过新身份重试被拒绝的Yahoo。证据单独放outputs/live-verify37/crypto-isolated，旧证据不修改。
