@@ -84,7 +84,8 @@ export async function marketJson<T>(url: URL, options: MarketRequestOptions & { 
     const timer = setTimeout(() => controller.abort(marketError("timeout", scope)), Math.max(1, hop.deadline - Date.now()));
     let response: Response | undefined; let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
     try {
-      const fetching = fetch(url, { headers: options.headers ?? { Accept: "application/json" }, signal: controller.signal, redirect: "error" }).then(value => {
+      // workerd supports follow/manual only. Manual leaves all 3xx terminal below.
+      const fetching = fetch(url, { headers: options.headers ?? { Accept: "application/json" }, signal: controller.signal, redirect: "manual" }).then(value => {
         if (controller.signal.aborted) { void value.body?.cancel().catch(() => {}); throw cancellation(controller.signal, scope); }
         return value;
       });

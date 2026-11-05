@@ -20,7 +20,7 @@ test('transport and interrupted body retry once within one budget',async t=>{
  }
 });
 test('HTTP, denial, HTML, malformed JSON and permission failures do not transport-retry',async t=>{
- for(const [mode,code] of [['429','rate_limited'],['403','upstream_denied'],['401','upstream_denied'],['451','upstream_denied'],['404','unsupported_asset'],['500','upstream_unavailable'],['json','invalid_json'],['html','unexpected_content_type'],['permission','environment_denied']]){
+ for(const [mode,code] of [['429','rate_limited'],['403','upstream_denied'],['401','upstream_denied'],['451','upstream_denied'],['302','upstream_business_error'],['404','unsupported_asset'],['500','upstream_unavailable'],['json','invalid_json'],['html','unexpected_content_type'],['permission','environment_denied']]){
   let calls=0;t.mock.method(globalThis,'fetch',async()=>{calls++;if(mode==='permission')throw new TypeError('fetch failed',{cause:{code:'EACCES'}});return mode==='json'?new Response('{',{headers:{'Content-Type':'application/json'}}):mode==='html'?new Response('<html>',{headers:{'Content-Type':'text/html'}}):new Response('',{status:Number(mode)});});
   await assert.rejects(marketJson(url,{timeoutMs:12000,attempts:2}),error=>error.code===code);assert.equal(calls,1,mode);
  }
