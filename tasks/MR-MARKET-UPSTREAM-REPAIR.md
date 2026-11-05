@@ -1,0 +1,42 @@
+# MR-MARKET-UPSTREAM-REPAIR
+
+## Planner — 2026-11-05
+
+用户在v38交接后明确要求“修复”，继续处理股票429与ETH/SOL代理503。基线main/HEAD fe9f6b2，生产v38/source9710a79/env3；原工作区干净，新分支codex/mr-upstream-repair。旧23/24检查记录不修改，本次不是追认旧失败为成功。market-planner→bounded Builder→相关/集成验证→独立审计/FIX/VERIFY→已授权范围内发布；仅本项目。
+
+目标：修复已确证的取数/代理部署缺陷；有条件时同步现有代理并低频复核。非目标：换数据源、绕限流/拒绝、增加账号/付费、改秘密/访问、数据库/定时调度、AI、金融计算/提醒或降低刷新频率。
+
+## 确证问题及切片
+
+1. Yahoo共享冷却竞态：A/B并发首请求，A先429并建立180秒冷却，B后ECONNRESET；marketJson第二次物理attempt未重查provider冷却，仍fetch。离线mock证明，不能断言这就是生产429根因。Builder允许lib/market-request.ts、lib/market-data.ts及定向tests：每次实际尝试前调用可选provider guard；Yahoo用原upstreamRetryAt检查。保持尝试上限、截止、取消、原费用/频率及错误语义；不跨域回退。测429发生于另一个请求中后，已启动请求的重试与新排队请求均不得再派发，正常传输重试/取消不回归。
+
+2. 独立monitor构建仍使用四文件去import拼接，新market-request/market-history依赖没有进入构建。先做实际离线复现，再修最小构建入口：允许scripts/build-monitor.mjs、独立monitor构建/运行回归tests及必要非秘密说明；不复制lib代码，不添加依赖/新服务/数据库/部署配置猜测。优先使用现有构建依赖合法打包，产物能在真实workerd执行，错误与成功身份遵循同一lib契约。不因此默认远端正在运行该产物。
+
+两个Builder独立worktree无重叠路径；ACTIVE协调者单写。不得扩大为新代理框架或整站重构。接口先固定后整合，独立Auditor审计最终稳定diff。
+
+## 真实权限与诊断
+
+Sites原站点已确认v38/public/active。配置只核对原MONITOR_URL指向本项目既有Cloudflare Worker；MONITOR_TOKEN由平台隐藏，不读取其他项目秘密，不输出/写入凭据。当前未发现Cloudflare专用环境凭据；可用现有官方CLI检查授权状态，核对实际Worker与资源后才讨论部署，不新建/改绑定或调度。普通Sites发布不能替代独立Worker更新。缺少管理会话则只阻塞远端更新，继续本地修复。
+
+本次线上诊断先读日志。若需取数，只在上一明确Retry-After已过后，对同一个原入口做新低频观察；不因失败换身份/地址。冻结最多10个外层非静态请求、1MiB行情正文、60秒、每资产一次，无自动重试。入口/重定向计数、cookie仅内存；403/429/明确拒绝停止该来源。本批与旧生产记录分开，未运行不预填PASS；不对生产注入fixture或触发监控/通知/写入。
+
+## 验证与交付
+
+先受影响Node与真实monitor构建/隔离workerd，再合并稳定版本build/typecheck/fullNode、相关Worker与浏览器；旧771项不是新测。新Node/依赖未引入。性能只验证请求次数与原截止，没有测量瓶颈不进入Optimizer。审计检查取消/共享冷却/重试上限、构建依赖闭合、鉴权和旧业务零变更。
+
+分开报告：源码修复、Sites发布、独立monitor是否更新、真实股票/ETH/SOL结果。无远端权限或来源仍拒绝保持BLOCKED，不宣称全部恢复。不将代码可运行代替生产实际成功。开发DS/产品模型默认0，本次不新增外发。
+
+## 执行与审计发现
+
+- 第一轮新真实preflight仅3次GET/13603bytes：正常入口303、ETH原生15m仍site502/proxy503、NVDA Yahoo有效报价200且session=closed（来源报价时间为真实前收盘，不伪刷新）。没有重试/换源；旧429不追认为通过，当前仅单一股票恢复取数。记录outputs/upstream-repair/preflight.json；本批10次总上限还余7，若实际部署则另记新版本的有限复核。
+- 本项目独立Worker官方授权使用隔离Edge；用户主动完成账户验证，WRANGLER的XDG配置限定本项目ignored outputs/upstream-repair/cloudflare-profile，不修改全局或其他项目。首次未完成已关闭，用户要求重新打开后启动第二次。暂无管理授权成功证据。
+- 首个Yahoo修复8412f0b加入beforeAttempt，但独立Auditor同轮settlement复现：A已观察429，外层catch尚未发布冷却，B reset重试仍先派发。P2确认，交原Builder FIX：HTTP429被观察时同步登记冷却，再保留attempt guard；加不await A完成的竞态回归，不能弱化断言。
+- monitor构建切片594ba37（原00404a3）：现有Vite独立依赖图，关闭网站config/env加载；产物workerd8项通过，独立Auditor重跑8/8。没有部署该产物，远端503原因仍未确证。
+
+## 稳定候选 2cb3503
+
+Yahoo同轮竞态FIX fba6cbf（原e85cf34）经独立Auditor重新复现及30项测试VERIFY；监控产物8项独立VERIFY，两个切片合并后内容一致，无未解决confirmed finding。审计不代表来源恢复。
+
+本地Node24.22.1新测：`node node_modules/vinext/dist/cli.js build`、`node scripts/build-monitor.mjs`、`node scripts/typecheck.mjs`均PASS；分项Node全量784项，783PASS/1Windows文件symlink权限SKIP。`tests/reliability-runtime.mjs dist outputs/upstream-repair/runtime.json`实际workerd23PASS，外部网络全部隔离。5修改文件eslint与diffcheck通过。server SHA256 `05ceb9e7752bbe2433d18c086d7292dbd731055678ebf733e5cc2cd847c1f668`；独立monitor SHA256 `b604834a74f90935bc853bf23920c4aa0b9b68a3706ab4cbdb96bcabd9f2dc43`。浏览器、远端CI和发布状态待实测续记，不预填。
+
+用户在自动化登录窗口遇到Google“不安全浏览器/应用”提示后，已停止该登录方式；按用户Google Chrome偏好改为无自动化控制的普通Chrome、项目独立profile和官方OAuth页面。没有关闭证书或安全校验、伪装浏览器或绕过拒绝。真实登录/授权尚未确认，独立Worker仍未更新。
