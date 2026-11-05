@@ -1,8 +1,8 @@
 # 当前任务索引
 
-## MR-MARKET-LIVE-SOAK — 2026-11-05 长时间与跨收盘验证
+## MR-MARKET-LIVE-SOAK — 2026-11-05 修复已发布 v40；长时/跨收盘 BLOCKED
 
-[任务卡](MR-MARKET-LIVE-SOAK.md)：接续用户明确要求，基于v39/a42b95b，独立生产只读浏览器30分钟前台Crypto观察，保持实际刷新频率，冻结请求/字节/时间上限及拒绝后停止。先验证，confirmed defect才修复；旧QA与本轮新测分开，不冒称全市场/全天/真机通过。
+[任务卡](MR-MARKET-LIVE-SOAK.md)：OKX并发429冷却竞态已修，PR#16/main81d70b12、Sitesv40及原monitor1090fb23已发布；本地786PASS+1Windows SKIP、五视口138/Worker23、PR787/787通过，独立产品/FIX/包装VERIFY。14:13UTC一次恢复取得BTC96根；14:27UTC最终观察4.734秒三币quote成功但BTC history429，立即停止且不继续探测。真实30min/跨bar保持BLOCKED，不归档为全部通过；源具体限流机制仍未知。原观察记录、未知字节预留及续测条件保留，不降低刷新/换源/改访问或AI。
 
 ## MR-MARKET-UPSTREAM-REPAIR — 2026-11-05 Sites v39 与独立代理已发布
 

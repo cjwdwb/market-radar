@@ -1,5 +1,9 @@
 # 当前状态
 
+2026-11-05最新正式发布：**OKX并发冷却修复 / Sites v40**，源码`81d70b12cbb471a8b775d4fa8d4e682ef322f81c`，[PR#16](https://github.com/cjwdwb/market-radar/pull/16)已合并，原生部署`appgdep_6aec91b748ac8191bdaceb31db547fa4` succeeded/env3。独立monitor更新为`1090fb23-0e86-4538-b82c-ef4012bd2e11`，原DB/秘密/配置/cron保持。修复HTTP429被观察后同轮另一个失败请求仍进入回退的竞态；不修改来源、刷新频率、金融语义、访问或AI设置。
+
+本轮真实长时观察**仍BLOCKED**：v39启动遇限流，按冻结等待完成一次BTC15m恢复探测（96根/0gap）；v40最终观察2026-11-05 14:27:06–11Z仅4.734秒，三币报价单批成功，但BTC历史HTTP429/Retry-After61秒，立即停止，未进入图表ready、未跨收盘。不重复探测或将恢复单例拼成30min。PR远端787/787、本地786PASS+1既有Windows SKIP、23项隔离Worker和138项五视口通过；这些均不是生产长时证据。[当前任务及结果](../tasks/MR-MARKET-LIVE-SOAK.md)保持开放。原网址不变，v39旧成功记录不追认到v40；后续文档提交不重新部署。主3.0与其他数据任务继续开放。以下为历史时点。
+
 2026-11-05最新正式发布：**来源冷却与独立代理修复 / Sites v39**，源码`1f4161d84bb7e4266ff2c2406efc20026981d6a9`，原生succeeded/env3，原网址 https://market-radar-rex.swt-aether.chatgpt.site 。[PR#15](https://github.com/cjwdwb/market-radar/pull/15)和main CI均build/typecheck/784项全PASS；本地23项Worker/138项五视口及独立审计FIX/VERIFY完成。同步原Cloudflare monitor新version`7a16fae6-0fb7-4ba9-a3d5-2b6fda4e6668`，原DB/secret/compat/observability/cron保持。
 
 新生产真实检查：ETH/SOL各两轮96根原生15m、0gap/invalid/duplicate；20.409秒内两者获取时间和同根未收盘成交量前进，报价时间前进，全部行情请求200。NVDA早先单次有效前收盘报价200；未验证所有股票。应用本批累计10次/62641bytes后停止，非浏览器长期/跨bar/真机验收。旧v38失败记录不改写；[修复与发布归档](../tasks/archive/MR-MARKET-UPSTREAM-REPAIR.md)。未改来源、刷新、访问、AI或金融语义，主3.0/历史数据track继续开放；后续文档提交不重新部署。以下为历史时点。

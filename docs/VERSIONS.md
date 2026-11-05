@@ -1,5 +1,9 @@
 # 版本与回退索引
 
+2026-11-05最新正式发布：**OKX并发冷却修复 / Sites v40**，源码`81d70b12cbb471a8b775d4fa8d4e682ef322f81c`，[PR#16](https://github.com/cjwdwb/market-radar/pull/16)已合并，原生部署`appgdep_6aec91b748ac8191bdaceb31db547fa4` succeeded/env3。独立monitor更新为`1090fb23-0e86-4538-b82c-ef4012bd2e11`，原DB/秘密/配置/cron保持。修复HTTP429被观察后同轮另一个失败请求仍进入回退的竞态；不修改来源、刷新频率、金融语义、访问或AI设置。
+
+monitor deployment `af0b87bf-72e2-42d0-b567-fcd3ee259cdc`；两处产物受测并独立VERIFY。PR/main CI成功，PR787/787；本地五视口138、Worker23通过。最终v40真实观察遇BTC历史429，只有三资产报价单次成功，**30min/跨bar仍BLOCKED**。原Sitesv39和monitor`7a16fae6-0fb7-4ba9-a3d5-2b6fda4e6668`分别保留为回退点，未移动标签；[开放任务和证据](../tasks/MR-MARKET-LIVE-SOAK.md)。文档收尾不重新发布。以下为历史时点。
+
 2026-11-05最新发布：**来源冷却与独立代理修复 / Sites v39**，源码`1f4161d84bb7e4266ff2c2406efc20026981d6a9`，deployment `appgdep_6aec883462a881919304127e716b0134` 原生succeeded/env3。[PR#15](https://github.com/cjwdwb/market-radar/pull/15)与main CI各784/784、build/typecheck通过，独立源码/包装/远端派发前VERIFY；138项五视口、23项Worker。原monitor另更新version `7a16fae6-0fb7-4ba9-a3d5-2b6fda4e6668`（deployment `2435ed6b-534a-4fba-9eb3-13c77e01cc7c`），DB/秘密/原兼容配置/cron读回一致。真实ETH/SOL两轮K线/报价更新成功；不宣称全市场/新bar/真机通过。[发布与证据](../tasks/archive/MR-MARKET-UPSTREAM-REPAIR.md)。原站不变，Sitesv38和monitor旧version`fb36e1a5-8459-4771-a797-73c365e63c5e`分别保留可回退；未新建/移动标签，文档收尾不再部署。以下为历史时点。
 
 2026-11-05最新发布：**线上刷新补证与局部修复 / Sites v38**，源码`9710a7951eeb9d371b7afa5ddf3a766e6af045aa`，deployment `appgdep_6aec79b1dc588191974396b9b53792d9` 原生succeeded/env3。[PR#14](https://github.com/cjwdwb/market-radar/pull/14)及main CI各771/771、build/typecheck通过，独立源码/包装VERIFY；23项Worker及138项五视口检查通过。修正代理错误分类与部分报价状态，不改来源/刷新/AI/访问。生产真实刷新证据为v37的BTC短时观察，Yahoo429及ETH/SOL代理503仍开放，v38未重复请求来源；不把发布等同全面恢复。[任务记录](../tasks/MR-MARKET-DATA-LIVE-VERIFY.md)。原站网址不变，v37保留为回退版本，未新建/移动标签，文档收尾不再部署。
