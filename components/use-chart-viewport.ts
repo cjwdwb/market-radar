@@ -1,9 +1,9 @@
 "use client";
 import {useEffect,useRef,useState,type PointerEvent as ReactPointerEvent} from 'react';
-import {boundWindow,clamp,rememberWindow,resolveWindow,zoomWindow,type ChartView,type ChartWindow} from '@/lib/chart-viewport';
+import {anchorWindow,boundWindow,clamp,rememberWindow,resolveWindow,zoomWindow,type ChartView,type ChartWindow} from '@/lib/chart-viewport';
 
 type Position={x:number;y:number};
-type Gesture={window:ChartWindow;center:number;distance:number;anchor:number;plotWidth:number;bounds:DOMRect|undefined};
+type Gesture={view:ChartView;center:number;distance:number;anchor:number;plotWidth:number;bounds:DOMRect|undefined};
 
 export function useChartViewport(points:{time:number}[],width:number,axisWidth=width<600?78:100){
   const [view,setView]=useState<ChartView>({count:null,endTime:null});
@@ -25,7 +25,7 @@ export function useChartViewport(points:{time:number}[],width:number,axisWidth=w
     const list=[...contacts.current.values()];if(!list.length){gesture.current=null;return;}
     const center=list.length>1?(list[0].x+list[1].x)/2:list[0].x;
     const bounds=svg.current?.getBoundingClientRect();
-    gesture.current={window:{...current.current},center,distance:list.length>1?Math.hypot(list[0].x-list[1].x,list[0].y-list[1].y):0,anchor:ratio(center,bounds),plotWidth:(bounds?.width??width)*plot/width,bounds};
+    gesture.current={view:anchorWindow(points,current.current),center,distance:list.length>1?Math.hypot(list[0].x-list[1].x,list[0].y-list[1].y):0,anchor:ratio(center,bounds),plotWidth:(bounds?.width??width)*plot/width,bounds};
   }
   function pointerDown(e:ReactPointerEvent<SVGSVGElement>){
     if(e.pointerType==='mouse'&&e.button!==0)return;
@@ -38,12 +38,13 @@ export function useChartViewport(points:{time:number}[],width:number,axisWidth=w
     contacts.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
     if(tapStart.current&&Math.hypot(e.clientX-tapStart.current.x,e.clientY-tapStart.current.y)>8)tapStart.current=null;
     const base=gesture.current,list=[...contacts.current.values()];if(!base)return true;
+    const baseWindow=resolveWindow(points,base.view,width<600?40:60);
     if(list.length>1&&base.distance>0){
       const center=(list[0].x+list[1].x)/2,distance=Math.max(1,Math.hypot(list[0].x-list[1].x,list[0].y-list[1].y));
-      const count=boundWindow(points.length,0,base.window.count*base.distance/distance).count;
-      commit({start:base.window.start+base.anchor*base.window.count-ratio(center,base.bounds)*count,count});
+      const count=boundWindow(points.length,0,baseWindow.count*base.distance/distance).count;
+      commit({start:baseWindow.start+base.anchor*baseWindow.count-ratio(center,base.bounds)*count,count});
     }else{
-      commit({start:base.window.start-(list[0].x-base.center)/base.plotWidth*base.window.count,count:base.window.count});
+      commit({start:baseWindow.start-(list[0].x-base.center)/base.plotWidth*baseWindow.count,count:baseWindow.count});
     }
     return true;
   }

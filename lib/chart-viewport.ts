@@ -22,8 +22,14 @@ export function resolveWindow(points:Timed[],view:ChartView,defaultCount:number)
 export function rememberWindow(points:Timed[],window:ChartWindow):ChartView{
   const range=boundWindow(points.length,window.start,window.count);
   if(!points.length||range.start+range.count>=points.length-0.0001)return {count:range.count,endTime:null};
+  return anchorWindow(points,range);
+}
+/** A gesture keeps its original time anchor even if the live tail or array indices move. */
+export function anchorWindow(points:Timed[],window:ChartWindow):ChartView{
+  const range=boundWindow(points.length,window.start,window.count);
+  if(!points.length)return {count:range.count,endTime:null};
   const index=range.start+range.count-1,lower=Math.floor(index),fraction=index-lower;
-  return {count:range.count,endTime:points[lower].time+fraction*(points[lower+1].time-points[lower].time)};
+  return {count:range.count,endTime:points[lower].time+(fraction&&points[lower+1]?fraction*(points[lower+1].time-points[lower].time):0)};
 }
 export function zoomWindow(length:number,window:ChartWindow,count:number,anchor=.5):ChartWindow{
   const size=boundWindow(length,0,count).count;

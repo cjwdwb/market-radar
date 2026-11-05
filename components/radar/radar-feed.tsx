@@ -17,16 +17,17 @@ import { OfficialInformation } from "./official-information";
 import { HistoryWorkspace } from "./history-workspace";
 import { EventHistory } from "./event-history";
 import type { EventHistory as HistoryData } from "@/lib/radar/event-history";
+import { useMarketTime } from "../market-time-context";
 
 const severity = { medium: "中等", high: "高优先", critical: "极高" };
 const confidence = { low: "低可信", medium: "中可信", high: "高可信" };
 const status = { active: "异常持续", resolved: "已恢复", expired: "已过期" };
 const number = new Intl.NumberFormat("zh-CN", { maximumFractionDigits: 2 });
 const preciseNumber = new Intl.NumberFormat("zh-CN", { maximumSignificantDigits: 10 });
-function time(value: number) { return new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false }).format(value); }
 function evidenceValue(item: RadarEvidenceItem) { return typeof item.value === "number" ? `${(item.unit ? number : preciseNumber).format(item.value)}${item.unit ?? ""}` : item.value; }
 
 export const SignalCard = memo(function SignalCard({ event, onAsset, onWatch, onAlert, isWatched, alertCount, highlighted }: { event: RadarIntelligenceEvent; onAsset: (event: RadarIntelligenceEvent | string) => void; onWatch: (symbol: string) => void; onAlert: (symbol: string) => void; isWatched: boolean; alertCount: number; highlighted: boolean }) {
+  const { formatTime: time } = useMarketTime();
   const primary = event.signals[0];
   return <article className={`radar-signal signal-${event.status} ${event.kind !== "signal" ? "signal-cluster" : ""}`} data-context-event={highlighted || undefined} data-symbol={event.symbol} aria-label={`${displaySymbol(event.symbol)} ${event.title}`}>
     {highlighted && <p className="context-event-label">当前资产 · 首要事件</p>}
