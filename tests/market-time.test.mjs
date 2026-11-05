@@ -19,6 +19,7 @@ test('the same instant changes only presentation across UTC and Shanghai date bo
   assert.match(formatMarketTime(at, 'Asia/Shanghai'), /2026\/11\/06 07:30:45 UTC\+08:00$/);
   assert.equal(at, Date.parse('2026-11-05T23:30:45Z'));
   assert.equal(formatMarketTime(0, 'UTC', 'clock'), '00:00:00 UTC');
+  assert.equal(marketTimezoneLabel('UTC',at),'UTC');
   for (const value of [undefined, null, NaN, Infinity, 8_640_000_000_000_001]) assert.equal(formatMarketTime(value, 'UTC'), '—');
   assert.equal(formatMarketTime(at, 'bad-zone'), formatMarketTime(at, 'UTC'));
 });

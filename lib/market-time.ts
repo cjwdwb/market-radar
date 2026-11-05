@@ -64,5 +64,6 @@ export function marketTimezoneLabel(timezone: string, at: number | null | undefi
   const zone = validTimezone(timezone);
   if (!validDate(at)) return zone;
   const offset = formatter(zone, "clock").formatToParts(at).find(part => part.type === "timeZoneName")?.value;
-  return offset ? `${zone} · ${offsetLabel(offset)}` : zone;
+  const label = offset ? offsetLabel(offset) : undefined;
+  return label && label !== zone ? `${zone} · ${label}` : zone;
 }
