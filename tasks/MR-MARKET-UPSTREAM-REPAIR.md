@@ -25,3 +25,10 @@ Sites原站点已确认v38/public/active。配置只核对原MONITOR_URL指向�
 先受影响Node与真实monitor构建/隔离workerd，再合并稳定版本build/typecheck/fullNode、相关Worker与浏览器；旧771项不是新测。新Node/依赖未引入。性能只验证请求次数与原截止，没有测量瓶颈不进入Optimizer。审计检查取消/共享冷却/重试上限、构建依赖闭合、鉴权和旧业务零变更。
 
 分开报告：源码修复、Sites发布、独立monitor是否更新、真实股票/ETH/SOL结果。无远端权限或来源仍拒绝保持BLOCKED，不宣称全部恢复。不将代码可运行代替生产实际成功。开发DS/产品模型默认0，本次不新增外发。
+
+## 执行与审计发现
+
+- 第一轮新真实preflight仅3次GET/13603bytes：正常入口303、ETH原生15m仍site502/proxy503、NVDA Yahoo有效报价200且session=closed（来源报价时间为真实前收盘，不伪刷新）。没有重试/换源；旧429不追认为通过，当前仅单一股票恢复取数。记录outputs/upstream-repair/preflight.json；本批10次总上限还余7，若实际部署则另记新版本的有限复核。
+- 本项目独立Worker官方授权使用隔离Edge；用户主动完成账户验证，WRANGLER的XDG配置限定本项目ignored outputs/upstream-repair/cloudflare-profile，不修改全局或其他项目。首次未完成已关闭，用户要求重新打开后启动第二次。暂无管理授权成功证据。
+- 首个Yahoo修复8412f0b加入beforeAttempt，但独立Auditor同轮settlement复现：A已观察429，外层catch尚未发布冷却，B reset重试仍先派发。P2确认，交原Builder FIX：HTTP429被观察时同步登记冷却，再保留attempt guard；加不await A完成的竞态回归，不能弱化断言。
+- monitor构建切片594ba37（原00404a3）：现有Vite独立依赖图，关闭网站config/env加载；产物workerd8项通过，独立Auditor重跑8/8。没有部署该产物，远端503原因仍未确证。
