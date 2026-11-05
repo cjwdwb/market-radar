@@ -1,18 +1,39 @@
-import { VALID_SYMBOL, type Range } from "@/lib/market";
-import { getHistory, publicError } from "@/lib/market-data";
-export const dynamic="force-dynamic";
-export async function GET(request:Request) {
-  const url=new URL(request.url);const symbol=url.searchParams.get("symbol")??"";const range=url.searchParams.get("range")??"1d";
-  if(!VALID_SYMBOL.test(symbol)||!["15m","1d","1w","1m","3m"].includes(range))return Response.json({error:"无效的行情代码或时间范围"},{status:400});
-  try{
-    if(symbol.endsWith("-USDT")&&process.env.MONITOR_URL&&process.env.MONITOR_TOKEN){
-      try{
-        const upstream=new URL('/history',process.env.MONITOR_URL);upstream.searchParams.set('symbol',symbol);upstream.searchParams.set('range',range);
-        const response=await fetch(upstream,{headers:{Authorization:`Bearer ${process.env.MONITOR_TOKEN}`},signal:AbortSignal.timeout(6000)});
-        if(response.ok)return new Response(response.body,{headers:{"Content-Type":"application/json","Cache-Control":"no-store"}});
-      }catch{ /* Fall back to direct official market data if the monitor is unavailable. */ }
+import { VALID_SYMBOL, type Range } from "../../../lib/market";
+import { getHistory } from "../../../lib/market-data";
+import { validateProxyHistory } from "../../../lib/market-history";
+import { checkCooldown, rememberOKXRateLimit } from "../../../lib/okx";
+import { checkScope, errorResponse, marketError, marketJson, marketScope, MarketRequestError, recordMarketFailure } from "../../../lib/market-request";
+export const dynamic = "force-dynamic";
+export async function GET(request: Request) {
+  const startedAt = Date.now(); const scope = marketScope({ signal: request.signal });
+  const url = new URL(request.url); const symbol = url.searchParams.get("symbol") ?? ""; const range = url.searchParams.get("range") ?? "1d";
+  if (!VALID_SYMBOL.test(symbol) || !["15m", "1d", "1w", "1m", "3m"].includes(range)) return errorResponse(marketError("invalid_parameter", scope, { stage: "site" }));
+  try {
+    checkScope(scope);
+    const proxyUrl = process.env.MONITOR_URL; const token = process.env.MONITOR_TOKEN;
+    if (symbol.endsWith("-USDT") && (proxyUrl || token)) {
+      if (!proxyUrl || !token) throw marketError("proxy_configuration_error", scope, { stage: "proxy" });
+      checkCooldown(scope);
+      let upstream: URL;
+      try { upstream = new URL("/history", proxyUrl); if (upstream.protocol !== "https:" || upstream.username || upstream.password) throw new Error(); }
+      catch { throw marketError("proxy_configuration_error", scope, { stage: "proxy" }); }
+      upstream.searchParams.set("symbol", symbol); upstream.searchParams.set("range", range);
+      try {
+        const deadline = Math.min(scope.deadline, Date.now() + 6_000);
+        const body = await marketJson<unknown>(upstream, { ...scope, deadline, timeoutMs: 6_000, maxBytes: 512 * 1024, stage: "proxy", headers: { Authorization: `Bearer ${token}`, Accept: "application/json", "X-Market-Deadline": String(deadline), "X-Market-Trace": scope.traceId } });
+        checkScope(scope);
+        return Response.json(validateProxyHistory(body, symbol, range as Range, scope), { headers: { "Cache-Control": "no-store", "X-Market-Trace": scope.traceId } });
+      } catch (error) {
+        if (error instanceof MarketRequestError && error.code === "rate_limited") rememberOKXRateLimit(error.retryAt ?? Date.now() + 60_000);
+        if (error instanceof MarketRequestError && [401, 403].includes(error.status ?? 0)) throw marketError("proxy_auth_error", scope, { stage: "proxy", upstreamStatus: error.status });
+        if (error instanceof MarketRequestError && ["upstream_unavailable", "transport_error"].includes(error.code)) throw marketError("proxy_unavailable", scope, { stage: "proxy", upstreamStatus: error.status });
+        throw error;
+      }
     }
-    return Response.json(await getHistory(symbol,range as Range),{headers:{"Cache-Control":"no-store"}});
+    const history = await getHistory(symbol, range as Range, scope);
+    return Response.json(history, { headers: { "Cache-Control": "no-store", "X-Market-Trace": scope.traceId } });
+  } catch (error) {
+    recordMarketFailure(error, scope, { symbol, source: symbol.endsWith("-USDT") ? "OKX" : "Yahoo", range, path: symbol.endsWith("-USDT") && (process.env.MONITOR_URL || process.env.MONITOR_TOKEN) ? "monitor" : "direct", startedAt });
+    return errorResponse(error, scope);
   }
-  catch(error){return Response.json({error:publicError(error)},{status:503,headers:{"Cache-Control":"no-store"}});}
 }

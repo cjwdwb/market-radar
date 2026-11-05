@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {boundWindow,rememberWindow,resolveWindow,zoomWindow} from '../lib/chart-viewport.ts';
+import {anchorWindow,boundWindow,rememberWindow,resolveWindow,zoomWindow} from '../lib/chart-viewport.ts';
 const points=Array.from({length:96},(_,i)=>({time:1700000000000+i*900000}));
 const close=(a,b)=>assert.ok(Math.abs(a-b)<1e-6,`${a} != ${b}`);
 test('pan stays within loaded candles and supports fractional movement',()=>{
@@ -31,4 +31,24 @@ test('latest follows incoming bars; reset uses the responsive default window',()
  assert.deepEqual(resolveWindow(expanded,latest,60),{start:57,count:40});
  assert.deepEqual(resolveWindow(points,{count:null,endTime:null},60),{start:36,count:60});
  assert.deepEqual(resolveWindow(points,{count:null,endTime:null},40),{start:56,count:40});
+});
+
+test('a held drag retains its original absolute candle anchor when old bars roll off',()=>{
+ const before={start:12.25,count:40},gesture=anchorWindow(points,before);
+ const appended={time:points.at(-1).time+900000},rolled=[...points.slice(1),appended];
+ const resolved=resolveWindow(rolled,gesture,60);
+ close(resolved.start,11.25);
+ const movement=-3.5;
+ const originalDrag=anchorWindow(points,{...before,start:before.start+movement});
+ const rolledDrag=anchorWindow(rolled,{...resolved,start:resolved.start+movement});
+ close(rolledDrag.endTime,originalDrag.endTime);
+ assert.notEqual(anchorWindow(rolled,{...before,start:before.start+movement}).endTime,originalDrag.endTime,'the previous index-only gesture changed the candle time');
+});
+
+test('a gesture anchored at the latest candle does not silently switch to follow mode on append',()=>{
+ const before={start:56,count:40},gesture=anchorWindow(points,before);
+ assert.equal(gesture.endTime,points.at(-1).time);
+ const expanded=[...points,{time:points.at(-1).time+900000}];
+ assert.deepEqual(resolveWindow(expanded,gesture,60),before);
+ assert.deepEqual(resolveWindow(expanded,rememberWindow(points,before),60),{start:57,count:40});
 });

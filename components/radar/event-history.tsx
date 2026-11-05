@@ -4,14 +4,16 @@ import { useState } from "react";
 import { History } from "lucide-react";
 import { displaySymbol, MARKET_LABELS } from "@/lib/market";
 import type { EventHistory as HistoryData } from "@/lib/radar/event-history";
+import { useMarketTime } from "../market-time-context";
 
 const statuses = { active: "异常持续", resolved: "已恢复", expired: "已过期" };
 const severities = { medium: "中等", high: "高优先", critical: "极高" };
-const date = (at: number) => new Date(at).toLocaleString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 const value = (input: string | number) => typeof input === "number" ? new Intl.NumberFormat("zh-CN", { maximumSignificantDigits: 10 }).format(input) : input;
 const PAGE_SIZE = 12;
 
 export function EventHistory({ history, scope, onAsset }: { history: HistoryData; scope: string; onAsset: (symbol: string) => void }) {
+  const { timezone, formatTime } = useMarketTime();
+  const date = (at: number) => formatTime(at, "full");
   const [query, setQuery] = useState(""), [status, setStatus] = useState("all"), [page, setPage] = useState({ key: "", index: 0 });
   const filtered = history.observations.filter(({ signal }) => (status === "all" || signal.status === status) && `${signal.symbol} ${signal.title}`.toLowerCase().includes(query.trim().toLowerCase()));
   const key = `${scope}:${query}:${status}`, pages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
@@ -23,7 +25,7 @@ export function EventHistory({ history, scope, onAsset }: { history: HistoryData
     {history.storage === "unavailable" && <p className="event-history-warning" role="status">本机存储不可用，新增记录仅在本次页面保留，刷新后可能丢失。</p>}
     {history.storage === "invalid" && <p className="event-history-warning" role="status">本机旧记录无法读取，已保留原文件；本次记录暂不保存，不影响看盘。</p>}
     <div className="event-history-controls"><label>搜索事件<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="资产代码或事件名称" maxLength={80}/></label><label>上次观察状态<select aria-label="上次观察状态" value={status} onChange={event => setStatus(event.target.value)}><option value="all">全部状态</option><option value="active">当时异常持续</option><option value="resolved">已恢复</option><option value="expired">已过期</option></select></label></div>
-    <p className="event-history-count" role="status">{filtered.length} 条记录 · 时间为本机时区</p>
+    <p className="event-history-count" role="status">{filtered.length} 条记录 · 显示时区 {timezone}</p>
     {visible.length ? <ol className="event-history-list">{visible.map(({ signal: s, observedAt }) => <li key={s.id}>
       <details className="event-history-item" data-symbol={s.symbol}>
         <summary><span className="event-history-identity"><strong>{displaySymbol(s.symbol)}</strong><small>{s.symbol} · {MARKET_LABELS[s.market]}</small></span><span className="event-history-fact"><strong>{s.title}</strong><span className={s.direction === "up" ? "positive" : s.direction === "down" ? "negative" : ""}>{s.metric}</span></span><span className="event-history-time"><time dateTime={new Date(s.detectedAt).toISOString()}>{date(s.detectedAt)}</time><small>上次观察时：{statuses[s.status]}</small></span><span aria-hidden="true" className="event-history-chevron">＋</span></summary>

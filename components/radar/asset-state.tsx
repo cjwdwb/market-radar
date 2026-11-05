@@ -2,16 +2,19 @@
 
 import { ArrowUpRight, ChevronDown } from "lucide-react";
 import type { AssetStateV2, HorizonState, StateTransition, TransitionPoint, CloseWindow, AlignmentParticipant } from "@/lib/radar/asset-state-v2";
+import { useMarketTime } from "../market-time-context";
 
 const number = new Intl.NumberFormat("zh-CN", { maximumSignificantDigits: 6 });
-const time = new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
-const at = (value: number) => time.format(value);
-const windowText = (window: CloseWindow) => `${at(window.closeStartAt)} — ${at(window.closeEndAt)}`;
+function useStateTimes() {
+  const { formatTime: at } = useMarketTime();
+  return { at, windowText: (window: CloseWindow) => `${at(window.closeStartAt)} — ${at(window.closeEndAt)}` };
+}
 const horizonName = (horizon: HorizonState) => `${horizon.horizonId === "short" ? "短窗" : "中窗"} · ${horizon.durationMs / 60000} 分钟`;
 const participantName: Record<AlignmentParticipant, string> = { "short.direction": "短窗方向", "medium.direction": "中窗方向", "short.relative": "短窗相对表现" };
 
 /** Formats domain facts only; both surfaces receive the same selected-asset result. */
 export function AssetStateSummary({ state, onOpen }: { state: AssetStateV2; onOpen?: () => void }) {
+  const { at } = useStateTimes();
   const horizons = [state.horizons.short, state.horizons.medium];
   const end = state.horizons.short.evidence ?? state.horizons.medium.evidence;
   const limits = [...horizons.flatMap(horizon => [horizon.direction, horizon.volatility]), state.relative].filter(dimension => dimension.classification === null);
@@ -41,6 +44,7 @@ function HorizonReadout({ horizon }: { horizon: HorizonState }) {
 }
 
 function HorizonMethod({ horizon }: { horizon: HorizonState }) {
+  const { at, windowText } = useStateTimes();
   const evidence = horizon.evidence, direction = horizon.direction.metrics, volatility = horizon.volatility.metrics;
   return <div className="state-horizon-method"><h4>{horizonName(horizon)} · {horizon.configId}</h4><dl>
     <div><dt>方向 · {horizon.direction.methodId}</dt><dd>{horizon.direction.message}{direction && <p>门槛：绝对净变化 ≥ {direction.minimumNetPercent}% 且路径效率 ≥ {direction.minimumEfficiency}</p>}</dd></div>
@@ -59,6 +63,7 @@ function TransitionMetrics({ point }: { point: TransitionPoint }) {
 }
 
 function TransitionEvidence({ transition }: { transition: StateTransition }) {
+  const { windowText } = useStateTimes();
   const title = `${transition.horizonId === "short" ? "短窗" : "中窗"} · ${{ direction: "方向", volatility: "RMS", relative: "相对表现" }[transition.dimension]}`;
   return <li data-transition={`${transition.horizonId}.${transition.dimension}`} data-status={transition.status}>
     <details className="state-transition-item"><summary><span><strong>{title}</strong><small>{transition.label}</small></span><ChevronDown size={16} aria-hidden="true"/></summary>
@@ -71,6 +76,7 @@ function TransitionEvidence({ transition }: { transition: StateTransition }) {
 }
 
 export function AssetStateEvidence({ state }: { state: AssetStateV2 }) {
+  const { at, windowText } = useStateTimes();
   const relative = state.relative, evidence = relative.evidence;
   const transitions = [...Object.values(state.transitions.short), ...Object.values(state.transitions.medium)];
   return <section className="asset-state-evidence" aria-label="观测状态依据">

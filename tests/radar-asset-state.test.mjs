@@ -79,7 +79,8 @@ test('bad quotes, source/currency, history fetch and unsupported intervals fail 
     [f=>delete f.quotes['BTC-USDT'],'awaiting_quote'],[f=>f.quotes['BTC-USDT'].symbol='ETH-USDT','quote_failed'],[f=>f.quotes['BTC-USDT'].error='unavailable','quote_failed'],[f=>f.quotes['BTC-USDT'].price=NaN,'invalid_quote'],
     [f=>f.quotes['BTC-USDT'].timestamp=now-180001,'stale_quote'],[f=>f.quotes['BTC-USDT'].fetchedAt=now-120001,'stale_quote'],[f=>delete f.histories['BTC-USDT'],'awaiting_history'],
     [f=>f.histories['BTC-USDT'].currency='USD','source_currency_mismatch'],[f=>f.histories['BTC-USDT'].source='other','source_currency_mismatch'],[f=>f.histories['BTC-USDT'].fetchedAt=now-120001,'stale_history'],[f=>f.histories['BTC-USDT'].intervalMs=3600000,'unsupported_interval'],
-    [f=>f.histories['BTC-USDT'].points[10].close=0,'invalid_history'],[f=>f.histories['BTC-USDT'].points[10].close=Infinity,'invalid_history']
+    [f=>f.histories['BTC-USDT'].points[10].close=0,'invalid_history'],[f=>f.histories['BTC-USDT'].points[10].close=Infinity,'invalid_history'],
+    [f=>f.histories['BTC-USDT'].error='refresh failed; retained view only','invalid_history']
   ]){const f=fixture();mutate(f);const r=state(f);assert.equal(r.direction.reason,reason);assert.equal(r.volatility.classification,null);assert.equal(r.evidence,null);}
 });
 test('unfinished and future candles never form current evidence',()=>{

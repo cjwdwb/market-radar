@@ -1,104 +1,119 @@
-import { assetFor, type Point, type Quote, type Range } from "./market";
+import { assetFor, type MarketHistory, type Point, type Quote, type QuoteResult, type Range } from "./market";
 import { getOKXHistory, getOKXQuote, getOKXTickers } from "./okx";
-import { marketJson, MarketRequestError } from "./market-request";
+import { historyMetadata, normalizePoints } from "./market-history";
+import { checkScope, errorInfo, marketError, marketJson, marketScope, MarketRequestError, publicError, SharedMarketRequests, type MarketRequestOptions } from "./market-request";
+export { publicError } from "./market-request";
 
 type YahooMeta = {
-  regularMarketPrice?: number; regularMarketTime?: number; chartPreviousClose?: number; previousClose?: number;
+  symbol?: string; regularMarketPrice?: number; regularMarketTime?: number; chartPreviousClose?: number; previousClose?: number;
   regularMarketDayHigh?: number; regularMarketDayLow?: number; regularMarketVolume?: number; exchangeDataDelayedBy?: number;
-  longName?: string; shortName?: string; currency?: string; exchangeTimezoneName?: string;
+  longName?: string; shortName?: string; currency?: string; exchangeTimezoneName?: string; exchangeName?: string;
   currentTradingPeriod?: { regular?: { start: number; end: number } };
 };
-type YahooResult = { meta: YahooMeta; timestamp?: number[]; indicators?: { quote?: { close?: (number|null)[]; open?: (number|null)[]; high?: (number|null)[]; low?: (number|null)[]; volume?: (number|null)[] }[] } };
-const cache = new Map<string,{expires:number;data:YahooResult}>();
-const inFlight = new Map<string,Promise<YahooResult>>();
+type YahooResult = { meta: YahooMeta; timestamp?: number[]; indicators?: { quote?: { close?: (number | null)[]; open?: (number | null)[]; high?: (number | null)[]; low?: (number | null)[]; volume?: (number | null)[] }[] } };
+type ChartSnapshot = { data: YahooResult; fetchedAt: number; expires: number };
+const cache = new Map<string, ChartSnapshot>();
+const inFlight = new SharedMarketRequests<ChartSnapshot>();
 let upstreamRetryAt = 0;
-const rangeConfig:Record<Range,{range:string;interval:string}> = {
-  "15m":{range:"5d",interval:"15m"},
-  "1d":{range:"1d",interval:"5m"},"1w":{range:"5d",interval:"60m"},
-  "1m":{range:"1mo",interval:"1d"},"3m":{range:"3mo",interval:"1d"}
+export const yahooRanges: Record<Range, { range: string; interval: string; intervalMs: number | null }> = {
+  "15m": { range: "5d", interval: "15m", intervalMs: 900_000 }, "1d": { range: "1d", interval: "5m", intervalMs: 300_000 },
+  "1w": { range: "5d", interval: "60m", intervalMs: 3_600_000 }, "1m": { range: "1mo", interval: "1d", intervalMs: null }, "3m": { range: "3mo", interval: "1d", intervalMs: null },
 };
-export function numeric(value:unknown):number|null {return typeof value==="number"&&Number.isFinite(value)?value:null;}
-export function parsePoints(data:YahooResult):Point[] {
-  const series=data.indicators?.quote?.[0];
-  return (data.timestamp??[]).flatMap((timestamp,i)=>{
-    const close=numeric(series?.close?.[i]);const volume=numeric(series?.volume?.[i]);
-    return close!==null&&Number.isFinite(timestamp)?[{time:timestamp*1000,close,volume:volume??undefined,open:numeric(series?.open?.[i])??undefined,high:numeric(series?.high?.[i])??undefined,low:numeric(series?.low?.[i])??undefined,confirmed:timestamp*1000+900000<=Date.now()}]:[];
-  }).sort((a,b)=>a.time-b.time);
-}
-export function parseQuote(symbol:string,data:YahooResult,now=Date.now()):Quote {
-  const m=data.meta;const points=parsePoints(data);
-  const current=numeric(m.regularMarketPrice);
-  const timestamp=numeric(m.regularMarketTime);
-  if(current===null||current<=0||timestamp===null) throw new Error("行情源暂未返回有效报价");
-  // Use the previous close from the 1-day response, never the start of a multi-day chart.
-  const previous=numeric(m.chartPreviousClose)??numeric(m.previousClose);
-  const change=previous!==null&&previous>0?current-previous:null;
-  const regular=m.currentTradingPeriod?.regular;
-  const crypto=assetFor(symbol).market==="crypto";
-  let session:Quote["session"]="unknown";
-  if(crypto) session="open";
-  else if(regular&&Number.isFinite(regular.start)&&Number.isFinite(regular.end)) session=now/1000>=regular.start&&now/1000<regular.end?"open":"closed";
-  return {symbol,name:m.longName??m.shortName??assetFor(symbol).name,currency:m.currency??"USD",price:current,
-    previousClose:previous,change,changePercent:change!==null&&previous?change/previous*100:null,
-    high:numeric(m.regularMarketDayHigh),low:numeric(m.regularMarketDayLow),volume:numeric(m.regularMarketVolume),
-    timestamp:timestamp*1000,fetchedAt:now,source:"Yahoo Finance",timezone:m.exchangeTimezoneName??"UTC",session,
-    delayMinutes:numeric(m.exchangeDataDelayedBy),points};
-}
-async function fetchChart(symbol:string,range:Range):Promise<YahooResult> {
-  const key=`${symbol}:${range}`; const cached=cache.get(key);
-  if(cached&&cached.expires>Date.now()) return cached.data;
-  const running=inFlight.get(key);if(running)return running;
-  if(Date.now()<upstreamRetryAt)throw new Error("行情源请求繁忙，正在等待恢复后自动重试");
-  const promise=(async()=>{
-    const config=rangeConfig[range];
-    const url=new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`);
-    url.searchParams.set("interval",config.interval);url.searchParams.set("range",config.range);url.searchParams.set("includePrePost","false");
-    if(assetFor(symbol).market==="crypto"&&range==="1w")url.searchParams.set("range","7d");
-    let body: {chart?:{result?:YahooResult[];error?:unknown}};
-    try {
-      body=await marketJson<typeof body>(url,{headers:{"User-Agent":"MarketRadar/1.0","Accept":"application/json"},timeoutMs:12_000,attempts:2});
-    } catch(error) {
-      if(error instanceof MarketRequestError&&error.retryAt)upstreamRetryAt=Math.max(upstreamRetryAt,error.retryAt);
-      throw error;
-    }
-    const result=body.chart?.result?.[0];
-    if(!result?.meta||body.chart?.error)throw new Error("该代码暂无可用行情，请检查市场后缀");
-    if(cache.size>=180)cache.delete(cache.keys().next().value!);
-    cache.set(key,{data:result,expires:Date.now()+((range==="1d"||range==="15m")?10_000:240_000)});
-    return result;
-  })();
-  inFlight.set(key,promise);
-  try{return await promise;}finally{inFlight.delete(key);}
-}
-export async function getQuote(symbol:string, includePoints=true):Promise<Quote> {return symbol.endsWith("-USDT")?getOKXQuote(symbol,includePoints):parseQuote(symbol,await fetchChart(symbol,"1d"));}
-export async function getQuotes(symbols:string[],includePoints=true) {
-  // Begin both providers together. A slow crypto provider must not delay stocks.
-  const tickerRequest=symbols.some(s=>s.endsWith("-USDT"))
-    ?getOKXTickers().then(tickers=>({tickers,error:undefined as unknown})).catch(error=>({tickers:{} as Record<string,Record<string,string>>,error}))
-    :Promise.resolve({tickers:{} as Record<string,Record<string,string>>,error:undefined as unknown});
-  const results: {symbol:string;quote?:Quote;error?:string}[]=[];
-  for(let i=0;i<symbols.length;i+=10){
-    results.push(...await Promise.all(symbols.slice(i,i+10).map(async symbol=>{
-      try{
-        if(symbol.endsWith("-USDT")){
-          const {tickers,error:tickerError}=await tickerRequest;
-          if(tickerError)throw tickerError;
-          if(!tickers[symbol])throw new Error("欧易暂无该交易对行情");
-          return {symbol,quote:await getOKXQuote(symbol,includePoints,tickers[symbol])};
-        }
-        return {symbol,quote:await getQuote(symbol,includePoints)};
-      }catch(error){return {symbol,error:publicError(error)};}
-    })));
+export function numeric(value: unknown): number | null { return typeof value === "number" && Number.isFinite(value) ? value : null; }
+function decodePoints(data: YahooResult, intervalMs: number | null, now: number) {
+  const series = data.indicators?.quote?.[0]; const candidates: Point[] = []; let malformed = 0;
+  for (const [i, timestamp] of (data.timestamp ?? []).entries()) {
+    const close = numeric(series?.close?.[i]); const volume = numeric(series?.volume?.[i]);
+    if (close === null || !Number.isSafeInteger(timestamp) || timestamp <= 0) { malformed++; continue; }
+    const time = timestamp * 1000;
+    candidates.push({ time, close, ...(volume === null ? {} : { volume }), open: numeric(series?.open?.[i]) ?? undefined, high: numeric(series?.high?.[i]) ?? undefined, low: numeric(series?.low?.[i]) ?? undefined, ...(intervalMs ? { windowEnded: time + intervalMs <= now } : {}) });
   }
-  return results;
+  // Exchange sessions do not necessarily begin on UTC hour boundaries.
+  const result = normalizePoints(candidates, { now, intervalMs, grid: false });
+  return { ...result, invalidRows: result.invalidRows + malformed };
 }
-export async function getHistory(symbol:string,range:Range) {
-  if(symbol.endsWith("-USDT"))return getOKXHistory(symbol,range);
-  const data=await fetchChart(symbol,range);const points=parsePoints(data);
-  if(points.length<2)throw new Error("该时间范围暂无足够的走势数据");
-  return {symbol,range,points,currency:data.meta.currency??"USD",timezone:data.meta.exchangeTimezoneName??"UTC",source:"Yahoo Finance",fetchedAt:Date.now()};
+export function parsePoints(data: YahooResult, intervalMs: number | null = 300_000, now = Date.now()): Point[] { return decodePoints(data, intervalMs, now).points; }
+function yahooMetadata(symbol: string, range: Range, data: YahooResult, parsed: ReturnType<typeof decodePoints>) {
+  const config = yahooRanges[range]; const market = assetFor(symbol).market;
+  const metadata = historyMetadata(parsed.points, {
+    intervalMs: config.intervalMs, bar: config.interval, exchange: data.meta.exchangeName ?? "unknown", instrument: symbol,
+    marketType: market === "crypto" ? "spot" : symbol.startsWith("^") ? "index" : "equity", volumeUnit: market === "crypto" || symbol.startsWith("^") ? "unknown" : "shares",
+    bucketTimezone: data.meta.exchangeTimezoneName ?? "UTC", completion: config.intervalMs ? "time_window" : "unknown", invalidRows: parsed.invalidRows, duplicateRows: parsed.duplicateRows,
+    path: "yahoo-chart", limitations: ["source_confirmation_unavailable", ...(config.intervalMs ? [] : ["daily_session_end_unknown"]), ...(parsed.invalidRows ? ["invalid_rows"] : []), ...(parsed.duplicateRows ? ["duplicate_rows"] : [])],
+  });
+  if (metadata.gapCount) metadata.limitations.push("session_or_data_gaps");
+  return metadata;
 }
-export function publicError(error:unknown) {
-  if(error instanceof Error&&/行情|代码|走势/.test(error.message)) return error.message;
-  return "行情连接暂时中断，请稍后刷新";
+export function parseQuote(symbol: string, data: YahooResult, now = Date.now(), fetchedAt = now): Quote {
+  const m = data.meta; const parsed = decodePoints(data, yahooRanges["1d"].intervalMs, fetchedAt);
+  const current = numeric(m.regularMarketPrice); const timestamp = numeric(m.regularMarketTime);
+  if (current === null || current <= 0 || timestamp === null || !Number.isSafeInteger(timestamp) || timestamp <= 0 || timestamp * 1000 > fetchedAt + 30_000) throw marketError("invalid_data", undefined, { stage: "admission" });
+  const previous = numeric(m.chartPreviousClose) ?? numeric(m.previousClose); const change = previous !== null && previous > 0 ? current - previous : null;
+  const regular = m.currentTradingPeriod?.regular; let session: Quote["session"] = "unknown";
+  if (assetFor(symbol).market === "crypto") session = "open";
+  else if (regular && Number.isFinite(regular.start) && Number.isFinite(regular.end)) session = now / 1000 >= regular.start && now / 1000 < regular.end ? "open" : "closed";
+  return { symbol, name: m.longName ?? m.shortName ?? assetFor(symbol).name, currency: m.currency ?? "USD", price: current, previousClose: previous, change, changePercent: change !== null && previous ? change / previous * 100 : null,
+    high: numeric(m.regularMarketDayHigh), low: numeric(m.regularMarketDayLow), volume: numeric(m.regularMarketVolume), timestamp: timestamp * 1000, fetchedAt, source: "Yahoo Finance", timezone: m.exchangeTimezoneName ?? "UTC", session,
+    delayMinutes: numeric(m.exchangeDataDelayedBy), points: parsed.points, historyMetadata: yahooMetadata(symbol, "1d", data, parsed) };
+}
+async function fetchChart(symbol: string, range: Range, options: MarketRequestOptions = {}) {
+  const scope = marketScope(options, 12_000, 2); checkScope(scope);
+  const config = yahooRanges[range];
+  const key = `Yahoo:${assetFor(symbol).market}:${symbol}:chart:${config.range}:${config.interval}:regular:unadjusted`;
+  const cached = cache.get(key);
+  if (cached && cached.expires > Date.now()) return { ...cached, cacheHit: true };
+  if (Date.now() < upstreamRetryAt) throw marketError("rate_limited", scope, { upstreamStatus: 429, retryAt: upstreamRetryAt });
+  const snapshot = await inFlight.run(key, scope, async shared => {
+    const url = new URL(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}`);
+    url.searchParams.set("interval", config.interval); url.searchParams.set("range", assetFor(symbol).market === "crypto" && range === "1w" ? "7d" : config.range); url.searchParams.set("includePrePost", "false");
+    let body: { chart?: { result?: YahooResult[]; error?: unknown } };
+    try { body = await marketJson<typeof body>(url, { ...shared, headers: { "User-Agent": "MarketRadar/1.0", Accept: "application/json" }, timeoutMs: 12_000, attempts: 2 }); }
+    catch (error) { if (error instanceof MarketRequestError && error.retryAt) upstreamRetryAt = Math.max(upstreamRetryAt, error.retryAt); throw error; }
+    if (!body || typeof body !== "object" || body.chart?.error) throw marketError("upstream_business_error", shared);
+    const data = body.chart?.result?.[0];
+    if (!data?.meta || data.meta.symbol !== symbol || typeof data.meta.currency !== "string" || !/^[A-Z]{3,5}$/.test(data.meta.currency) || (data.timestamp !== undefined && !Array.isArray(data.timestamp))) throw marketError("invalid_data", shared, { stage: "admission" });
+    const fetchedAt = Date.now(); checkScope(shared);
+    const result = { data, fetchedAt, expires: fetchedAt + ((range === "1d" || range === "15m") ? 10_000 : 240_000) };
+    if (cache.size >= 180) cache.delete(cache.keys().next().value!);
+    cache.set(key, result); return result;
+  });
+  return { ...snapshot, cacheHit: false };
+}
+export async function getQuote(symbol: string, includePoints = true, options: MarketRequestOptions = {}): Promise<Quote> {
+  if (symbol.endsWith("-USDT")) return getOKXQuote(symbol, includePoints, undefined, options);
+  const snapshot = await fetchChart(symbol, "1d", options); const readAt = Date.now();
+  return { ...parseQuote(symbol, snapshot.data, readAt, snapshot.fetchedAt), readAt, cache: { hit: snapshot.cacheHit, ageMs: Math.max(0, readAt - snapshot.fetchedAt) } };
+}
+export async function getQuotes(symbols: string[], includePoints = true, options: MarketRequestOptions = {}): Promise<QuoteResult[]> {
+  const crypto = symbols.filter(symbol => symbol.endsWith("-USDT")); const stocks = symbols.filter(symbol => !symbol.endsWith("-USDT"));
+  const scope = marketScope(options, 16_000, stocks.length * 2 + (crypto.length ? 2 : 0));
+  const results = new Map<string, QuoteResult>();
+  const failed = (symbol: string, error: unknown) => results.set(symbol, { symbol, error: publicError(error), errorInfo: errorInfo(error, scope) });
+  const tickerTask = crypto.length ? (async () => {
+    try {
+      checkScope(scope); const tickers = await getOKXTickers(scope);
+      await Promise.all(crypto.map(async symbol => {
+        try { checkScope(scope); if (!tickers[symbol]) throw marketError("unsupported_asset", scope); results.set(symbol, { symbol, quote: await getOKXQuote(symbol, includePoints, tickers[symbol], scope) }); }
+        catch (error) { failed(symbol, error); }
+      }));
+    } catch (error) { for (const symbol of crypto) failed(symbol, error); }
+  })() : Promise.resolve();
+  let index = 0;
+  const workers = Array.from({ length: Math.min(4, stocks.length) }, async () => {
+    while (index < stocks.length) {
+      const symbol = stocks[index++];
+      try { checkScope(scope); results.set(symbol, { symbol, quote: await getQuote(symbol, includePoints, scope) }); }
+      catch (error) { failed(symbol, error); }
+    }
+  });
+  await Promise.all([tickerTask, ...workers]);
+  return symbols.map(symbol => results.get(symbol) ?? { symbol, error: publicError(marketError("invalid_data", scope)), errorInfo: errorInfo(marketError("invalid_data", scope)) });
+}
+export async function getHistory(symbol: string, range: Range, options: MarketRequestOptions = {}): Promise<MarketHistory> {
+  if (symbol.endsWith("-USDT")) return getOKXHistory(symbol, range, options);
+  const scope = marketScope(options); const snapshot = await fetchChart(symbol, range, scope); const readAt = Date.now();
+  const parsed = decodePoints(snapshot.data, yahooRanges[range].intervalMs, snapshot.fetchedAt);
+  if (parsed.points.length < 2) throw marketError(parsed.points.length ? "insufficient" : parsed.invalidRows ? "invalid_data" : "empty", scope, { stage: "admission" });
+  checkScope(scope);
+  return { symbol, range, points: parsed.points, currency: snapshot.data.meta.currency!, timezone: snapshot.data.meta.exchangeTimezoneName ?? "UTC", source: "Yahoo Finance", fetchedAt: snapshot.fetchedAt, readAt, cache: { hit: snapshot.cacheHit, ageMs: Math.max(0, readAt - snapshot.fetchedAt) }, metadata: yahooMetadata(symbol, range, snapshot.data, parsed), traceId: scope.traceId };
 }

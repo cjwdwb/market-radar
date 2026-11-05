@@ -30,7 +30,7 @@ test('stock fetching starts while the crypto provider is still pending',async()=
  const blocked=new Promise(resolve=>{release=resolve;});
  globalThis.fetch=async url=>{
   if(new URL(url).hostname.includes('okx')){await blocked;return Response.json({code:'0',data:[ticker]});}
-  stockStarted=true;return Response.json({chart:{result:[{meta:{regularMarketPrice:25,regularMarketTime:Date.now()/1000,chartPreviousClose:24,currency:'USD'}}]}});
+  stockStarted=true;return Response.json({chart:{result:[{meta:{symbol:'MSFT',regularMarketPrice:25,regularMarketTime:Math.floor(Date.now()/1000),chartPreviousClose:24,currency:'USD'}}]}});
  };
  try{
   const pending=getQuotes(['BTC-USDT','MSFT'],false);await new Promise(resolve=>setImmediate(resolve));

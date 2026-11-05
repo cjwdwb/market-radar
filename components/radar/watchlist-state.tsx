@@ -3,11 +3,12 @@
 import type { AssetStateV2 } from "@/lib/radar/asset-state-v2";
 import { useState } from "react";
 import { AssetStateEvidence } from "./asset-state";
+import { useMarketTime } from "../market-time-context";
 
 const availability = { available: "可用", waiting: "等待", insufficient: "样本不足", unsupported: "不适用", invalid: "数据无效", stale: "已过期", paused: "已暂停", offline: "离线" };
-function time(at: number) { return new Date(at).toISOString().replace("T", " ").slice(5, 16) + " UTC"; }
 
 export function WatchlistState({ state }: { state: AssetStateV2 }) {
+  const { formatTime: time } = useMarketTime();
   const [expanded,setExpanded] = useState(false);
   const short = state.horizons.short, medium = state.horizons.medium;
   const transitions = [...Object.values(state.transitions.short), ...Object.values(state.transitions.medium)];

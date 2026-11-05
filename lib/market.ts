@@ -1,16 +1,35 @@
 export type Market = "crypto" | "us" | "cn" | "hk";
 export type Range = "15m" | "1d" | "1w" | "1m" | "3m";
 export type Asset = { symbol: string; name: string; market: Market; color: string; mark: string };
-export type Point = { time: number; close: number; volume?: number; open?: number; high?: number; low?: number; confirmed?: boolean };
+export type Point = { time: number; close: number; volume?: number; open?: number; high?: number; low?: number; confirmed?: boolean; windowEnded?: boolean };
+/** Source confirmation, elapsed window and original acquisition time are separate facts. */
+export type HistoryMetadata = {
+  intervalMs: number | null; bar: string; exchange: string; instrument: string;
+  marketType: "spot" | "equity" | "index" | "unknown";
+  volumeUnit: "base" | "quote" | "shares" | "unknown";
+  bucketTimezone: string; completion: "source" | "time_window" | "unknown";
+  firstAt: number | null; lastAt: number | null; lastCompleteAt: number | null;
+  invalidRows: number; duplicateRows: number; gapCount: number;
+  path: "candles" | "history-candles" | "yahoo-chart" | "monitor";
+  limitations: string[];
+};
+export type MarketErrorCode = "invalid_parameter" | "unsupported_asset" | "access_required" | "proxy_configuration_error" | "proxy_auth_error" | "proxy_unavailable" | "upstream_denied" | "rate_limited" | "timeout" | "transport_error" | "environment_denied" | "unexpected_content_type" | "invalid_json" | "upstream_business_error" | "upstream_unavailable" | "empty" | "insufficient" | "invalid_data" | "stale" | "caller_cancelled" | "superseded";
+export type MarketErrorInfo = { code: MarketErrorCode; traceId?: string; stage?: "browser" | "site" | "proxy" | "upstream" | "parse" | "admission"; retryAt?: number; upstreamStatus?: number };
+export type MarketHistory = {
+  symbol: string; range: Range; points: Point[]; currency: string; timezone: string; source: string;
+  fetchedAt: number; readAt?: number; cache?: { hit: boolean; ageMs: number };
+  metadata?: HistoryMetadata; traceId?: string;
+};
 export type Quote = {
   symbol: string; name: string; currency: string; price: number;
   change: number | null; changePercent: number | null; previousClose: number | null;
   high: number | null; low: number | null; volume: number | null;
   timestamp: number; fetchedAt: number; source: string; timezone: string;
   session: "open" | "closed" | "unknown"; delayMinutes: number | null;
-  points: Point[]; error?: string;
+  points: Point[]; error?: string; errorInfo?: MarketErrorInfo;
+  readAt?: number; cache?: { hit: boolean; ageMs: number }; historyMetadata?: HistoryMetadata;
 };
-export type QuoteResult = { symbol: string; quote?: Quote; error?: string };
+export type QuoteResult = { symbol: string; quote?: Quote; error?: string; errorInfo?: MarketErrorInfo };
 export type PriceAlert = {
   id: string; symbol: string; direction: "above" | "below"; target: number;
   enabled: boolean; createdAt: number; triggeredAt?: number; triggeredPrice?: number;

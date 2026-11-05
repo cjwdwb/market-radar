@@ -34,10 +34,11 @@ export function prepareMarketInput(snapshot: RadarSnapshot, symbol: string, now:
   if (market !== "crypto" && (quote.session !== "open" || (quote.delayMinutes ?? 0) > 2)) return reject("session_unavailable", "休市或延迟行情");
   const history = symbol.endsWith("-USDT") ? snapshot.histories[symbol] : { points: quote.points, intervalMs: 5 * MINUTE, source: quote.source, currency: quote.currency, fetchedAt: quote.fetchedAt };
   if (!history || !Array.isArray(history.points)) return reject("awaiting_history", "等待历史基线");
+  if ("error" in history && history.error) return reject("invalid_history", "历史更新失败，保留数据仅供查看");
   if (history.source !== quote.source || history.currency !== quote.currency) return reject("source_currency_mismatch", "历史来源或币种不匹配");
   if (!Number.isFinite(history.fetchedAt) || now - history.fetchedAt > FETCH_MAX_AGE || history.fetchedAt > now + MINUTE) return reject("stale_history", "历史数据过期");
   if (history.intervalMs !== (symbol.endsWith("-USDT") ? 15 : 5) * MINUTE) return reject("unsupported_interval", "历史周期不支持");
-  // Yahoo的confirmed字段按15m定义，此处按实际5m周期与报价时间判断完成；OKX另需confirmed。
+  // Yahoo按实际5m周期与报价时间判断窗口结束；OKX还必须有来源确认，二者不混用。
   let bars = history.points.filter(point => point.time + history.intervalMs <= quote.timestamp && (!symbol.endsWith("-USDT") || point.confirmed === true)).slice(-80);
   // 保留最新连续一段，不把停牌、午休、隔夜或来源缺口两端拼成同一观察窗口。
   for (let i = bars.length - 1; i > 0; i--) {

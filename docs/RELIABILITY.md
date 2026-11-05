@@ -1,5 +1,23 @@
 # 行情可靠性与 Radar 状态复用
 
+## 2026-11-05 行情刷新与 K 线候选契约
+
+任务 [MR-MARKET-DATA-RELIABILITY](../tasks/MR-MARKET-DATA-RELIABILITY.md)，基线 main `4352b73`、已上线 Sites v36/source `84511bf`。以下是新候选契约；后面的 2026-09-15 报告保留为历史证据，不代表本轮执行或本候选已发布。
+
+- 历史读取绝对截止 26 秒，包含排队和响应体；直接上游最多 4 次、单跳最多 8 秒。配置代理最多 6 秒且不与直接源叠加。仅传输/瞬时 5xx 可走现有受控回退；403、429、业务拒绝、超时、环境拒绝、无效数据和取消均不换地址试探。OKX 所有历史/报价路径共享当前服务实例的限流冷却，最少 60 秒并尊重更长 Retry-After；没有跨实例协调保证。
+- 已配置代理的 200 必须验证身份、币种、周期、OHLC、时间、原获取时间和元数据；半配置及代理错误明确失败，不无声绕回直接源。旧代理内部重试/取消状态 UNKNOWN；不能凭本地源码推断远端已升级。monitor 兼容改动也只在本地候选，未单独部署。
+- Quote API 整批 16 秒，股票最多 4 个并发，Yahoo 单资产最多 2 次传输尝试，OKX 一次共享 ticker 路径最多 2 次。所有资产返回独立结果。前台正常 5 秒加密/15 秒股票、允许后台 60 秒的策略保留。新请求加入同键在途；单个消费者取消不会误杀其他消费者；全部退出才取消底层，旧 finally 不删除新条目。
+- 页面主图和分析基线共享完全相同的 OKX 15m×96 请求（界面 range=15m/1d），其他周期不合并。手动检查覆盖报价、主图、当前分析基线，绕过页面短缓存但遵守冷却；来源缓存仍保留其真实获取时间。暂停自动监控后，初次加载/显式选资产/手动读取可用，不因恢复网络或可见性悄悄恢复自动请求。
+- 失败保留同资产、同范围的旧图和时间并显示原因；分析输入标记失败，不用旧历史生成新的当前结论。时钟自然越界仍按原有效性规则降级；新的成功数据才清理失败。未改变 Signal/State 阈值、提醒条件、行情源或币种。
+- `confirmed` 只能来自来源；未知不会转成已收盘。Yahoo 5m/15m/60m 另用 `windowEnded`，日线无已核实 session 终点时保持未知。OKX `vol` 为现货基础币数量；ticker 成交额为报价币。`metadata.lastCompleteAt` 是完整 bar 的结束时间，不是开盘或请求时间。
+- OKX range=15m/1d→原生15m×96，1w→1H×168，1m→4H×180，3m→1Dutc×90；1m 是一月。Yahoo 实际周期为 15m/5m/60m/1d/1d。查看范围不等于完整覆盖，缺口不填零、不插值；走势断开，MA7/25 在缺口后重新等待完整连续窗口。
+- 显示时区可选设备、UTC、Asia/Shanghai；SSR 固定 UTC 并提示等待设备时区。Intl 按每个事实时间计算夏令时偏移。只格式化显示，不改事实时间、来源分桶、图表位置、请求、提醒或归档 UTC。报价、当前事件、图表与提示框共用显示策略。
+- 错误与诊断仅记录固定字段：错误代码、阶段、追踪号、耗时、可观察尝试数、上游状态和冷却；不打印凭据、代理 URL、响应正文或异常栈。无法观测的代理内部请求数明确 UNKNOWN。
+
+官方核对：2026-11-05 [OKX v5 Candlesticks](https://www.okx.com/docs-v5/en/#order-book-trading-market-data-get-candlesticks)、[Intl.DateTimeFormat](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat)、[AbortSignal.any](https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/any_static)。文档与实际运行验证分别记录；具体本轮证据见最终专项报告。
+
+## 历史报告（2026-09-15）
+
 2026-09-15；任务 MR-RADAR-RELIABILITY；基线 `3bf421a`。本轮仅保留本地成果，未推送或部署。
 
 ## 原因与改动
