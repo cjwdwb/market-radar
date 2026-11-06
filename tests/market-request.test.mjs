@@ -1,6 +1,6 @@
 import test,{beforeEach} from 'node:test';
 import assert from 'node:assert/strict';
-import {marketJson,marketScope,SharedMarketRequests,errorInfo,publicError,marketError,errorResponse} from '../lib/market-request.ts';
+import {marketJson,marketScope,SharedMarketRequests,errorInfo,publicError,marketError,errorResponse,recordMarketFailure} from '../lib/market-request.ts';
 import {getOKXTickers,getOKXHistory,getOKXQuote} from '../lib/okx.ts';
 import {getQuote,getHistory,getQuotes} from '../lib/market-data.ts';
 
@@ -30,6 +30,112 @@ test('Retry-After seconds/date and unsuccessful cleanup preserve longest wait',a
   t.mock.method(globalThis,'fetch',async()=>({ok:false,status:429,headers:new Headers({'Retry-After':header}),body:{cancel:async()=>{throw reset();}}}));
   await assert.rejects(marketJson(url,{timeoutMs:100}),error=>error.retryAt===(header==='120'?now+120000:Date.parse(header)));
  }
+});
+
+test('HTTP diagnostics freeze actual observation and attempts without entering public errors',async t=>{
+ const observedAt=now,scope=marketScope();let failure;
+ t.mock.method(globalThis,'fetch',async()=>new Response('private response body',{status:429,headers:{'Retry-After':'120'}}));
+ await assert.rejects(marketJson(url,{...scope,timeoutMs:1000,stage:'proxy'}),error=>{failure=error;return error.code==='rate_limited';});
+ assert.deepEqual(failure.rateLimitDiagnostic,{version:1,kind:'http',httpStatus:429,attempts:1,observedAt});
+ scope.budget.used=9;now+=1000;
+ assert.equal(failure.rateLimitDiagnostic.attempts,1);assert.equal(failure.rateLimitDiagnostic.observedAt,observedAt);assert.equal(Object.isFrozen(failure.rateLimitDiagnostic),true);
+ assert.equal(failure.stage,'proxy');assert.equal(errorInfo(failure).rateLimitDiagnostic,undefined);
+ const body=await errorResponse(failure).json();assert.deepEqual(Object.keys(body).sort(),['error','errorInfo']);assert.equal(JSON.stringify(body).includes('diagnostic'),false);assert.equal(JSON.stringify(body).includes('private'),false);
+});
+
+test('OKX business diagnostics retain actual successful HTTP status and new cooldown has no HTTP observation',async t=>{
+ let calls=0;
+ for(const status of [200,202]){
+  now+=100000;const observedAt=now,scope=marketScope();
+  t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json({code:'50011',msg:'private upstream text',data:[]},{status});});
+  await assert.rejects(getOKXHistory('ETH-USDT','15m',scope),error=>{
+   assert.equal(errorInfo(error).upstreamStatus,429);
+   assert.deepEqual(error.rateLimitDiagnostic,{version:1,kind:'business',httpStatus:status,businessCode:'50011',endpoint:'candles',attempts:1,observedAt});return true;
+  });
+  const queued=marketScope();now+=10;
+  await assert.rejects(getOKXTickers(queued),error=>{
+   assert.deepEqual(error.rateLimitDiagnostic,{version:1,kind:'cooldown',attempts:0,observedAt:now});assert.equal(error.businessCode,undefined);return true;
+  });assert.equal(queued.budget.used,0);
+ }
+ assert.equal(calls,2);
+});
+
+test('shared historical failure carries owner operation attempts even for an unspent joining scope',async t=>{
+ let calls=0,resolve;const owner=marketScope(),joiner=marketScope();
+ t.mock.method(globalThis,'fetch',async()=>{calls++;return calls<3?new Response('',{status:503}):new Promise(done=>{resolve=done;});});
+ const collect=promise=>promise.then(()=>assert.fail('expected rate limit'),error=>error);
+ const first=collect(getOKXHistory('BTC-USDT','15m',owner));await turn();assert.equal(calls,3);
+ const joined=collect(getOKXHistory('BTC-USDT','1d',joiner));await turn();assert.equal(calls,3);
+ resolve(new Response('',{status:429}));const failures=await Promise.all([first,joined]);
+ assert.equal(owner.budget.used,3);assert.equal(joiner.budget.used,0);
+ for(const failure of failures)assert.deepEqual(failure.rateLimitDiagnostic,{version:1,kind:'http',httpStatus:429,endpoint:'history-candles',attempts:3,observedAt:now});
+ let logged;t.mock.method(console,'warn',value=>{logged=JSON.parse(value);});
+ recordMarketFailure(failures[1],joiner,{symbol:'BTC-USDT',source:'OKX',range:'1d',path:'direct',startedAt:now});
+ assert.equal(logged.observedAttempts,0);assert.equal(logged.upstreamAttempts,0);assert.equal(logged.rateLimitDiagnostic.attempts,3);assert.equal(logged.diagnosticSource,'local');
+});
+
+test('validated monitor diagnostics preserve operation counts and local identity without changing public errors',async t=>{
+ const diagnostics=[
+  {kind:'http',httpStatus:429,endpoint:'history-candles',attempts:3},
+  {kind:'business',httpStatus:200,businessCode:'50011',endpoint:'candles',attempts:2},
+  {kind:'business',httpStatus:202,businessCode:'50011',attempts:1},
+  {kind:'business',businessCode:'50011',attempts:1},
+  {kind:'cooldown',attempts:0},{kind:'cooldown',attempts:1},
+ ];
+ for(const fields of diagnostics){
+  const diagnostic={version:1,...fields,observedAt:now-100},scope=marketScope({traceId:'local-trace'});let failure,logged,calls=0;
+  t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json({error:'private remote prose',errorInfo:{code:'rate_limited',upstreamStatus:429,retryAt:now+120000,traceId:'private remote trace',stage:'parse'},diagnostic},{status:429,headers:{'Retry-After':'180'}});});
+  await assert.rejects(marketJson(url,{...scope,timeoutMs:1000,attempts:2,stage:'proxy',monitorErrors:true}),error=>{failure=error;return error.code==='rate_limited';});
+  assert.deepEqual(failure.rateLimitDiagnostic,diagnostic);assert.equal(failure.retryAt,now+180000);assert.equal(failure.validatedMonitorError,true);assert.equal(failure.traceId,'local-trace');assert.equal(failure.stage,'proxy');assert.equal(calls,1);
+  t.mock.method(console,'warn',value=>{logged=JSON.parse(value);});
+  recordMarketFailure(failure,scope,{symbol:'ETH-USDT',source:'OKX',range:'15m',path:'monitor',startedAt:now});
+  assert.equal(logged.observedAttempts,1);assert.equal(logged.upstreamAttempts,'UNKNOWN');assert.equal(logged.monitorErrorValidated,true);assert.equal(logged.diagnosticSource,'monitor');assert.deepEqual(logged.rateLimitDiagnostic,diagnostic);assert.equal(JSON.stringify(logged).includes('private'),false);
+  assert.equal(logged.upstreamBusinessCode,fields.kind==='business'?'50011':undefined);
+  const response=errorResponse(failure),body=await response.json();assert.equal(response.status,429);assert.deepEqual(Object.keys(body).sort(),['error','errorInfo']);assert.equal(body.errorInfo.upstreamStatus,429);assert.equal(JSON.stringify(body).includes('50011'),false);
+ }
+});
+
+test('invalid optional monitor diagnostics are discarded without changing the typed error or longest cooldown',async t=>{
+ const valid={version:1,kind:'http',httpStatus:429,attempts:3,observedAt:now};
+ const diagnostics=[undefined,null,[],{...valid,version:2},{...valid,kind:'unknown'},
+  ...['source','traceId','stage','url','headers','message','extra'].map(key=>({...valid,[key]:'private injected value'})),
+  {...valid,endpoint:'private endpoint'}, {...valid,endpoint:'x'.repeat(1000)},
+  ...[-1,17,1.5,'1',0].map(attempts=>({...valid,attempts})),
+  ...[0,-1,1.5,Number.MAX_SAFE_INTEGER+1,'1'].map(observedAt=>({...valid,observedAt})),
+  {...valid,httpStatus:200},{...valid,businessCode:'50011'},
+  {...valid,kind:'business',httpStatus:429,businessCode:'50011'}, {...valid,kind:'business',httpStatus:200,businessCode:'private'},
+  {...valid,kind:'cooldown'}, {...valid,kind:'cooldown',httpStatus:undefined,businessCode:'50011'},
+ ];
+ for(const diagnostic of diagnostics){
+  let calls=0,logged;const scope=marketScope();
+  t.mock.method(globalThis,'fetch',async()=>{calls++;return Response.json({error:'private remote text',errorInfo:{code:'rate_limited',upstreamStatus:429,retryAt:now+240000},diagnostic},{status:429,headers:{'Retry-After':'180'}});});
+  await assert.rejects(marketJson(url,{...scope,timeoutMs:1000,attempts:2,monitorErrors:true}),error=>{
+   assert.equal(error.rateLimitDiagnostic,undefined);assert.equal(error.code,'rate_limited');assert.equal(error.retryAt,now+240000);assert.equal(error.validatedMonitorError,true);
+   t.mock.method(console,'warn',value=>{logged=JSON.parse(value);});recordMarketFailure(error,scope,{symbol:'ETH-USDT',source:'OKX',path:'monitor',startedAt:now});return true;
+  });assert.equal(calls,1);assert.equal(logged.rateLimitDiagnostic,undefined);assert.equal(logged.diagnosticSource,undefined);assert.equal(logged.monitorErrorValidated,true);assert.equal(logged.upstreamAttempts,'UNKNOWN');assert.equal(JSON.stringify(logged).includes('private'),false);
+ }
+});
+
+test('monitor diagnostics require a consistent validated standard envelope and never infer upstream counts from the proxy hop',async t=>{
+ const diagnostic={version:1,kind:'http',httpStatus:429,attempts:3,observedAt:now};
+ for(const [status,errorInfo,validated] of [[504,{code:'timeout'},true],[429,{code:'rate_limited'},true],[429,{code:'rate_limited',upstreamStatus:403},false],[503,{code:'rate_limited',upstreamStatus:429},false]]){
+  const scope=marketScope();let logged;
+  t.mock.method(globalThis,'fetch',async()=>Response.json({error:'private',errorInfo,diagnostic},{status}));
+  await assert.rejects(marketJson(url,{...scope,timeoutMs:1000,monitorErrors:true}),error=>{
+   t.mock.method(console,'warn',value=>{logged=JSON.parse(value);});recordMarketFailure(error,scope,{symbol:'ETH-USDT',source:'OKX',path:'monitor',startedAt:now});
+   return error.rateLimitDiagnostic===undefined&&error.validatedMonitorError===validated;
+  });assert.equal(logged.monitorErrorValidated,validated);assert.equal(logged.upstreamAttempts,'UNKNOWN');assert.equal(logged.observedAttempts,1);
+ }
+ t.mock.method(globalThis,'fetch',async()=>new Response('private nonstandard response',{status:429}));
+ await assert.rejects(marketJson(url,{timeoutMs:1000,monitorErrors:true}),error=>error.code==='rate_limited'&&error.rateLimitDiagnostic===undefined);
+});
+
+test('failure logs revalidate diagnostics and reject arbitrary business-code text',t=>{
+ const scope=marketScope(),error=marketError('rate_limited',scope,{upstreamStatus:429,businessCode:'private\nsecret'});let logged;
+ error.rateLimitDiagnostic={version:1,kind:'http',httpStatus:429,attempts:1,observedAt:now,url:'private URL'};
+ t.mock.method(console,'warn',value=>{logged=JSON.parse(value);});
+ recordMarketFailure(error,scope,{symbol:'ETH-USDT',source:'OKX',path:'direct',startedAt:now});
+ assert.equal(logged.rateLimitDiagnostic,undefined);assert.equal(logged.upstreamBusinessCode,undefined);assert.equal(JSON.stringify(logged).includes('private'),false);
 });
 
 test('only opted-in monitor errors preserve standard codes with local trace and no retries',async t=>{
@@ -176,7 +282,7 @@ for(const order of ['rate-first','reset-first'])test(`OKX publishes a same-turn 
  if(order==='rate-first'){rate();fail();}else{fail();rate();}
  const results=await Promise.all([first,second]);
  assert.deepEqual(calls,[{symbol:'BTC-USDT',origin:'https://openapi.okx.com',path:'/api/v5/market/candles'},{symbol:'ETH-USDT',origin:'https://openapi.okx.com',path:'/api/v5/market/candles'}]);
- for(const [index,result] of results.entries()){assert.equal(result.error?.code,'rate_limited');assert.equal(result.error?.retryAt,until);assert.equal(result.error?.traceId,[firstScope,secondScope][index].traceId);}
+ for(const [index,result] of results.entries()){assert.equal(result.error?.code,'rate_limited');assert.equal(result.error?.retryAt,until);assert.equal(result.error?.traceId,[firstScope,secondScope][index].traceId);assert.equal(result.error?.rateLimitDiagnostic.kind,index===0?'http':'cooldown');assert.equal(result.error?.rateLimitDiagnostic.attempts,1);assert.equal(result.error?.rateLimitDiagnostic.httpStatus,index===0?429:undefined);}
  assert.deepEqual(firstScope.budget,{remaining:3,used:1});assert.deepEqual(secondScope.budget,{remaining:3,used:1});
  await assert.rejects(getOKXTickers(queuedScope),error=>error.code==='rate_limited'&&error.retryAt===until);
  assert.deepEqual(queuedScope.budget,{remaining:4,used:0});assert.equal(calls.length,2);

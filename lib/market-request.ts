@@ -9,16 +9,42 @@ const messages: Record<MarketErrorCode, string> = {
   upstream_unavailable: "行情源暂时不可用", empty: "该时间范围暂无走势数据", insufficient: "该时间范围暂无足够的走势数据",
   invalid_data: "行情数据校验未通过", stale: "行情数据已过期", caller_cancelled: "已取消此次行情读取", superseded: "已切换到新的行情读取",
 };
+type RateLimitObservation = { kind: "http"; httpStatus: 429 } | { kind: "business"; httpStatus?: number; businessCode: "50011" } | { kind: "cooldown" };
+export type RateLimitEndpoint = "candles" | "history-candles" | "tickers" | "ticker";
+export type RateLimitDiagnostic = Readonly<RateLimitObservation & { version: 1; endpoint?: RateLimitEndpoint; attempts: number; observedAt: number }>;
+/** Rebuild the fixed schema; an invalid optional diagnostic never changes the standard error. */
+function validatedRateLimitDiagnostic(value: unknown, code: MarketErrorCode, status?: number): RateLimitDiagnostic | undefined {
+  if (code !== "rate_limited" || status !== 429 || !value || typeof value !== "object" || Array.isArray(value)) return;
+  const item = value as Record<string, unknown>;
+  if (Object.keys(item).some(key => !["version", "kind", "httpStatus", "businessCode", "endpoint", "attempts", "observedAt"].includes(key))) return;
+  if (item.version !== 1 || !["http", "business", "cooldown"].includes(item.kind as string)) return;
+  if (typeof item.attempts !== "number" || !Number.isSafeInteger(item.attempts) || item.attempts < (item.kind === "cooldown" ? 0 : 1) || item.attempts > 16) return;
+  if (typeof item.observedAt !== "number" || !Number.isSafeInteger(item.observedAt) || item.observedAt <= 0) return;
+  if (item.endpoint !== undefined && !["candles", "history-candles", "tickers", "ticker"].includes(item.endpoint as string)) return;
+  const common = { version: 1 as const, attempts: item.attempts, observedAt: item.observedAt, ...(item.endpoint === undefined ? {} : { endpoint: item.endpoint as RateLimitEndpoint }) };
+  if (item.kind === "http" && item.httpStatus === 429 && item.businessCode === undefined) return Object.freeze({ ...common, kind: "http", httpStatus: 429 });
+  if (item.kind === "business" && item.businessCode === "50011" && (item.httpStatus === undefined || typeof item.httpStatus === "number" && Number.isInteger(item.httpStatus) && item.httpStatus >= 200 && item.httpStatus <= 299)) return Object.freeze({ ...common, kind: "business", businessCode: "50011", ...(item.httpStatus === undefined ? {} : { httpStatus: item.httpStatus as number }) });
+  if (item.kind === "cooldown" && item.httpStatus === undefined && item.businessCode === undefined) return Object.freeze({ ...common, kind: "cooldown" });
+}
+export function observeRateLimit(scope: MarketScope, observation: RateLimitObservation, endpoint?: RateLimitEndpoint) {
+  return validatedRateLimitDiagnostic({ version: 1, ...observation, ...(endpoint ? { endpoint } : {}), attempts: scope.budget.used, observedAt: Date.now() }, "rate_limited", 429);
+}
+function rateLimitEndpoint(url: URL): RateLimitEndpoint | undefined {
+  if (!["https://openapi.okx.com", "https://www.okx.com"].includes(url.origin)) return;
+  return ({ "/api/v5/market/candles": "candles", "/api/v5/market/history-candles": "history-candles", "/api/v5/market/tickers": "tickers", "/api/v5/market/ticker": "ticker" } as Record<string, RateLimitEndpoint>)[url.pathname];
+}
 /** status remains the upstream status; public HTTP mapping is separate. */
 export class MarketRequestError extends Error {
   readonly status?: number; readonly retryAt?: number; readonly blocked: boolean;
   readonly validatedMonitorError: boolean;
+  readonly rateLimitDiagnostic?: RateLimitDiagnostic;
   readonly code: MarketErrorCode; readonly stage: MarketErrorInfo["stage"]; readonly traceId?: string; readonly businessCode?: string;
-  constructor(message: string, status?: number, retryAt?: number, blocked = false, info: Partial<MarketErrorInfo> & { businessCode?: string; validatedMonitorError?: boolean } = {}) {
+  constructor(message: string, status?: number, retryAt?: number, blocked = false, info: Partial<MarketErrorInfo> & { businessCode?: string; validatedMonitorError?: boolean; rateLimitDiagnostic?: RateLimitDiagnostic } = {}) {
     const code = info.code ?? (blocked ? "environment_denied" : status === 429 ? "rate_limited" : status === 401 || status === 403 || status === 451 ? "upstream_denied" : status === 404 ? "unsupported_asset" : status && status >= 500 ? "upstream_unavailable" : "transport_error");
     super(message); this.name = "MarketRequestError"; this.status = status; this.retryAt = retryAt; this.blocked = blocked;
     this.code = code; this.stage = info.stage ?? "upstream"; this.traceId = info.traceId; this.businessCode = info.businessCode;
     this.validatedMonitorError = info.validatedMonitorError === true;
+    this.rateLimitDiagnostic = validatedRateLimitDiagnostic(info.rateLimitDiagnostic, code, status);
   }
 }
 export type AttemptBudget = { remaining: number; used: number };
@@ -27,7 +53,7 @@ export type MarketScope = MarketRequestOptions & { deadline: number; budget: Att
 export function marketScope(options: MarketRequestOptions = {}, timeoutMs = 26_000, attempts = 4): MarketScope {
   return { ...options, deadline: Math.min(options.deadline ?? Infinity, Date.now() + timeoutMs), budget: options.budget ?? { remaining: attempts, used: 0 }, traceId: options.traceId ?? crypto.randomUUID() };
 }
-export function marketError(code: MarketErrorCode, scope?: Pick<MarketScope, "traceId">, details: Partial<MarketErrorInfo> & { businessCode?: string } = {}) {
+export function marketError(code: MarketErrorCode, scope?: Pick<MarketScope, "traceId">, details: Partial<MarketErrorInfo> & { businessCode?: string; rateLimitDiagnostic?: RateLimitDiagnostic } = {}) {
   return new MarketRequestError(messages[code], details.upstreamStatus, details.retryAt, code === "environment_denied", { ...details, code, traceId: scope?.traceId ?? details.traceId });
 }
 function cancellation(signal: AbortSignal, scope?: Pick<MarketScope, "traceId">) {
@@ -50,11 +76,18 @@ export function errorResponse(error: unknown, scope?: Pick<MarketScope, "traceId
   const info = errorInfo(error, scope);
   return Response.json({ error: publicError(error), errorInfo: info }, { status: errorStatus(error), headers: { "Cache-Control": "no-store", ...(info.traceId ? { "X-Market-Trace": info.traceId } : {}), ...(info.retryAt ? { "Retry-After": String(Math.max(0, Math.ceil((info.retryAt - Date.now()) / 1000))) } : {}) } });
 }
+/** Only the already-authenticated monitor history handler uses this internal envelope. */
+export function monitorErrorResponse(error: unknown, scope?: Pick<MarketScope, "traceId">) {
+  const response = errorResponse(error, scope);
+  const diagnostic = error instanceof MarketRequestError ? validatedRateLimitDiagnostic(error.rateLimitDiagnostic, error.code, error.status) : undefined;
+  return diagnostic ? Response.json({ error: publicError(error), errorInfo: errorInfo(error, scope), diagnostic }, { status: response.status, headers: response.headers }) : response;
+}
 /** Fixed diagnostic fields only: never log URLs, credentials, response bodies or exception messages. */
 export function recordMarketFailure(error: unknown, scope: MarketScope, detail: { symbol: string; source: "OKX" | "Yahoo"; range?: string; path: "direct" | "monitor"; startedAt: number }) {
   const info = errorInfo(error, scope);
   if (info.code === "caller_cancelled" || info.code === "superseded") return;
-  console.warn(JSON.stringify({ event: "market_request_failed", at: new Date().toISOString(), ...info, symbol: detail.symbol, source: detail.source, marketType: detail.source === "OKX" ? "spot" : "provider_chart", currency: detail.source === "OKX" ? "USDT" : "source_defined", range: detail.range, path: detail.path, elapsedMs: Math.max(0, Date.now() - detail.startedAt), observedAttempts: scope.budget.used, upstreamAttempts: detail.path === "monitor" ? "UNKNOWN" : scope.budget.used, cacheHit: false, outcome: "failed", ...(error instanceof MarketRequestError && error.businessCode ? { upstreamBusinessCode: error.businessCode } : {}) }));
+  const diagnostic = error instanceof MarketRequestError ? validatedRateLimitDiagnostic(error.rateLimitDiagnostic, error.code, error.status) : undefined;
+  console.warn(JSON.stringify({ event: "market_request_failed", at: new Date().toISOString(), ...info, symbol: detail.symbol, source: detail.source, marketType: detail.source === "OKX" ? "spot" : "provider_chart", currency: detail.source === "OKX" ? "USDT" : "source_defined", range: detail.range, path: detail.path, elapsedMs: Math.max(0, Date.now() - detail.startedAt), observedAttempts: scope.budget.used, upstreamAttempts: detail.path === "monitor" ? "UNKNOWN" : scope.budget.used, cacheHit: false, outcome: "failed", ...(detail.path === "monitor" ? { monitorErrorValidated: error instanceof MarketRequestError && error.validatedMonitorError } : {}), ...(error instanceof MarketRequestError && error.businessCode && /^[A-Za-z0-9_-]{1,20}$/.test(error.businessCode) ? { upstreamBusinessCode: error.businessCode } : {}), ...(diagnostic ? { diagnosticSource: error instanceof MarketRequestError && error.validatedMonitorError ? "monitor" : "local", rateLimitDiagnostic: diagnostic } : {}) }));
 }
 export function mayFallback(error: unknown) { return error instanceof MarketRequestError && (error.code === "transport_error" || error.code === "upstream_unavailable"); }
 export function retryAfterAt(header: string | null, now = Date.now()) {
@@ -88,7 +121,8 @@ function monitorError(body: unknown, status: number, scope: MarketScope, httpFai
   if (info.retryAt !== undefined && (code !== "rate_limited" || typeof info.retryAt !== "number" || !Number.isSafeInteger(info.retryAt) || info.retryAt <= 0)) return;
   const retryAt = code === "rate_limited" ? Math.max(httpFailure.retryAt ?? 0, (info.retryAt as number | undefined) ?? 0) : undefined;
   // Remote prose, trace and stage never become local diagnostics. The marker is local only.
-  return new MarketRequestError(messages[code], upstream as number | undefined, retryAt, code === "environment_denied", { code, stage: "proxy", traceId: scope.traceId, validatedMonitorError: true });
+  const diagnostic = validatedRateLimitDiagnostic(envelope.diagnostic, code, upstream as number | undefined);
+  return new MarketRequestError(messages[code], upstream as number | undefined, retryAt, code === "environment_denied", { code, stage: "proxy", traceId: scope.traceId, validatedMonitorError: true, rateLimitDiagnostic: diagnostic, ...(diagnostic?.kind === "business" ? { businessCode: diagnostic.businessCode } : {}) });
 }
 function monitorRetryAfterAt(header: string | null) {
   // Very large numeric waits saturate instead of overflowing or shortening the cooldown.
@@ -105,7 +139,7 @@ function interrupted<T>(promise: Promise<T>, signal: AbortSignal, scope: MarketS
     promise.then(value => { cleanup(); resolve(value); }, error => { cleanup(); reject(error); });
   });
 }
-export async function marketJson<T>(url: URL, options: MarketRequestOptions & { timeoutMs: number; attempts?: number; headers?: Record<string, string>; maxBytes?: number; stage?: MarketErrorInfo["stage"]; monitorErrors?: boolean; onMonitorRateLimit?: (retryAt: number) => void; onRateLimit?: (retryAt: number) => void; beforeAttempt?: (scope: MarketScope) => void }): Promise<T> {
+export async function marketJson<T>(url: URL, options: MarketRequestOptions & { timeoutMs: number; attempts?: number; headers?: Record<string, string>; maxBytes?: number; stage?: MarketErrorInfo["stage"]; monitorErrors?: boolean; onMonitorRateLimit?: (retryAt: number) => void; onRateLimit?: (retryAt: number) => void; onResponseStatus?: (status: number) => void; beforeAttempt?: (scope: MarketScope) => void }): Promise<T> {
   const scope = marketScope(options, options.timeoutMs, Math.max(1, Math.min(2, options.attempts ?? 1)));
   const attempts = Math.max(1, Math.min(2, options.attempts ?? 1));
   for (let attempt = 0; attempt < attempts; attempt++) {
@@ -127,8 +161,9 @@ export async function marketJson<T>(url: URL, options: MarketRequestOptions & { 
         return value;
       });
       response = await interrupted(fetching, controller.signal, scope);
+      options.onResponseStatus?.(response.status);
       if (!response.ok) {
-        httpFailure = marketError(response.status === 429 ? "rate_limited" : [401, 403, 451].includes(response.status) ? "upstream_denied" : response.status === 404 ? "unsupported_asset" : response.status >= 500 ? "upstream_unavailable" : "upstream_business_error", scope, { upstreamStatus: response.status, ...(response.status === 429 ? { retryAt: (options.monitorErrors ? monitorRetryAfterAt : retryAfterAt)(response.headers.get("Retry-After")) } : {}) });
+        httpFailure = marketError(response.status === 429 ? "rate_limited" : [401, 403, 451].includes(response.status) ? "upstream_denied" : response.status === 404 ? "unsupported_asset" : response.status >= 500 ? "upstream_unavailable" : "upstream_business_error", scope, { upstreamStatus: response.status, ...(response.status === 429 ? { retryAt: (options.monitorErrors ? monitorRetryAfterAt : retryAfterAt)(response.headers.get("Retry-After")), ...(!options.monitorErrors ? { rateLimitDiagnostic: observeRateLimit(scope, { kind: "http", httpStatus: 429 }, rateLimitEndpoint(url)) } : {}) } : {}) });
         // Publish observed HTTP cooldown synchronously, before another request can retry.
         if (httpFailure.retryAt) options.onRateLimit?.(httpFailure.retryAt);
         // Observe the header before optional body reading; a cancelled waiter must not clear provider cooldown.
@@ -168,7 +203,7 @@ export async function marketJson<T>(url: URL, options: MarketRequestOptions & { 
       }
       // Reading optional details must not erase an already authoritative HTTP cooldown.
       if (options.monitorErrors && httpFailure?.code === "rate_limited" && failure.code === "timeout" && !scope.signal?.aborted) failure = httpFailure;
-      if (options.stage) failure = new MarketRequestError(failure.message, failure.status, failure.retryAt, failure.blocked, { ...errorInfo(failure), stage: options.stage, businessCode: failure.businessCode, validatedMonitorError: failure.validatedMonitorError });
+      if (options.stage) failure = new MarketRequestError(failure.message, failure.status, failure.retryAt, failure.blocked, { ...errorInfo(failure), stage: options.stage, businessCode: failure.businessCode, validatedMonitorError: failure.validatedMonitorError, rateLimitDiagnostic: failure.rateLimitDiagnostic });
       if (failure.validatedMonitorError || failure.code !== "transport_error" || attempt + 1 >= attempts || scope.budget.remaining <= 0 || Date.now() >= scope.deadline) throw failure;
     } finally {
       clearTimeout(timer); scope.signal?.removeEventListener("abort", abort);
