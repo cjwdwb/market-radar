@@ -87,6 +87,7 @@ const statusValue = async (page,label) => await page.locator('.market-data-statu
 const chartSnapshot = page => page.locator('.candle-canvas').evaluate(el=>({start:el.dataset.viewStart,count:el.dataset.viewCount,selected:el.dataset.selectedTime,first:el.dataset.firstTime,follow:el.dataset.followLatest}));
 
 export async function reliabilityChecks({browser,fixture,base,output,report,phase,observedWarnings=[]}) {
+  if(process.env.RADAR_RELIABILITY_ONLY==='soak')return reliabilitySoak({browser,base,output,report});
   assert.ok(['before','after'].includes(phase));assert.equal(process.env.RADAR_SYNTHETIC_AUTH,'1');
   const url=new URL(base);assert.equal(url.hostname,'127.0.0.1');
   const only=process.env.RADAR_RELIABILITY_ONLY;assert.ok(!only||['screens','continuous','summary'].includes(only));
@@ -291,4 +292,163 @@ export async function reliabilityChecks({browser,fixture,base,output,report,phas
     if(current&&!current.page.isClosed())await current.page.screenshot({path:resolve(folder,'failure.png'),animations:'disabled'}).catch(()=>{});
     throw cause;
   } finally {writeFileSync(resolve(folder,'verification.json'),JSON.stringify(report,null,2));await runtime.dispose();}
+}
+
+// Optional wall-clock continuation of this harness. Unlike fixtureScenario, this
+// creates a normal local visitor and never installs a clock or visibility override.
+async function reliabilitySoak({browser,base,output,report}) {
+  assert.equal(process.env.RADAR_SYNTHETIC_AUTH,'1');
+  const url=new URL(base);assert.equal(url.hostname,'127.0.0.1');assert.equal(url.protocol,'http:');
+  const smoke=process.env.RADAR_SOAK_SMOKE_SECONDS===undefined?0:Number(process.env.RADAR_SOAK_SMOKE_SECONDS);
+  assert.ok(smoke===0||Number.isInteger(smoke)&&smoke>=1&&smoke<=20,'Smoke must be 1–20 seconds; omit it for the 30-minute soak');
+  const build=resolve(process.env.RADAR_BUILD_DIR||'dist'),folder=resolve(output,smoke?'soak-smoke':'soak');mkdirSync(folder,{recursive:true});
+  const interval=900000,scope=['BTC-USDT','ETH-USDT','SOL-USDT'],began=Date.now(),started=performance.now(),hardMs=smoke?20000:32*60000,hardEnd=began+hardMs;
+  Object.assign(report,{schema:'market-local-soak-v1',identity:'LOCAL SYNTHETIC SIMULATION; production build, synthetic market and bindings; never production PASS',real:false,fixture:true,smoke:!!smoke,status:'RUNNING',startedAt:new Date(began).toISOString(),absoluteHardEnd:new Date(hardEnd).toISOString(),testSourceCommit:execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),buildDirectory:build,buildServerSha256:createHash('sha256').update(readFileSync(resolve(build,'server/index.js'))).digest('hex'),scope,conditions:{clock:'native Date.now and native timers; no clock or visibility overrides',entry:'/from-aether',auto:true,backgroundTabs:false,motion:'normal',displayTimePreference:'UTC',intervalMs:interval,points:96,stocks:'EXCLUDED before dispatch',outbound:'browser external abort + Miniflare outbound denial'},budget:{nonstatic:650,static:60,bodyBytes:20*1024*1024,staticBytes:10*1024*1024,hardMs},nonstatic:0,static:0,bodyBytes:0,staticBytes:0,excludedStock:0,blocked:[],workerOutbound:0,requests:[],history:[],quotes:[],boundaries:[],samples:[],actions:[],screenshots:[],pageerrors:[],consoleCounts:{},pending:0,maxPending:0,notRun:['production provider or proxy health','physical devices','stocks','FPS or all-day memory stability',...(smoke?['30-minute soak','two natural 15-minute boundaries']:[])]});
+  let context,page,cdp,runtime,stopping=false,tearingDown=false,readyAt,readyMono,firstChecked=false,secondChecked=false,historicalAnchor=null,firstBoundary;
+  const lastHistory=new Map(),activeRequests=new Map(),inflight=new Set();
+  const save=()=>writeFileSync(resolve(folder,'verification.json'),JSON.stringify(report,null,2));
+  const scrub=value=>String(value).replace(/https?:\/\/\S+/g,'[url]').slice(0,240);
+  const stop=reason=>{if(stopping)return;stopping=true;report.stop=reason;report.status='STOPPED';save();void context?.close().catch(()=>{});};
+  const timer=setTimeout(()=>stop('HARD_TIME_LIMIT'),hardMs);
+  const withinTime=()=>Date.now()<hardEnd&&performance.now()-started<hardMs;
+  const digest=value=>createHash('sha256').update(JSON.stringify(value)).digest('hex');
+  function point(symbol,time,now) {
+    // Identity is absolute bar time, never a rolling-window index. Completed
+    // bars use the final value forever; the current volume advances smoothly.
+    const seed=time/interval,scale={'BTC-USDT':60000,'ETH-USDT':3000,'SOL-USDT':150}[symbol],fraction=Math.min(1,Math.max(0,(now-time)/interval));
+    const open=scale*(1+.015*Math.sin(seed/17)),close=open+scale*.001*Math.sin(seed/7)*fraction;
+    return {time,open,high:Math.max(open,close)+scale*.0003*fraction,low:Math.min(open,close)-scale*.0003*fraction,close,volume:(100+seed%31)*fraction,confirmed:time+interval<=now};
+  }
+  function syntheticHistory(symbol,range,now) {
+    assert.ok(scope.includes(symbol)&&['15m','1d'].includes(range),'Unexpected synthetic history identity');
+    const tail=Math.floor(now/interval)*interval,points=Array.from({length:96},(_,i)=>point(symbol,tail-(95-i)*interval,now));
+    return {symbol,range,points,currency:'USDT',source:'OKX 欧易',timezone:'UTC',fetchedAt:now,metadata:{intervalMs:interval,bar:'15m',exchange:'OKX',instrument:symbol,marketType:'spot',volumeUnit:'base',bucketTimezone:'UTC',completion:'source',firstAt:points[0].time,lastAt:tail,lastCompleteAt:tail,invalidRows:0,duplicateRows:0,gapCount:0,path:'candles',limitations:['synthetic_fixture']}};
+  }
+  function syntheticQuote(symbol,now) {
+    const p=point(symbol,Math.floor(now/interval)*interval,now);
+    return {symbol,name:symbol,currency:'USDT',source:'OKX 欧易',price:p.close,change:p.close-p.open,changePercent:(p.close/p.open-1)*100,previousClose:p.open,high:p.high,low:p.low,volume:p.volume,timestamp:now,fetchedAt:now,session:'open',delayMinutes:0,points:[]};
+  }
+  async function safeDOM() {
+    return page.evaluate(()=>{
+      const c=document.querySelector('.candle-canvas'),times={};document.querySelectorAll('.market-data-status dt').forEach(dt=>{if(dt.nextElementSibling?.tagName==='DD')times[dt.textContent]=dt.nextElementSibling.textContent;});
+      const p=JSON.parse(localStorage.getItem('market-radar-preferences-v1')||'{}');
+      return {browserNow:Date.now(),visible:document.visibilityState,hidden:document.hidden,symbol:document.querySelector('.selected-title h2')?.textContent,price:document.querySelector('.chart-price strong')?.textContent,readout:document.querySelector('.candle-readout')?.textContent,confirmation:document.querySelector('.candle-confirmation')?.getAttribute('data-candle-confirmation'),runtime:document.querySelector('.runtime-summary')?.textContent,footer:document.querySelector('.chart-footer')?.textContent,times,chart:c?Object.fromEntries(['view-start','view-count','first-time','follow-latest','selected-time','interval-ms','timezone'].map(k=>[k,c.getAttribute('data-'+k)])):null,preferences:{auto:p.auto,backgroundTabs:p.backgroundTabs,motionPreference:p.motionPreference,watchlist:p.watchlist},overflow:document.documentElement.scrollWidth>innerWidth+1};
+    });
+  }
+  const anchor=d=>Number(d.chart['first-time'])+(Number(d.chart['view-start'])%1+Number(d.chart['view-count'])-1)*interval;
+  async function snap(label){const path=resolve(folder,label+'.png');await page.screenshot({path});report.screenshots.push({label,path,fixture:true,real:false});}
+  function recordMarket(data,row) {
+    if(row.path==='/api/history') {
+      const p=data.points,m=data.metadata,prior=lastHistory.get(data.symbol);
+      assert.ok(data.symbol===row.symbol&&data.range===row.range&&data.currency==='USDT'&&m.intervalMs===interval&&p.length===96&&m.limitations.includes('synthetic_fixture'));
+      assert.ok(p.every((x,i)=>[x.time,x.open,x.high,x.low,x.close,x.volume].every(Number.isFinite)&&x.low>0&&x.volume>=0&&x.low<=Math.min(x.open,x.close)&&x.high>=Math.max(x.open,x.close)&&x.time%interval===0&&(!i||x.time-p[i-1].time===interval)&&x.confirmed===(i<95)));
+      assert.equal(m.lastCompleteAt,p.at(-1).time);
+      if(prior){
+        assert.ok(data.fetchedAt>=prior.fetchedAt&&p.at(-1).time>=prior.points.at(-1).time,'History time regressed');
+        for(const old of prior.points.filter(x=>x.confirmed)){const current=p.find(x=>x.time===old.time);if(current)assert.deepEqual(current,old,'Completed synthetic candle changed');}
+        if(p.at(-1).time>prior.points.at(-1).time){
+          const old=p.find(x=>x.time===prior.points.at(-1).time),tail=p.at(-1);
+          assert.ok(old?.confirmed===true&&tail.confirmed===false&&tail.time-prior.points.at(-1).time===interval,'Invalid rollover');
+          assert.deepEqual(p.slice(0,-1).map(x=>x.time),prior.points.slice(1).map(x=>x.time),'Window did not roll by one candle');
+          report.boundaries.push({symbol:data.symbol,boundary:tail.time,seenAt:Date.now(),oldBar:old,newBar:tail,lastCompleteAt:m.lastCompleteAt,fixtureConfirmed:true,exactStep:true});
+        }
+      }
+      report.history.push({at:Date.now(),requestAt:row.at,symbol:data.symbol,range:data.range,fetchedAt:data.fetchedAt,count:p.length,firstAt:p[0].time,lastThree:p.slice(-3),confirmedBarsSha256:digest(p.slice(0,-1)),metadata:m});lastHistory.set(data.symbol,data);
+    } else {
+      assert.equal(data.results.length,row.symbols.length);
+      assert.deepEqual(data.results.map(x=>x.symbol),row.symbols);
+      assert.ok(data.results.every(x=>scope.includes(x.symbol)&&x.quote.symbol===x.symbol&&Number.isFinite(x.quote.price)&&x.quote.price>0&&Number.isSafeInteger(x.quote.timestamp)&&x.quote.fetchedAt===data.fetchedAt));
+      report.quotes.push({at:Date.now(),requestAt:row.at,results:data.results.map(x=>({symbol:x.symbol,price:x.quote.price,timestamp:x.quote.timestamp,fetchedAt:x.quote.fetchedAt}))});
+    }
+  }
+  async function recordResponse(res,row) {
+    row.status=res.status();row.finishedAt=Date.now();row.elapsedMs=row.finishedAt-row.at;
+    if(row.status>=300&&row.status<400){row.bytes=0;return;}
+    const bytes=await res.body();row.bytes=bytes.length;
+    if(row.static)report.staticBytes+=bytes.length;else report.bodyBytes+=bytes.length;
+    assert.ok(report.bodyBytes<=report.budget.bodyBytes&&report.staticBytes<=report.budget.staticBytes&&bytes.length<=1024*1024,'Response byte limit');
+    if(row.market){assert.equal(row.status,200);recordMarket(JSON.parse(bytes.toString()),row);}
+    else assert.ok(row.status<400||row.path==='/api/monitor'&&row.status===401,'Unexpected local HTTP failure');
+  }
+  try {
+    runtime=new Miniflare({host:'127.0.0.1',port:Number(url.port),modules:true,scriptPath:resolve(build,'server/index.js'),modulesRoot:resolve(build,'server'),modulesRules:[{type:'ESModule',include:['**/*.js'],fallthrough:true}],compatibilityDate:'2026-05-15',compatibilityFlags:['nodejs_compat'],bindings:{ACCESS_CODE_HASH:createHash('sha256').update('PERFFIXTUREONLY').digest('hex'),ACCESS_SESSION_SECRET:'perf-fixture-only-not-a-production-secret-275'},assets:{directory:resolve(build,'client'),binding:'ASSETS',routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}},outboundService:()=>{report.workerOutbound++;stop('WORKER_OUTBOUND_DENIED');return new Response('Synthetic soak: outbound denied',{status:503});}});
+    await runtime.ready;
+    context=await browser.newContext({viewport:{width:1440,height:1000},timezoneId:'Asia/Shanghai',reducedMotion:'no-preference',serviceWorkers:'block'});page=await context.newPage();page.setDefaultTimeout(10000);
+    await context.addInitScript(({scope})=>localStorage.setItem('market-radar-preferences-v1',JSON.stringify({watchlist:scope,alerts:[],auto:true,backgroundTabs:false,marketMode:'classic',motionPreference:'normal',displayTimePreference:'UTC'})),{scope});
+    page.on('pageerror',e=>{report.pageerrors.push(scrub(e.message));stop('PAGE_ERROR');});
+    page.on('console',m=>{if(['warning','error'].includes(m.type())){const key=m.type()+':'+scrub(m.text());report.consoleCounts[key]=(report.consoleCounts[key]??0)+1;}});
+    await context.route('**/*',async route=>{
+      try {
+        const req=route.request(),u=new URL(req.url()),path=u.pathname;
+        if(stopping||!withinTime()){await route.abort();stop('HARD_TIME_LIMIT');return;}
+        if(u.origin!==url.origin||req.method()!=='GET'){report.blocked.push({path,method:req.method(),reason:'ORIGIN_OR_WRITE_DENIED'});await route.abort();stop('BROWSER_OUTBOUND_OR_WRITE_DENIED');return;}
+        const market=['/api/quotes','/api/history'].includes(path),symbols=(u.searchParams.get('symbols')??u.searchParams.get('symbol')??'').split(',').filter(Boolean);
+        if(market&&symbols.some(s=>!scope.includes(s))){report.excludedStock++;await route.abort('blockedbyclient');return;}
+        const stat=['script','stylesheet','image','font'].includes(req.resourceType());
+        if(stat?report.static>=report.budget.static:report.nonstatic>=report.budget.nonstatic){await route.abort();stop('REQUEST_LIMIT');return;}
+        let row=activeRequests.get(req);
+        if(!row){if(stat)report.static++;else report.nonstatic++;row={at:Date.now(),path,static:stat,market,...(market?{symbol:u.searchParams.get('symbol'),symbols,range:u.searchParams.get('range'),fixture:true}:{})};report.requests.push(row);activeRequests.set(req,row);}
+        if(market){report.pending++;report.maxPending=Math.max(report.maxPending,report.pending);assert.ok(symbols.length>0);const now=Date.now(),data=path==='/api/history'?syntheticHistory(row.symbol,row.range,now):{results:symbols.map(symbol=>({symbol,quote:syntheticQuote(symbol,now)})),fetchedAt:now};await route.fulfill({json:data});}
+        else {
+          // Follow no redirect in Node. Validate Location before the browser can
+          // follow it, so even a redirect cannot escape the loopback boundary.
+          const response=await route.fetch({maxRedirects:0,maxRetries:0,timeout:10000}),location=response.headers().location;
+          if(location)assert.equal(new URL(location,u).origin,url.origin,'Non-local redirect denied');
+          await route.fulfill({response});
+        }
+      } catch(cause){if(!stopping&&!(tearingDown&&/closed|Target.*closed/i.test(cause.message))){report.error=scrub(cause.message);stop('ROUTE_ERROR');}await route.abort().catch(()=>{});}
+    });
+    // Playwright routes do not run again on a redirect; count the normal local
+    // visitor redirect too, and fail closed on an unexpected destination.
+    page.on('request',req=>{if(req.redirectedFrom()&&!activeRequests.has(req)){const u=new URL(req.url());if(u.origin!==url.origin){stop('REDIRECT_ORIGIN_DENIED');return;}const row={at:Date.now(),path:u.pathname,static:false,market:false,redirect:true};report.nonstatic++;report.requests.push(row);activeRequests.set(req,row);if(report.nonstatic>report.budget.nonstatic)stop('REDIRECT_REQUEST_LIMIT');}});
+    page.on('response',res=>{const row=activeRequests.get(res.request());if(row){const task=recordResponse(res,row).catch(e=>{if(tearingDown&&/closed|Target.*closed|No resource|No data found/i.test(e.message))row.cancelledAtTeardown=true;else if(!stopping){report.error=scrub(e.message);stop('RESPONSE_CHECK_FAILED');}}).finally(()=>inflight.delete(task));inflight.add(task);}});
+    const finish=req=>{const row=activeRequests.get(req);if(row?.market)report.pending--;activeRequests.delete(req);};
+    page.on('requestfinished',finish);page.on('requestfailed',req=>{const row=activeRequests.get(req);if(row){row.failure=req.failure()?.errorText;if(tearingDown)row.cancelledAtTeardown=true;else if(!stopping)stop('LOCAL_REQUEST_FAILED');}finish(req);});
+    await page.goto(url.origin+'/from-aether',{waitUntil:'domcontentloaded',timeout:15000});await page.locator('.candle-canvas').waitFor();
+    await page.getByRole('button',{name:'查看以太坊走势',exact:true}).click();await page.waitForFunction(()=>document.querySelector('.selected-title h2')?.textContent==='ETH'&&document.querySelector('.candle-canvas'));
+    await page.locator('.candle-canvas').scrollIntoViewIfNeeded();await page.locator('.candle-canvas').focus();await page.keyboard.press('End');await page.mouse.move(5,5);
+    await until(()=>scope.every(symbol=>lastHistory.has(symbol)),'Three crypto histories not ready');
+    cdp=await context.newCDPSession(page);await cdp.send('Performance.enable');readyAt=Date.now();readyMono=performance.now();
+    firstBoundary=(Math.floor(readyAt/interval)+1)*interval;
+    Object.assign(report,{readyAt:new Date(readyAt).toISOString(),selectedAsset:'ETH-USDT',targetMs:smoke?smoke*1000:30*60000,expectedBoundaries:[firstBoundary,firstBoundary+interval]});
+    // A near-boundary start may need the normal next 15s refresh after minute 30.
+    report.targetEnd=smoke?Math.min(readyAt+smoke*1000,hardEnd-500):Math.max(readyAt+report.targetMs,firstBoundary+interval+30000);
+    assert.ok(report.targetEnd<hardEnd,'Startup left insufficient room for the observation');
+    await snap('start');let nextSample=Date.now(),nextProgress=Date.now();
+    while(!stopping){
+      const now=Date.now();if(!withinTime()){stop('HARD_TIME_LIMIT');break;}
+      const d=await safeDOM();assert.ok(d.visible==='visible'&&!d.hidden&&!d.overflow&&d.symbol==='ETH'&&d.chart?.['interval-ms']===String(interval),'Foreground/chart identity changed');
+      assert.ok(Math.abs(d.browserNow-Date.now())<5000,'Browser clock differs from wall clock');assert.deepEqual(d.preferences,{auto:true,backgroundTabs:false,motionPreference:'normal',watchlist:scope});
+      if(now>=nextSample||now>=report.targetEnd){const metrics=(await cdp.send('Performance.getMetrics')).metrics;report.samples.push({at:now,elapsedMs:performance.now()-readyMono,...d,requestCount:report.nonstatic,domCounters:await cdp.send('Memory.getDOMCounters'),metrics:Object.fromEntries(metrics.filter(x=>['JSHeapUsedSize','JSHeapTotalSize','Nodes','Documents','JSEventListeners','LayoutCount','RecalcStyleCount','TaskDuration'].includes(x.name)).map(x=>[x.name,x.value]))});nextSample=now+20000;}
+      const events=report.boundaries.filter(x=>x.symbol==='ETH-USDT');
+      if(!smoke&&!firstChecked&&events.some(x=>x.boundary===firstBoundary)){
+        const h=lastHistory.get('ETH-USDT');
+        if(h.points.at(-1).time===firstBoundary&&d.chart['selected-time']===String(firstBoundary)&&d.chart['follow-latest']==='true'){
+          await snap('first-boundary-following');await page.locator('.candle-canvas').focus();await page.keyboard.press('ArrowLeft');await sleep(150);const previous=await safeDOM();await snap('first-boundary-previous-confirmed');
+          firstChecked=previous.chart['selected-time']===String(firstBoundary-interval)&&previous.confirmation==='confirmed';report.actions.push({kind:'first_boundary',at:Date.now(),passed:firstChecked,following:d,previous});assert.ok(firstChecked,'First boundary readout failed');await page.keyboard.press('End');await page.mouse.move(5,5);
+        }
+      }
+      if(!smoke&&!firstChecked&&now>firstBoundary+90000)throw Error('First boundary confirmation/UI timeout');
+      if(!smoke&&firstChecked&&!historicalAnchor&&now>firstBoundary+180000){
+        await page.locator('.candle-canvas').focus();await page.keyboard.press('+');await page.keyboard.press('Shift+ArrowLeft');await page.keyboard.press('Shift+ArrowLeft');await page.mouse.move(5,5);await sleep(200);
+        const held=await safeDOM();assert.equal(held.chart['follow-latest'],'false');historicalAnchor={at:Date.now(),end:anchor(held),count:Number(held.chart['view-count']),dom:held};report.actions.push({kind:'hold_history',...historicalAnchor});await snap('held-before-second-boundary');
+      }
+      if(historicalAnchor&&!secondChecked&&events.some(x=>x.boundary===firstBoundary+interval)){
+        const held=await safeDOM(),h=lastHistory.get('ETH-USDT'),boundary=firstBoundary+interval;
+        if(h.points.at(-1).time===boundary&&h.points.at(-2).confirmed===true&&h.metadata.lastCompleteAt===boundary){
+          const stable=held.chart['follow-latest']==='false'&&Math.abs(anchor(held)-historicalAnchor.end)<1&&Number(held.chart['view-count'])===historicalAnchor.count;await snap('held-after-second-boundary');
+          await page.locator('.candle-canvas').focus();await page.keyboard.press('End');await page.mouse.move(5,5);await sleep(200);const latest=await safeDOM();secondChecked=stable&&latest.chart['follow-latest']==='true'&&Number(latest.chart['selected-time'])===boundary;report.actions.push({kind:'second_boundary_history_anchor',at:Date.now(),passed:secondChecked,held,latest,anchorBefore:historicalAnchor.end,anchorAfter:anchor(held)});assert.ok(secondChecked,'Historical viewport jumped or End failed');
+        }
+      }
+      if(!smoke&&!secondChecked&&now>firstBoundary+interval+90000)throw Error('Second boundary confirmation/UI timeout');
+      if(now>=nextProgress){save();console.log(JSON.stringify({simulation:true,smoke:!!smoke,progressMinutes:((now-readyAt)/60000).toFixed(1),requests:report.nonstatic,excludedStock:report.excludedStock,history:report.history.length,quotes:report.quotes.length,firstChecked,secondChecked,pending:report.pending}));nextProgress=now+60000;}
+      if(now>=report.targetEnd)break;await sleep(Math.min(1000,Math.max(1,report.targetEnd-now)));
+    }
+    assert.ok(!stopping,report.stop);report.actualForegroundMs=performance.now()-readyMono;
+    const progression=scope.map(symbol=>{const h=report.history.filter(x=>x.symbol===symbol),q=report.quotes.flatMap(x=>x.results.filter(x=>x.symbol===symbol));return {symbol,historyCount:h.length,quoteCount:q.length,historyAdvanced:h.at(-1)?.fetchedAt>h[0]?.fetchedAt,quoteTimestampAdvanced:q.at(-1)?.timestamp>q[0]?.timestamp,quoteFetchedAtAdvanced:q.at(-1)?.fetchedAt>q[0]?.fetchedAt};});
+    Object.assign(report,{progression,firstBoundaryUiChecked:firstChecked,secondBoundaryUiChecked:secondChecked});
+    if(!smoke){assert.ok(report.actualForegroundMs>=30*60000&&firstChecked&&secondChecked);assert.ok(progression.every(x=>x.historyAdvanced&&x.quoteTimestampAdvanced&&x.quoteFetchedAtAdvanced));assert.ok(report.samples.at(-1).times['走势实际获取']!==report.samples[0].times['走势实际获取'],'Visible history time did not advance');}
+    assert.equal(report.workerOutbound,0);assert.deepEqual(report.blocked,[]);assert.deepEqual(report.pageerrors,[]);await snap('end');report.status=smoke?'SMOKE_ONLY_COMPLETED':'LOCAL_SIMULATION_COMPLETED';report.checks.push(smoke?'Local synthetic startup only; 30-minute soak NOT RUN':'Local synthetic foreground >=30min, two natural 15m rollovers, history anchor and End verified');
+  } catch(cause){report.error??=scrub(cause.message);stop('OBSERVATION_ERROR');throw cause;}
+  finally {clearTimeout(timer);tearingDown=true;report.pendingAtTeardown=report.pending;await context?.close().catch(()=>{});await Promise.allSettled([...inflight]);await runtime?.dispose();report.endedAt=new Date().toISOString();report.elapsedMs=performance.now()-started;save();if(report.status==='STOPPED')process.exitCode=1;console.log(JSON.stringify({simulation:true,smoke:!!smoke,status:report.status,stop:report.stop,error:report.error,elapsedMs:report.elapsedMs,requests:report.nonstatic,static:report.static,workerOutbound:report.workerOutbound,report:resolve(folder,'verification.json')}));}
 }
