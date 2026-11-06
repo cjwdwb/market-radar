@@ -19,19 +19,33 @@ const startedAt=new Date().toISOString();
 const checks=[],outbound=[],failureLogs=new Map(),logWaiters=new Map();let mode='valid',unexpected=0,stalledController,fixtureDiagnostic;
 const diagnosticFields=['version','kind','httpStatus','businessCode','endpoint','attempts','observedAt'];
 const failureFields=['event','at','code','traceId','stage','retryAt','upstreamStatus','symbol','source','marketType','currency','range','path','elapsedMs','observedAttempts','upstreamAttempts','cacheHit','outcome','monitorErrorValidated','upstreamBusinessCode','diagnosticSource','rateLimitDiagnostic'];
-class FixtureLog extends Log {
- logWithLevel(level,message){
-  if(level===LogLevel.WARN&&message.startsWith('{"event":"market_request_failed",')){
-   let entry;try{entry=JSON.parse(message);}catch{ /* Ignore non-JSON runtime output without retaining it. */ }
-   if(entry?.code==='rate_limited'&&entry.path==='monitor'&&/^[a-f0-9-]{36}$/.test(entry.traceId)){
-    const diagnostic=entry.rateLimitDiagnostic??{};
-    // Retain only the fixed fields needed by this assertion, never arbitrary log prose.
-    const captured={traceId:entry.traceId,monitorErrorValidated:entry.monitorErrorValidated,diagnosticSource:entry.diagnosticSource,observedAttempts:entry.observedAttempts,upstreamAttempts:entry.upstreamAttempts,rateLimitDiagnostic:Object.fromEntries(diagnosticFields.filter(key=>diagnostic[key]!==undefined).map(key=>[key,diagnostic[key]])),unexpectedFields:Object.keys(entry).some(key=>!failureFields.includes(key))||Object.keys(diagnostic).some(key=>!diagnosticFields.includes(key))};
-    failureLogs.set(entry.traceId,captured);logWaiters.get(entry.traceId)?.(captured);
-   }
+function captureFailureLine(line){
+ if(!line.startsWith('{"event":"market_request_failed",'))return;
+ let entry;try{entry=JSON.parse(line);}catch{return;}
+ if(entry?.code!=='rate_limited'||entry.path!=='monitor'||!/^[a-f0-9-]{36}$/.test(entry.traceId))return;
+ if(typeof entry.monitorErrorValidated!=='boolean'||!['local','monitor'].includes(entry.diagnosticSource)||!Number.isSafeInteger(entry.observedAttempts)||entry.observedAttempts<0||entry.observedAttempts>16||entry.upstreamAttempts!=='UNKNOWN')return;
+ const diagnostic=entry.rateLimitDiagnostic;
+ if(!diagnostic||diagnostic.version!==1||!['http','business','cooldown'].includes(diagnostic.kind)||!Number.isSafeInteger(diagnostic.attempts)||diagnostic.attempts<0||diagnostic.attempts>16||!Number.isSafeInteger(diagnostic.observedAt)||diagnostic.observedAt<=0)return;
+ if(diagnostic.httpStatus!==undefined&&(!Number.isInteger(diagnostic.httpStatus)||diagnostic.httpStatus<200||diagnostic.httpStatus>599))return;
+ if(diagnostic.businessCode!==undefined&&diagnostic.businessCode!=='50011'||diagnostic.endpoint!==undefined&&!['candles','history-candles','tickers','ticker'].includes(diagnostic.endpoint))return;
+ // Retain only validated primitives; never retain raw lines or other runtime messages.
+ if(failureLogs.size>=4&&!failureLogs.has(entry.traceId))return;
+ const captured={traceId:entry.traceId,monitorErrorValidated:entry.monitorErrorValidated,diagnosticSource:entry.diagnosticSource,observedAttempts:entry.observedAttempts,upstreamAttempts:entry.upstreamAttempts,rateLimitDiagnostic:Object.fromEntries(diagnosticFields.filter(key=>diagnostic[key]!==undefined).map(key=>[key,diagnostic[key]])),unexpectedFields:Object.keys(entry).some(key=>!failureFields.includes(key))||Object.keys(diagnostic).some(key=>!diagnosticFields.includes(key))};
+ failureLogs.set(entry.traceId,captured);logWaiters.get(entry.traceId)?.(captured);
+}
+function captureRuntimeStream(stream){
+ let pending='',overflow=false;
+ stream.setEncoding('utf8');stream.on('data',chunk=>{
+  let offset=0;
+  while(offset<chunk.length){
+   const newline=chunk.indexOf('\n',offset),end=newline<0?chunk.length:newline;
+   if(!overflow){if(pending.length+end-offset>8192){pending='';overflow=true;}else pending+=chunk.slice(offset,end);}
+   if(newline<0)break;
+   if(!overflow)captureFailureLine(pending.trimEnd());
+   pending='';overflow=false;offset=newline+1;
   }
-  if(level<=LogLevel.ERROR)super.logWithLevel(level,message);
- }
+ });
+ stream.on('end',()=>{if(!overflow&&pending)captureFailureLine(pending.trimEnd());pending='';});
 }
 function waitForFailureLog(traceId){
  if(failureLogs.has(traceId))return Promise.resolve(failureLogs.get(traceId));
@@ -50,7 +64,7 @@ const runtime=new Miniflare({
  modulesRules:[{type:'ESModule',include:['**/*.js'],fallthrough:true}],compatibilityDate:config.compatibility_date,compatibilityFlags:config.compatibility_flags,
  bindings:{ACCESS_CODE_HASH:accessCodeHash('reliability-fixture-only'),ACCESS_SESSION_SECRET:'reliability-fixture-session-secret-not-production',MONITOR_URL:'https://monitor-fixture.invalid',MONITOR_TOKEN:'reliability-fixture-token'},
  assets:{workerName:'reliability-fixture',directory:resolve(build,'client'),binding:'ASSETS',routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}},
- log:new FixtureLog(LogLevel.WARN),
+ log:new Log(LogLevel.ERROR),handleRuntimeStdio(stdout,stderr){captureRuntimeStream(stdout);captureRuntimeStream(stderr);},
  outboundService(request){
   const url=new URL(request.url);
   if(mode==='quotes'&&url.origin==='https://openapi.okx.com'&&url.pathname==='/api/v5/market/tickers'){
