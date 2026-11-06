@@ -11,7 +11,7 @@ const base=process.env.RADAR_PREVIEW_URL||'http://localhost:5173';
 // This harness creates signed test cookies, simulated data and test storage. Never target production.
 const testUrl=new URL(base);
 if(!['127.0.0.1','localhost','[::1]'].includes(testUrl.hostname)||!['http:','https:'].includes(testUrl.protocol))throw Error('Radar fixture requires a loopback preview URL.');
-if((process.env.RADAR_AI30B_PRIVATE==='1'||process.env.RADAR_UI_POLISH||process.env.RADAR_RELIABILITY||process.env.RADAR_RELIABILITY_ONLY==='soak')&&process.env.RADAR_SYNTHETIC_AUTH!=='1')throw Error('Private/UI/reliability checks require RADAR_SYNTHETIC_AUTH=1; real credentials are not allowed.');
+if((process.env.RADAR_AI30B_PRIVATE==='1'||process.env.RADAR_UI_POLISH||process.env.RADAR_RELIABILITY||process.env.RADAR_RELIABILITY_ONLY==='soak'||process.env.RADAR_BACKUP_CHART==='1')&&process.env.RADAR_SYNTHETIC_AUTH!=='1')throw Error('Private/UI/reliability checks require RADAR_SYNTHETIC_AUTH=1; real credentials are not allowed.');
 const stamp=1789372800000,output=process.env.RADAR_OUTPUT_DIR||'outputs/radar';fs.mkdirSync(output,{recursive:true});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const observedWarnings=[];
@@ -1033,10 +1033,52 @@ async function eventHistoryChecks(browser,report){
  }
 }
 
+async function backupChartChecks(browser,report){
+ const cases=[['desktop',1440,1000,'normal','no-preference'],['tablet',768,1024,'history-stale','reduce'],['mobile',390,844,'error','reduce'],['narrow',320,740,'empty','no-preference'],['landscape',844,390,'normal','reduce']];
+ for(const [name,width,height,mode,os] of cases){
+  const app=await fixture(browser,{mode,os,watchlist:['BTC-USDT','ETH-USDT','SOL-USDT','NVDA','DOGE-USDT']}),p=app.page,external=[];
+  // Block all external traffic, including the new-tab navigation. This tests the link, not TradingView availability.
+  await app.context.route('**/*',route=>{const url=new URL(route.request().url());if(url.origin!==new URL(base).origin){external.push(url.href);return route.fulfill({contentType:'text/html',body:'<!doctype html><title>Blocked external navigation fixture</title>'});}return route.fallback();});
+  try{
+   await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});
+   const link=p.locator('.chart-backup a');await link.waitFor();
+   for(const [asset,pair] of [['BTC','BTCUSDT'],['ETH','ETHUSDT'],['SOL','SOLUSDT']]){
+    await p.locator('.symbol-rail button').filter({has:p.locator('span:first-child',{hasText:new RegExp(`^${asset}$`)})}).click();
+    await p.waitForFunction(expected=>document.querySelector('.chart-backup a')?.getAttribute('href')===expected,`https://www.tradingview.com/chart/?symbol=OKX%3A${pair}`);
+    assert.match(await link.getAttribute('aria-label'),new RegExp(`${asset}/USDT.*新标签页`));assert.equal(await link.getAttribute('target'),'_blank');assert.equal(await link.getAttribute('rel'),'noopener noreferrer');
+   }
+   await p.getByRole('tab',{name:'1 周',exact:true}).click();
+   const selected=await p.locator('.selected-title h2').innerText();
+   assert.deepEqual(external,[],'no automatic external loading');
+   await link.scrollIntoViewIfNeeded();await p.keyboard.press('Tab');await link.focus();assert.equal(await link.evaluate(el=>el===document.activeElement),true);
+   assert.ok((await link.boundingBox()).height>=44);assert.notEqual(await link.evaluate(el=>getComputedStyle(el).outlineStyle),'none');
+   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+   await p.locator('.chart-backup').evaluate(el=>{el.scrollIntoView({block:'center',behavior:'instant'});});await p.screenshot({path:`${output}/backup-${name}.png`});
+   const popupPromise=app.context.waitForEvent('page');await p.keyboard.press('Enter');const popup=await popupPromise;await popup.waitForLoadState('domcontentloaded');
+   assert.equal(popup.url(),'https://www.tradingview.com/chart/?symbol=OKX%3ASOLUSDT');assert.equal(await popup.evaluate(()=>window.opener),null);await popup.close();
+   assert.equal(await p.locator('.selected-title h2').innerText(),selected);assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');assert.equal(external.length,1);
+   await p.locator('.symbol-rail button').filter({has:p.locator('span:first-child',{hasText:/^NVDA$/})}).click();assert.equal(await link.count(),0);
+   await p.locator('.symbol-rail button').filter({has:p.locator('span:first-child',{hasText:/^DOGE$/})}).click();assert.equal(await link.count(),0);
+   assert.deepEqual(app.errors,[]);report.checks.push(`${name}: ${mode}, fixed three-pair links, no automatic external traffic, keyboard/new tab, >=44px, no overflow, selected/range preserved, stock/unsupported crypto excluded`);report.errors.push(...app.errors);
+  }finally{await app.context.close();}
+ }
+ const slow=await fixture(browser,{delay:1800,os:'reduce'});
+ try{
+  await slow.context.route('**/*',route=>new URL(route.request().url()).origin===new URL(base).origin?route.fallback():route.abort());
+  await slow.page.goto(base+'/#price-chart',{waitUntil:'domcontentloaded'});await slow.page.locator('.chart-backup a').waitFor();
+  assert.match(await slow.page.locator('.chart-empty').innerText(),/正在获取真实行情/);
+  assert.equal(await slow.page.locator('.chart-backup a').getAttribute('href'),'https://www.tradingview.com/chart/?symbol=OKX%3ABTCUSDT');
+  await slow.page.locator('.candle-canvas').waitFor();assert.deepEqual(slow.errors,[]);report.checks.push('slow request: external link available during loading; native chart still arrives');
+ }finally{await slow.context.close();}
+ report.identity='Synthetic fixture; all TradingView requests intercepted; no real data/third-party rendering or device claim';
+ fs.writeFileSync(`${output}/backup-verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));
+}
+
 (async()=>{
  const browser=await chromium.launch({channel:process.env.BROWSER_CHANNEL||'msedge',headless:true});
  const report={browser:browser.version(),viewports:[],checks:[],errors:[],warnings:observedWarnings};let page;
  try{
+  if(process.env.RADAR_BACKUP_CHART==='1'){await backupChartChecks(browser,report);return;}
   if(process.env.RADAR_RELIABILITY||process.env.RADAR_RELIABILITY_ONLY==='soak'){const {reliabilityChecks}=await import("./market-reliability.mjs");await reliabilityChecks({browser,fixture,base,output,report,phase:process.env.RADAR_RELIABILITY||'after',observedWarnings});return;}
   if(process.env.RADAR_UI_POLISH){const {uiPolishChecks}=await import('./ui-polish.mjs');await uiPolishChecks({browser,fixture,base,output,report,phase:process.env.RADAR_UI_POLISH});fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify({phase:report.phase,checks:report.checks.length,screenshots:report.screenshots.length,errors:report.errors,warnings:report.warnings.length}));return;}
   if(process.env.RADAR_PERSONAL_WEB==='1'){const {personalWebChecks}=await import('./personal-web.mjs');await personalWebChecks({browser,fixture,base,output,report,legacyHistoryChecks:()=>history28Checks(browser,report)});fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
