@@ -1,5 +1,24 @@
 # MR-ETH429-DIAGNOSTICS — 受限诊断与真实恢复
 
+## 最终交接 — 2026-11-06，诊断已发布；来源恢复仍开放
+
+[PR#17](https://github.com/cjwdwb/market-radar/pull/17)正常合并，源码`0f977a804c72c0792620db5ad850192c0fa1b287`。PR CI42197164267及main CI42197401480均build/typecheck/795项全PASS（Linux无Windows skip）。独立产品、测试修复、证据与包装VERIFY PASS。包46普通文件/13目录、仅dist；45文件逐字节一致，hosting仅等价序列化。包2052478bytes/SHA256 `562cb7be2b6a3d32d1831cb861decf1cb82257f6eb109aa08e00a8e53616e52c`。
+
+原monitor于09:47:59UTC更新：version `1fefe72d-1b8d-4b7a-a00a-91bcd5128fcc`，deployment `de956c4b-8014-4759-b00c-fed633187b35`；上传8/激活8管理请求，与下述只读GET4分列。前后DB、secret绑定、兼容性、settings和cron一致；未重试被403拒绝的日志入口。原站**Sites v41**于09:49:28UTC succeeded/env3，version `appgprj_6a9b9dc23584819190a31ae417863e7a~appgver_d59c5cd39a248191aa3f498a7863ac09`，deployment `appgdep_6aeda2a1d0dc8191a24c23ebc88f6f0b`。原站受众/访问/AI不变；v40及monitor1090fb23保留为回退点，未移动标签。
+
+| 真实检查 | 本轮结果 |
+| --- | --- |
+| 09:49:35–38UTC预检 | 正常入口303；ETH15m200、96根、0gap/invalid/duplicate，旧柱来源确认/新柱未完成；2请求/12126正文bytes。只是当时成功。 |
+| 09:50:20独立Chrome148观察 | 启动后4.671秒因ETH429/Retry-After60触发停止，总运行4.874秒（含0.203秒清理）；三币一批quote200、BTC历史96根200。未到ETH ready，30min前台计时未开始，没有跨bar。0pageerror、1条范围外股票拦截/1条429 console。关闭context后的等待取消不是另一个产品缺陷。 |
+| 失败定位 | trace `703e611b-1866-49a8-8601-1eaccdf814eb`，validated monitor；kind=http、endpoint=candles、httpStatus429、attempts1。原操作只尝试一次即收到上游HTTP拒绝，未在该操作内重试或换端点。不是仅本地cooldown或HTTP2xx业务映射；HTTP429正文未读取，不能断言正文不含50011。 |
+| 日志与复核 | 停止来源后只读Sites日志：先errors_only，再为固定warn结构扩大；仅保存白名单诊断。独立GPT检查实际证据和调用：cron走getQuotes(false)，共享ticker不取history；未见本次candles放大或新增可操作产品缺陷。attempts1不代表其他实例/全站/出口总量，具体来源限流机制UNKNOWN。 |
+
+累计44非静态/65静态、正文1026619bytes/静态8692529bytes、平台协议4；其中原未知预留512KiB正文/1MiB静态已计入，不冒充实测。本轮新增11非静态/13静态、已观察正文127601bytes/静态1536636bytes；拒绝正文未读取，未知不填0。平台协议额度已用完，不换run重置。真实观察计划和证据在本项目忽略目录`outputs/live-eth429-nov6-evening/`，包括deployment-receipt、monitor-deployment-result、postdeploy-preflight、final-run-plan/final-report、production-diagnostic及本地报告；不提交实际行情/凭据/原始日志。
+
+诊断缺陷已修复上线；**ETH持续429未解决，真实30min/跨收盘BLOCKED**，父任务OPEN。现证据不支持猜测IP封禁、增加缓存或降低刷新。下一步需原来源/托管方说明该UTC时间与endpoint的HTTP429触发原因及正常接入条件，或有既定链路恢复的外部证据后另冻结有界复测；不轮换账户/域名/出口绕限，不自动外发工单或持续探测。官方candles文档当前标40次/2s、按IP，并不能证明本项目触及该规则，也不是低于它必定成功的保证：https://app.okx.com/docs-v5/en/#order-book-trading-market-data-get-candlesticks（11/06文档检索，非行情请求）。
+
+本轮DS/产品AI0调用，无新订阅/资源；供应商/托管实际费用UNKNOWN。Optimizer无测量瓶颈，跳过。真实长时/跨bar/真机不写PASS；下文保留开发与发布前时点，文档收尾不重新部署。
+
 父任务MR-MARKET-LIVE-SOAK；2026-11-06晚间，基线176b243，产品Sitesv40/81d70b12、monitor1090fb23。用户明确继续修复线上ETH429，沿用原站修复发布范围。独立GPT只读审计确认typed monitor错误缺少结构诊断且跨代理丢失businessCode；没有证据确认重复刷新或供应商限流根因。
 
 09:15:23–26UTC单次恢复：正常入口303、ETH15m429/Retry-After61，trace9d4fb37f-2ae2-49be-a96d-89e99f4dcbf2；2请求/206正文bytes，立即停止，无长时浏览器。累计35非静态/52static、899224正文bytes/7155893静态bytes、3平台协议；未知预留照旧。不是新的来源额度。管理日志历史403不重试，不换访问路径或请求权限。

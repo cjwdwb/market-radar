@@ -1,5 +1,7 @@
 # API 契约索引
 
+下述11/06内部诊断已随Sitesv41/source0f977a8与monitor1fefe72d上线；公开接口、刷新和冷却不变。[真实复测](../tasks/MR-ETH429-DIAGNOSTICS.md)证实一次上游HTTP429，来源持续恢复尚未完成。
+
 2026-11-06 受限诊断候选：公开行情errorInfo不变；已认证monitor/history错误包络可增加内部version=1的diagnostic，严格区分真实HTTP429、OKX业务50011和本地cooldown，保存实际响应状态、白名单endpoint、操作级attempts与观测时间。Sites验证标准错误及诊断后只写固定服务日志，不传给浏览器；旧monitor无该字段仍兼容。非法诊断丢弃，不放宽原错误或冷却。见[任务与验证](../tasks/MR-ETH429-DIAGNOSTICS.md)。此项不代表供应商429已解除。
 
 2026-11-05 行情可靠性候选（本地，尚未发布）：`/api/history` 保留旧字段，新增 `metadata/readAt/cache/traceId`；`fetchedAt` 始终是实际获取时间，缓存读取不会续期。`Point.confirmed` 仅表示来源确认，Yahoo 固定周期另用 `windowEnded`，日线 session 结束未知时不推算。失败新增 `errorInfo {code,stage,traceId,retryAt?,upstreamStatus?}`；400 参数、404 不支持、429 限流、504 超时、502 上游/代理数据错误、503 配置/环境错误、499 调用取消。访问门禁 401 不变。`/api/quotes` 每个请求标的恰有一个成功或失败结果；包络 `checkedAt/fetchedAt` 是检查时间，报价新鲜度只取各 `quote.timestamp/fetchedAt`。详见 [可靠性契约](RELIABILITY.md)。

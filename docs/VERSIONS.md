@@ -1,5 +1,7 @@
 # 版本与回退索引
 
+2026-11-06最新正式发布：**限流诊断修复 / Sites v41**，源码`0f977a804c72c0792620db5ad850192c0fa1b287`、[PR#17](https://github.com/cjwdwb/market-radar/pull/17)，deployment `appgdep_6aeda2a1d0dc8191a24c23ebc88f6f0b` succeeded/env3。monitor version `1fefe72d-1b8d-4b7a-a00a-91bcd5128fcc` / deployment `de956c4b-8014-4759-b00c-fed633187b35`，资源/秘密/调度保持；v40及monitor1090fb23保留回退点。PR/main CI各795全PASS、独立产品与包装VERIFY；真实单例ETH成功后仍HTTP429，30min/跨bar未完成。[发布和诊断结果](../tasks/MR-ETH429-DIAGNOSTICS.md)。文档收尾不重新部署，以下为历史。
+
 2026-11-05最新正式发布：**OKX并发冷却修复 / Sites v40**，源码`81d70b12cbb471a8b775d4fa8d4e682ef322f81c`，[PR#16](https://github.com/cjwdwb/market-radar/pull/16)已合并，原生部署`appgdep_6aec91b748ac8191bdaceb31db547fa4` succeeded/env3。独立monitor更新为`1090fb23-0e86-4538-b82c-ef4012bd2e11`，原DB/秘密/配置/cron保持。修复HTTP429被观察后同轮另一个失败请求仍进入回退的竞态；不修改来源、刷新频率、金融语义、访问或AI设置。
 
 monitor deployment `af0b87bf-72e2-42d0-b567-fcd3ee259cdc`；两处产物受测并独立VERIFY。PR/main CI成功，PR787/787；本地五视口138、Worker23通过。最终v40真实观察遇BTC历史429，只有三资产报价单次成功，**30min/跨bar仍BLOCKED**。原Sitesv39和monitor`7a16fae6-0fb7-4ba9-a3d5-2b6fda4e6668`分别保留为回退点，未移动标签；[开放任务和证据](../tasks/MR-MARKET-LIVE-SOAK.md)。文档收尾不重新发布。以下为历史时点。

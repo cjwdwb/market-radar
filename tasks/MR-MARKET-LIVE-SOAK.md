@@ -1,5 +1,7 @@
 # MR-MARKET-LIVE-SOAK
 
+最新续接（2026-11-06晚间）：[诊断修复与Sites v41交接](MR-ETH429-DIAGNOSTICS.md)。已修复跨代理限流类型/真实尝试数丢失并发布原站和monitor；远端各795PASS、独立审计/包装VERIFY。真实ETH预检96根200，随后浏览器4.671秒因ETH429触发停止（含清理总4.874秒），未到ready；受验证诊断为原candles操作attempts1/HTTP429，具体上游规则未知。累计44非静态/65静态及原未知预留均保留，平台协议4已到限，不新增循环探测。真实30min和跨收盘仍BLOCKED，父任务保持OPEN；本地30min两边界PASS不替代生产。生产源码0f977a8，后续文档不重部署。
+
 ## Planner — 2026-11-05
 
 用户要求继续验证长时间与跨K线收盘刷新，有问题直接修复。基线main/HEAD a42b95bb929b16e6b4abcca7f677f551876240fd，工作区干净，新分支codex/mr-live-soak。原站原生确认public/active/v39，产品source1f4161d、原monitor7a16fae6；旧CI784PASS和20秒接口成功是历史证据，本轮不冒充新测。

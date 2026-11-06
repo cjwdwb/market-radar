@@ -1,5 +1,7 @@
 # 行情可靠性与 Radar 状态复用
 
+下述11/06诊断已发布Sitesv41/monitor1fefe72d；PR/main CI795PASS及独立VERIFY。真实ETH单例恢复后仍HTTP429，已证实原操作一次上游HTTP拒绝，未发现新的应用放大路径；真实30min/跨bar保持BLOCKED，详见任务顶部最终交接。以下候选描述为发布前时点。
+
 2026-11-06诊断候选：monitor和Sites之间保留可验证的限流来源与操作计数，公开API及刷新/冷却/回退策略不变。HTTP拒绝、业务50011、本地cooldown分别记录，未知保持未知；共享等待者的本地计数不代替真实操作计数。仅固定字段进入日志，无URL/headers/响应正文/凭据。新本地集成与独立审计已通过，真实ETH仍429、30min/跨bar未完成；详见[受限诊断任务](../tasks/MR-ETH429-DIAGNOSTICS.md)。
 
 ## 2026-11-05 行情刷新与 K 线候选契约

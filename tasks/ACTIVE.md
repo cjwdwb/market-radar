@@ -1,6 +1,8 @@
 # 当前任务索引
 
-## MR-MARKET-LIVE-SOAK — 2026-11-06 本地30min/两边界通过；生产仍限流
+## MR-MARKET-LIVE-SOAK — 2026-11-06 Sites v41诊断已上线；生产仍限流
+
+[最新受限诊断/发布交接](MR-ETH429-DIAGNOSTICS.md)：PR#17/main0f977a8、Sitesv41、monitor1fefe72d已更新；原资源/配置不变，PR/main各795PASS、138浏览器/24workerd及独立VERIFY。ETH预检200后，真实浏览器4.671秒因429触发停止（含清理总4.874秒），未到ETH ready；新诊断证实candles操作1次即收到真实HTTP429，具体上游规则未知。未发现新的应用请求放大缺陷；真实30min/跨bar仍BLOCKED，父任务OPEN，不持续探测或以模拟代替。下列v40为此前证据。
 
 晚间用户再次要求修复：09:15UTC单次ETH恢复仍429（2请求即止）；独立审计确认代理typed错误丢失限流类型/上游计数，进入[受限诊断修复](MR-ETH429-DIAGNOSTICS.md)。先离线实现/审计，来源仍未确证；不重做已通过本地30min、不继续反复取数。
 

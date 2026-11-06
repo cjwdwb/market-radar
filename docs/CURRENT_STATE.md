@@ -1,5 +1,7 @@
 # 当前状态
 
+2026-11-06晚间最新发布：**Sites v41 / 限流诊断修复**，源码`0f977a804c72c0792620db5ad850192c0fa1b287`、[PR#17](https://github.com/cjwdwb/market-radar/pull/17)，原生deployment `appgdep_6aeda2a1d0dc8191a24c23ebc88f6f0b` succeeded/env3；原monitor version `1fefe72d-1b8d-4b7a-a00a-91bcd5128fcc`，DB/秘密/设置/cron未变。PR/main CI各795PASS、本地build/typecheck/794PASS+1Windows SKIP、五视口138/workerd24、独立审计VERIFY通过。真实ETH预检200/96根，随后浏览器4.671秒因ETH429触发停止（含清理总4.874秒）；诊断证实原candles操作尝试1次即收到HTTP429，不是本地冷却误报。具体上游规则UNKNOWN，**真实30min/跨bar仍BLOCKED**；未降低刷新、换源、修改金融/访问/AI。详见[发布、真实证据与下一条件](../tasks/MR-ETH429-DIAGNOSTICS.md)。下列v40补证是此前时点，文档提交不重新部署。
+
 2026-11-06补证：生产仍为下述**Sites v40**，本轮没有新产品改动或重新部署。线上三币首份96根K线与4批报价有效，但ETH第二次history收到429，ready→停止14.793秒，真实30min/跨收盘仍BLOCKED；代理详细日志读取403，未绕过。已有构建在本地合成行情、原生时钟下跑满30min，361批报价/183次history、两次自然15m边界、历史锚点及回最新通过，0外发/0pageerror。这个PASS仅属于隔离页面验证，不能证明来源恢复；新全量构建/Node/五视口/真机未重跑。[本轮结果与剩余条件](../tasks/MR-MARKET-LIVE-SOAK.md)。下文为原发布与历史证据。
 
 2026-11-05最新正式发布：**OKX并发冷却修复 / Sites v40**，源码`81d70b12cbb471a8b775d4fa8d4e682ef322f81c`，[PR#16](https://github.com/cjwdwb/market-radar/pull/16)已合并，原生部署`appgdep_6aec91b748ac8191bdaceb31db547fa4` succeeded/env3。独立monitor更新为`1090fb23-0e86-4538-b82c-ef4012bd2e11`，原DB/秘密/配置/cron保持。修复HTTP429被观察后同轮另一个失败请求仍进入回退的竞态；不修改来源、刷新频率、金融语义、访问或AI设置。
