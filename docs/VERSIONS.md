@@ -1,5 +1,7 @@
 # 版本与回退索引
 
+2026-11-06最新正式发布：**TradingView备用入口 / Sites v42**，源码`8a032159d7c7f76a0e0258747f3bddf23bc2c186`、[PR#18](https://github.com/cjwdwb/market-radar/pull/18)，deployment `appgdep_6aedeaed200c81919c17da18fe7a0db1` succeeded/env3。原站原受众，monitor仍1fefe72d，不改秘密/DB/调度/数据源；v41/source0f977a8为回退点。PR/main各795PASS、六组浏览器及独立产品/包装VERIFY。交付仅三币同市场外部链接，不证明TradingView实时渲染或ETH429恢复，长时/跨bar仍开放。[交接](../tasks/MR-CRYPTO-SOURCE-ALTERNATIVE.md)。后续文档提交不重新部署，以下保留历史。
+
 2026-11-06最新正式发布：**限流诊断修复 / Sites v41**，源码`0f977a804c72c0792620db5ad850192c0fa1b287`、[PR#17](https://github.com/cjwdwb/market-radar/pull/17)，deployment `appgdep_6aeda2a1d0dc8191a24c23ebc88f6f0b` succeeded/env3。monitor version `1fefe72d-1b8d-4b7a-a00a-91bcd5128fcc` / deployment `de956c4b-8014-4759-b00c-fed633187b35`，资源/秘密/调度保持；v40及monitor1090fb23保留回退点。PR/main CI各795全PASS、独立产品与包装VERIFY；真实单例ETH成功后仍HTTP429，30min/跨bar未完成。[发布和诊断结果](../tasks/MR-ETH429-DIAGNOSTICS.md)。文档收尾不重新部署，以下为历史。
 
 2026-11-05最新正式发布：**OKX并发冷却修复 / Sites v40**，源码`81d70b12cbb471a8b775d4fa8d4e682ef322f81c`，[PR#16](https://github.com/cjwdwb/market-radar/pull/16)已合并，原生部署`appgdep_6aec91b748ac8191bdaceb31db547fa4` succeeded/env3。独立monitor更新为`1090fb23-0e86-4538-b82c-ef4012bd2e11`，原DB/秘密/配置/cron保持。修复HTTP429被观察后同轮另一个失败请求仍进入回退的竞态；不修改来源、刷新频率、金融语义、访问或AI设置。

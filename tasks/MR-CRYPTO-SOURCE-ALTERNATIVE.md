@@ -1,5 +1,15 @@
 # MR-CRYPTO-SOURCE-ALTERNATIVE — 正式替代来源核查
 
+## 最终交接 — 2026-11-06 14:58 UTC，外部入口已上线
+
+用户选择后的轻量入口已通过[PR#18](https://github.com/cjwdwb/market-radar/pull/18)合并；产品cbcec1c，合并源码`8a032159d7c7f76a0e0258747f3bddf23bc2c186`与受测树完全相同。PR CI42237769963/job127959795827和main CI42238130467/job127961038519均build/typecheck及795/795 Node PASS。独立产品审计、追加慢请求复核、发布包审计均VERIFY，无剩余confirmed finding；本地794PASS/1Windows权限SKIP、五视口+慢请求6组PASS，既有lint1error/2warnings未新增。
+
+原站Sites **v42** / version `appgprj_6a9b9dc23584819190a31ae417863e7a~appgver_4411bf6ac9508191a0d38879fd103147`，deployment `appgdep_6aedeaed200c81919c17da18fe7a0db1`于14:58:04UTC原生succeeded/env3。网址 https://market-radar-rex.swt-aether.chatgpt.site 。公开受众、门禁、秘密、DB、AI与独立monitor保持，不发布monitor、不移动标签；v41/0f977a8保留回退点。文档收尾不再次部署。
+
+包2053337bytes，SHA256 `faec76fbfafb0da1daae94917c3e958f3ae0999c962f620eb89e32c1b0958f2b`；46普通文件/13目录均dist内，无调查/私人数据或凭据，45文件逐字节一致，hosting仅等价序列化。server SHA256 `a793142f37de308dedf97e56c458515a4b7edea6daaf3a601393a1b5665ad024`。
+
+实际交付：固定BTC/ETH/SOL的OKX USDT现货官方外部链接，手动新标签页；没有嵌图、换源或Radar/提醒数据接入。官方嵌图渲染FAIL；顶层官方页面文档200但完整图表因验证预算停止而BLOCKED，不能声称外部行情实时已验证。发布成功由Sites原生结果确认，未追加生产取数/长时/真机检查。原ETH429与真实30min/跨bar保持BLOCKED，来源API准入缺口见下表；不把备用链接当原问题已修复。下文保留调查、实施各时点。
+
 2026-11-06；父任务MR-MARKET-LIVE-SOAK。基线cef3767，工作区起始干净；现有生产Sitesv41/source0f977a8，ETH真实上游HTTP429仍开放。用户允许寻找其他数据源；不绕过限流/访问控制，不轮换身份、域名、出口，不购买、不发送外部消息。沿用market-planner，先决策再实现。
 
 ## 冻结范围
@@ -63,9 +73,9 @@ Kraken三请求间隔至少1.2s，独立硬上限3请求/1MiB/10s每请求/0重�
 
 - 产品仅app/market-radar.tsx（固定映射/原生链接）和app/mono.css（图表区局部样式）；无第三方脚本/iframe、source/API/refresh/State变更。tests/browser/radar.mjs增加限定入口，显式合成授权并拦截所有外部导航。没有新增DS或产品模型调用。
 - 官方顶层chart页一次受限独立浏览器检查14:46:53–57UTC：文档HTTP200；65个已观测响应均200，0已观测401/403/429，1WebSocket；触及原请求上限即关闭，chart未渲染。脚本的requests=273是继承9加路由回调尝试（超额项被abort），不能当作273次实际出站；本次最多71个HTTP route.continue，实际完整发送总数未知。累计已读响应体4534809bytes，失败/中断字节未知。外部accounts.google.com被白名单拦截。没有绕开限额追加第二次，不以文档200当图表实时PASS。报告official-chart-report.json。
-- 官方嵌图FAIL（ERR_CONNECTION_CLOSED），完整外部TradingView图表实时显示NOT RUN完（测试提前停止）；产品交付仅外部入口。用户网络下实际图表由TradingView提供，不承诺地区可用性或本机已验证实时刷新。
+- 官方嵌图FAIL（ERR_CONNECTION_CLOSED），完整外部TradingView图表实时显示BLOCKED（测试预算提前停止，未完成验证）；产品交付仅外部入口。用户网络下实际图表由TradingView提供，不承诺地区可用性或本机已验证实时刷新。
 - Sites build helper尝试失败：本机npm命令不可用，未改构建体系；使用仓库已有Windows入口node node_modules/vinext/dist/cli.js build、node scripts/typecheck.mjs成功。node --experimental-strip-types --import ./tests/register-types.mjs --test tests/market-chart-ui.test.mjs tests/market-data.test.mjs tests/market-history.test.mjs：10/10PASS。
 - 五视口Chrome148/本机workerd生产构建/隔离合成行情，新入口5组PASS：1440×1000、768×1024、390×844、320×740、844×390；normal/history-stale/error/empty，三币精确链接、44px、键盘焦点/Enter新页、股票和未批准crypto无入口、返回资产与手动1周保持、零自动外部请求。实际新标签页请求被fixture拦截，不能当真实TradingView显示证据。0pageerror，6条预期合成503 console error。截图及报告outputs/crypto-source-alternative/ui。真机NOT RUN。
 - 首轮测试把程序focus误作键盘focus导致断言失败，已通过Tab建立键盘输入再验证；并发现旧偏好读取会把ETH-USD迁移成ETH-USDT，因此测试未知资产改为DOGE-USDT，不修改既有迁移行为，不宣称浏览器实测了独立USD选择。
 - eslint当前1error/2warnings；按同filePath比较HEAD与候选，忽略行号偏移后的规则/严重度/首行消息完全相同（既有effect同步setState/removeAsset依赖/img），新测试无诊断。不声称lint-clean。diffcheck通过。
-- 全量Node新测795项：794PASS/1Windows文件symlink权限SKIP/0FAIL；不是未执行的npm test包装成功。独立GPT稳定diff审计VERIFY，无新增confirmed finding，原计量P2已修。随后追加慢请求可用性一项，当前浏览器6组PASS，产品未再改变，追加测试待定点复核。Optimizer跳过，无本轮性能瓶颈；没有宣称FPS/线上长时改善。现有生产v41不变，发布结果另记。
+- 全量Node新测795项：794PASS/1Windows文件symlink权限SKIP/0FAIL；不是未执行的npm test包装成功。独立GPT稳定diff审计VERIFY，无新增confirmed finding，原计量P2已修。随后追加慢请求可用性一项，当前浏览器6组PASS，产品未再改变，追加测试定点复核也VERIFY。Optimizer跳过，无本轮性能瓶颈；没有宣称FPS/线上长时改善。开发阶段生产仍v41，后续真实发布见本卡顶部。

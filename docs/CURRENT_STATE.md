@@ -1,5 +1,7 @@
 # 当前状态
 
+2026-11-06 14:58UTC最新发布：**TradingView备用入口 / Sites v42**，源码`8a032159d7c7f76a0e0258747f3bddf23bc2c186`、[PR#18](https://github.com/cjwdwb/market-radar/pull/18)，deployment `appgdep_6aedeaed200c81919c17da18fe7a0db1` succeeded/env3。BTC/ETH/SOL图表周期栏下增加同一OKX USDT现货的外部看盘链接，手动新标签页，不嵌图、不改本站数据源/刷新/Radar/提醒。PR/main CI各795PASS，五视口与慢请求6组通过，独立审计/包装VERIFY。官方嵌图本机连接关闭，完整TradingView实时显示未验证；**原ETH429及真实30min/跨bar仍BLOCKED**。monitor、秘密、访问、DB与AI保持，主3.0继续开放。[调查/测试/发布记录](../tasks/MR-CRYPTO-SOURCE-ALTERNATIVE.md)。文档提交不重新部署，下列为历史时点。
+
 2026-11-06晚间最新发布：**Sites v41 / 限流诊断修复**，源码`0f977a804c72c0792620db5ad850192c0fa1b287`、[PR#17](https://github.com/cjwdwb/market-radar/pull/17)，原生deployment `appgdep_6aeda2a1d0dc8191a24c23ebc88f6f0b` succeeded/env3；原monitor version `1fefe72d-1b8d-4b7a-a00a-91bcd5128fcc`，DB/秘密/设置/cron未变。PR/main CI各795PASS、本地build/typecheck/794PASS+1Windows SKIP、五视口138/workerd24、独立审计VERIFY通过。真实ETH预检200/96根，随后浏览器4.671秒因ETH429触发停止（含清理总4.874秒）；诊断证实原candles操作尝试1次即收到HTTP429，不是本地冷却误报。具体上游规则UNKNOWN，**真实30min/跨bar仍BLOCKED**；未降低刷新、换源、修改金融/访问/AI。详见[发布、真实证据与下一条件](../tasks/MR-ETH429-DIAGNOSTICS.md)。下列v40补证是此前时点，文档提交不重新部署。
 
 2026-11-06补证：生产仍为下述**Sites v40**，本轮没有新产品改动或重新部署。线上三币首份96根K线与4批报价有效，但ETH第二次history收到429，ready→停止14.793秒，真实30min/跨收盘仍BLOCKED；代理详细日志读取403，未绕过。已有构建在本地合成行情、原生时钟下跑满30min，361批报价/183次history、两次自然15m边界、历史锚点及回最新通过，0外发/0pageerror。这个PASS仅属于隔离页面验证，不能证明来源恢复；新全量构建/Node/五视口/真机未重跑。[本轮结果与剩余条件](../tasks/MR-MARKET-LIVE-SOAK.md)。下文为原发布与历史证据。
