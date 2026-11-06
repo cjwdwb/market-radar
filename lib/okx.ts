@@ -1,14 +1,14 @@
 import { assetFor, type MarketHistory, type Point, type Quote, type Range } from "./market";
 import { finiteNumber, historyMetadata, normalizePoints, okxRanges } from "./market-history";
-import { checkScope, marketError, marketJson, marketScope, mayFallback, MarketRequestError, SharedMarketRequests, type MarketRequestOptions, type MarketScope } from "./market-request";
+import { checkScope, marketError, marketJson, marketScope, mayFallback, MarketRequestError, observeRateLimit, SharedMarketRequests, type MarketRequestOptions, type MarketScope, type RateLimitEndpoint } from "./market-request";
 
 const histories = new SharedMarketRequests<MarketHistory>();
 const requests = new SharedMarketRequests<{ rows: unknown[]; fetchedAt: number }>();
 let retryAt = 0;
 export function rememberOKXRateLimit(until: number) { retryAt = Math.max(retryAt, until); }
-export function checkCooldown(scope: MarketScope) {
+export function checkCooldown(scope: MarketScope, endpoint?: RateLimitEndpoint) {
   checkScope(scope);
-  if (retryAt > Date.now()) throw marketError("rate_limited", scope, { upstreamStatus: 429, retryAt });
+  if (retryAt > Date.now()) throw marketError("rate_limited", scope, { upstreamStatus: 429, retryAt, rateLimitDiagnostic: observeRateLimit(scope, { kind: "cooldown" }, endpoint) });
 }
 function decodeCandles(rows: unknown, intervalMs: number | null, now: number) {
   if (!Array.isArray(rows)) throw marketError("invalid_data", undefined, { stage: "parse" });
@@ -24,17 +24,18 @@ function decodeCandles(rows: unknown, intervalMs: number | null, now: number) {
   return { ...result, invalidRows: result.invalidRows + malformed };
 }
 export function parseCandles(rows: unknown): Point[] { return decodeCandles(rows, null, Date.now()).points; }
-async function requestOnce(path: string, params: Record<string, string>, scope: MarketScope) {
+async function requestOnce(endpoint: RateLimitEndpoint, params: Record<string, string>, scope: MarketScope) {
   let failure: unknown = marketError("upstream_unavailable", scope);
   for (const origin of ["https://openapi.okx.com", "https://www.okx.com"]) {
-    checkCooldown(scope);
+    checkCooldown(scope, endpoint);
     if (scope.budget.remaining <= 0) break;
     try {
-      const url = new URL(path, origin);
+      const url = new URL(`/api/v5/market/${endpoint}`, origin);
       for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
-      const body = await marketJson<{ code?: unknown; data?: unknown }>(url, { ...scope, timeoutMs: 8_000, onRateLimit: rememberOKXRateLimit });
+      let httpStatus: number | undefined;
+      const body = await marketJson<{ code?: unknown; data?: unknown }>(url, { ...scope, timeoutMs: 8_000, onRateLimit: rememberOKXRateLimit, onResponseStatus: status => { httpStatus = status; } });
       if (!body || typeof body !== "object") throw marketError("invalid_data", scope, { stage: "parse" });
-      if (body.code === "50011") throw marketError("rate_limited", scope, { upstreamStatus: 429, retryAt: Date.now() + 60_000, businessCode: "50011" });
+      if (body.code === "50011") throw marketError("rate_limited", scope, { upstreamStatus: 429, retryAt: Date.now() + 60_000, businessCode: "50011", rateLimitDiagnostic: observeRateLimit(scope, { kind: "business", httpStatus, businessCode: "50011" }, endpoint) });
       if (body.code !== "0") throw marketError("upstream_business_error", scope, { businessCode: typeof body.code === "string" && /^[A-Za-z0-9_-]{1,20}$/.test(body.code) ? body.code : undefined });
       if (!Array.isArray(body.data)) throw marketError("invalid_data", scope, { stage: "parse" });
       checkScope(scope); return { rows: body.data, fetchedAt: Date.now() };
@@ -51,11 +52,11 @@ export async function getOKXHistory(symbol: string, range: Range, options: Marke
   const history = await histories.run(`OKX:spot:${symbol}:USDT:candles:${config.bar}:${config.limit}:UTC:base`, scope, async shared => {
     let result: { rows: unknown[]; fetchedAt: number }; let path: "candles" | "history-candles" = "candles";
     const params = { instId: symbol, bar: config.bar, limit: String(config.limit) };
-    try { result = await requestOnce("/api/v5/market/candles", params, shared); }
+    try { result = await requestOnce("candles", params, shared); }
     catch (error) {
       if (!mayFallback(error)) throw error;
       checkCooldown(shared); if (!shared.budget.remaining) throw error;
-      path = "history-candles"; result = await requestOnce("/api/v5/market/history-candles", params, shared);
+      path = "history-candles"; result = await requestOnce("history-candles", params, shared);
     }
     if (result.rows.length > config.limit) throw marketError("invalid_data", shared, { stage: "admission" });
     const parsed = decodeCandles(result.rows, config.intervalMs, result.fetchedAt);
@@ -73,7 +74,7 @@ export type OKXTickers = Record<string, Ticker>;
 const tickerAcquiredAt = new WeakMap<object, number>();
 export async function getOKXTickers(options: MarketRequestOptions = {}): Promise<OKXTickers> {
   const scope = marketScope(options, 16_000, 2); checkCooldown(scope);
-  const result = await requests.run("OKX:spot:tickers:USDT", scope, shared => requestOnce("/api/v5/market/tickers", { instType: "SPOT" }, shared));
+  const result = await requests.run("OKX:spot:tickers:USDT", scope, shared => requestOnce("tickers", { instType: "SPOT" }, shared));
   const tickers: OKXTickers = {};
   for (const row of result.rows) {
     if (!row || typeof row !== "object" || Array.isArray(row)) continue;
@@ -86,7 +87,7 @@ export async function getOKXQuote(symbol: string, includePoints = true, supplied
   const scope = marketScope(options, 16_000, includePoints ? 6 : 2); checkScope(scope); if (!suppliedTicker) checkCooldown(scope);
   let ticker = suppliedTicker; let fetchedAt = suppliedTicker ? tickerAcquiredAt.get(suppliedTicker) : undefined;
   if (!ticker) {
-    const result = await requests.run(`OKX:spot:ticker:${symbol}:USDT`, scope, shared => requestOnce("/api/v5/market/ticker", { instId: symbol }, shared));
+    const result = await requests.run(`OKX:spot:ticker:${symbol}:USDT`, scope, shared => requestOnce("ticker", { instId: symbol }, shared));
     ticker = result.rows[0] as Ticker | undefined; fetchedAt = result.fetchedAt;
   }
   if (!ticker || ticker.instId !== symbol) throw marketError("unsupported_asset", scope);

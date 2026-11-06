@@ -1,5 +1,7 @@
 # 行情可靠性与 Radar 状态复用
 
+2026-11-06诊断候选：monitor和Sites之间保留可验证的限流来源与操作计数，公开API及刷新/冷却/回退策略不变。HTTP拒绝、业务50011、本地cooldown分别记录，未知保持未知；共享等待者的本地计数不代替真实操作计数。仅固定字段进入日志，无URL/headers/响应正文/凭据。新本地集成与独立审计已通过，真实ETH仍429、30min/跨bar未完成；详见[受限诊断任务](../tasks/MR-ETH429-DIAGNOSTICS.md)。
+
 ## 2026-11-05 行情刷新与 K 线候选契约
 
 任务 [MR-MARKET-DATA-RELIABILITY](../tasks/archive/MR-MARKET-DATA-RELIABILITY.md)，开发基线 main `4352b73`、原生产 Sites v36/source `84511bf`。以下契约已随v37/source2d2d08b发布；平台成功与真实刷新验证分开，见[发布记录](../tasks/archive/MR-PUBLISH-MARKET-RELIABILITY.md)。后面的 2026-09-15 报告保留为历史证据，不代表本轮执行。

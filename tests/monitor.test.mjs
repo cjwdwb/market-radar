@@ -34,3 +34,23 @@ test('monitor history preserves forwarded trace and expired absolute deadline wi
  const response=await worker.fetch(request,{MONITOR_TOKEN:'test-token'});const body=await response.json();
  assert.equal(response.status,504);assert.equal(body.errorInfo.code,'timeout');assert.equal(body.errorInfo.traceId,traceId);assert.equal(calls,0);
 });
+
+test('only authenticated history emits bounded diagnostics and fixed failure logs without reading settings',async t=>{
+ let now=2_000_000_000_000,calls=0;const logs=[];
+ t.mock.method(Date,'now',()=>now);t.mock.method(console,'warn',value=>logs.push(JSON.parse(value)));
+ const env={MONITOR_TOKEN:'test-token',get DB(){assert.fail('history must not read settings or alerts');}};
+ const request=authorized=>new Request('https://monitor.test/history?symbol=ETH-USDT&range=15m',{headers:authorized?{Authorization:'Bearer test-token','X-Market-Trace':'private invalid trace'}:{}});
+ t.mock.method(globalThis,'fetch',async()=>{calls++;assert.fail('unauthorized request must not dispatch');});
+ const denied=await worker.fetch(request(false),env);assert.equal(denied.status,401);assert.equal((await denied.json()).diagnostic,undefined);assert.equal(calls,0);assert.equal(logs.length,0);
+ for(const status of [429,200,202]){
+  now+=1000000;
+  t.mock.method(globalThis,'fetch',async()=>{calls++;return status===429?new Response('private provider body',{status,headers:{'Retry-After':'120'}}):Response.json({code:'50011',msg:'private provider message',data:[]},{status});});
+  const response=await worker.fetch(request(true),env),body=await response.json();
+  const expected={version:1,kind:status===429?'http':'business',httpStatus:status,...(status===429?{}:{businessCode:'50011'}),endpoint:'candles',attempts:1,observedAt:now};
+  assert.equal(response.status,429);assert.equal(body.errorInfo.upstreamStatus,429);assert.deepEqual(body.diagnostic,expected);assert.equal(body.errorInfo.rateLimitDiagnostic,undefined);assert.equal(JSON.stringify(body).includes('private'),false);
+  assert.deepEqual(logs.at(-1).rateLimitDiagnostic,expected);assert.equal(logs.at(-1).diagnosticSource,'local');assert.equal(logs.at(-1).observedAttempts,1);
+  now+=10;const cooldown=await worker.fetch(request(true),env),blocked=await cooldown.json();
+  assert.equal(cooldown.status,429);assert.deepEqual(blocked.diagnostic,{version:1,kind:'cooldown',attempts:0,observedAt:now});assert.equal(logs.at(-1).observedAttempts,0);assert.equal(logs.at(-1).rateLimitDiagnostic.httpStatus,undefined);assert.equal(logs.at(-1).upstreamBusinessCode,undefined);
+ }
+ assert.equal(calls,3);assert.equal(logs.length,6);assert.equal(JSON.stringify(logs).includes('private'),false);assert.equal(JSON.stringify(logs).includes('test-token'),false);
+});

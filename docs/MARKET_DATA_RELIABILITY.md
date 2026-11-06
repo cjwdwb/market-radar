@@ -2,6 +2,8 @@
 
 任务：MR-MARKET-DATA-RELIABILITY。日期：2026-11-05（Asia/Shanghai）。本文件区分代码候选、隔离验证和真实线上观察，不把模拟输入当生产行情。
 
+**2026-11-06新增：本地30min/两次收盘PASS，生产长测仍BLOCKED。** 同v40构建、原生时钟、合成行情/合成绑定，12:57:24–13:27:24北京时间运行30min，361批报价/183次history、两次15m确认/追加、44根历史视口保持与回最新均通过，0外发/0pageerror（27条预期股票排除console）。完整窗口最大刷新间隔约5.015s/15.013s/60.011s，未降频，无新增产品缺陷。真实线上仅有限成功后ETH第二次history429，即停；代理日志403，无进一步来源请求。详细结果/边界见[开放父任务](../tasks/MR-MARKET-LIVE-SOAK.md)，可复用入口见[隔离验证归档](../tasks/archive/MR-SOAK-ISOLATED-VERIFY.md)。全量测试复用原历史，不把本地PASS计为真实来源或真机恢复；没有新发布。
+
 **最新Sites v40与原monitor已发布，但长时/跨收盘仍受限流阻塞。** source81d70b12/PR#16修复OKX并发HTTP429发布冷却过晚的竞态，保留原来源、刷新、回退和金融语义；独立源码/FIX/包装VERIFY，PR787/787、本地786PASS+1Windows SKIP、Worker23/五视口138PASS。14:13UTC单次BTC15m恢复探测取得96根；14:27UTC v40最终浏览器启动4.734秒，三资产报价单次成功、BTC历史429/Retry-After61秒即停止，无图表ready/跨bar/长时数据。网站日志只确认proxy rate_limited/upstream429，monitor上游尝试数UNKNOWN，不能确证具体供应商新拒绝、既有冷却或账号总负载原因。未改请求频率、换来源或继续重试。[完整本轮结果和开放验收](../tasks/MR-MARKET-LIVE-SOAK.md)。以下v39及更早证据保留原测试对象。
 
 **最新修复已随Sites v39与原独立monitor上线。** 源码1f4161d/PR#15；Yahoo同轮429冷却竞态和monitor依赖打包修复经过独立审计，PR/main CI各784项全PASS。旧monitor仍是9月代码已实际确认，官方授权后更新为7a16fae6，保持绑定、秘密和调度。2026-11-05 13:44UTC新生产20.409秒/7次有限观察：ETH/SOL原生15m各两轮96根、0gap，同根未收盘成交量真实变化，两资产报价时间均前进，行情请求全部200。NVDA先前单次成功；本批累计10次后停止。全市场/跨bar/长时/真机未验证，不推断旧503唯一上游根因。[完整修复/发布/证据及限制](../tasks/archive/MR-MARKET-UPSTREAM-REPAIR.md)。以下v37/v38和开发记录保留原时点。

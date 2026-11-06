@@ -101,3 +101,65 @@ Windows / Google Chrome 149.0.4022.98 headless / 1440×1000，独立正常访客
 v39/monitor7a16fae6分别保留回退点，当前无证据要求回退已通过的并发修复。后续文档上传不触发新Sites发布；主3.0和独立数据track未关闭。
 
 最终独立GPT Auditor已对a42b95b→81d70b12产品、五文档稳定diff、真实报告/预算/部署回执及隔离测试证据完成VERIFY：无新增confirmed finding；BLOCKED/NOT RUN结论、实际计数与未知预留一致，outputs/认证目录未纳入Git。未执行额外生产请求。仅文档提交上传，不再次部署；本任务的来源恢复与长时/跨bar验收继续开放。
+
+## 2026-11-06 用户要求自主补齐 — 新的有限观察
+
+Planner重新核对：本地/远端main d640424e9c5c07f8fcf7f83345ebb5ae7e97a9d1，工作区原干净；Sites仍public/active/v40，产品81d70b12，无新产品部署。旧批次全部结果和19次非静态消耗保留。距离上次拒绝已超过14小时，不再沿用已结束的自动重试链；用户本次明确要求补齐授权一次新的有限验证。
+
+先单次正常/from-aether入口及BTC15m检查，最多2请求/128KiB、20秒超时，无重试。如果仍429/拒绝，停止本轮行情访问，利用已有日志诊断；不改账号、域名、来源或轮换身份。若成功，接续同一计数账本的独立正常浏览器30分钟前台观察，实际启动+32min硬停止，开始前冻结绝对时间。保守承接昨天全部预算占用（19非静态/39静态/743836非静态bytes/5618978静态bytes/2平台请求，已含未知预留），总上限仍650非静态、60静态、20MiB非静态正文、10MiB静态、4次自然平台协议POST；加入今天2次探测，不重复增加未知预留，不再追加恢复试探。
+
+同原验收：BTC/ETH/SOL；ETH界面跨两次15m，第一次追随新bar/前根源确认，第二次历史视口锚点保留及回最新；默认正常5s quote/15s selected history/60s overview，不降低频率、不放入fixture。股票未测，外发前拦截并明确EXCLUDED；真实源拒绝立即停止；生产不写用户数据、不访问私有会话/凭据、不调用AI。
+
+04:39:20–23Z的2次有限探测成功：BTC96根连续原生15m、0gap/invalid/duplicate，12131bytes；不单独算连续观察。独立GPT VERIFY新observer92c4054f，承接累计21非静态/39静态起步；补全两次来源确认、quote结果集合/数值/时间身份、UUID trace白名单。固定窗口04:41:46–04:44:46Z可启动，绝对最晚05:16:46Z，实际启动+32min更早则先停。
+
+实际Chrome148.0.7778.217（Windows headless，桌面1440×1000），04:42:33.331Z启动/04:42:39.178Z ready，目标05:12:39.178Z，实际硬截止05:14:33.331Z。预计04:45/05:00两个真实15m边界。截图使用真实生产数据；股票源排除明确造成局部待更新，不能称全市场通过。最终另外核对全部样本前台、两次来源/DOM证据、逐资产quote timestamp/fetchedAt及history fetchedAt前进、请求间隔/数量/错误与资源采样；OBSERVATION_COMPLETED只表示到时，不能单独代表验收PASS。没有longtask observer，不报告长任务次数或FPS。
+
+先只改任务/ignored观察记录；沿用已审查observer，修正仅限本批身份、时间/计数、准确断言及更完整的安全错误取证。独立GPT复核观察器与结果。若确证产品问题，按原allowed paths小范围修复/回归/独立审计；无缺陷不改产品、不重复全量测试或部署。前次本地787/138/23为历史证据；新真实结果单独记，不能补成旧批次PASS。来源仍不可用时继续可执行的隔离检查，分别报告，不冒充线上长时通过。
+
+### 本轮来源再次拒绝；隔离长时补证范围
+
+04:42:33.331–59.477Z生产总耗时26.146秒：BTC/ETH/SOL各一次96根连续15m，quote4批按约5s推进；ETH第二次15s刷新429/Retry-After60。图表ready为04:42:39.178Z，停止04:42:53.971Z，实际ready→stop14.793秒；后5.506秒为关闭清理，不计有效观察。及时停止且不再探测。安全trace 2af78832-2198-4664-b93c-beda0ac73ab9与Sites既有日志匹配，proxy/monitor/429、observedAttempts1/upstreamAttempts UNKNOWN；未证实新的产品缺陷。原30min/真实跨bar仍BLOCKED。
+
+报价三次请求间隔5000/4995/5000ms；BTC/ETH/SOL quoteAt分别前进14553/14579/14500ms，fetchedAt均前进14982ms；ETH两次history请求间隔15010ms。生产只有1个DOM采样，不能做长时资源结论。新增已知非静态14次（2探测+12浏览器）、静态13次；承接原账本后非静态33/650，静态52/60（51已知+1预留），正文899018bytes（374730已知+524288预留），静态7155893bytes（6107317已知+1048576预留），平台自然POST累计3/4；不把未知预留当实测流量。单次股票请求EXCLUDED；0pageerror，console为股票排除和429各1条。管理日志查询另外2次HTTP（401/403），官方CLI内部请求次数未观测；实际供应商费用UNKNOWN，开发DS/产品AI均0调用。
+
+继续可执行补证：批准在现有tests/browser/market-reliability.mjs内增加一个可选wall-clock soak入口及必要tests/browser/radar.mjs接线（不得改产品）。复用生产构建、Miniflare、本机fixture/浏览器/选择器；只loopback、浏览器外网和Worker外网双重拒绝、合成凭据。正常Date.now/30min真实经过、不安装或快进page.clock；行情是明确合成的、按当前UTC15m格生成96根，旧完整/新未完整、窗口滚动，无生产数据混入。auto=true/backgroundTabs=false/standard motion；保持正常刷新频率，测试自选3crypto，股票fixture可明确排除。以两次自然15m边界做同样跟随/历史锚点/回最新；记录请求时间、所见更新时间、DOM/heap/任务累计和错误，结论只能证明本地前端/构建运行，不证明provider/代理持续健康。
+
+固定总32min/650本机非静态请求/60static/20MiB数据，失败即停，所有外发0；不重跑全产品测试。独立worktree Builder实现并做短启动自检（自检不计30min），独立GPT检查网络隔离/时钟/身份/断言后才执行30min。主协调者仅文档索引写入；合格测试代码可在审计后整合，不发布新产品版本。旁路只读既有monitor日志限定同script/同失败时间窗，不改日志设置、不触发上游请求。
+
+代理日志旁路实际结果：仅market-radar-monitor、04:42:30–04:43:05Z、最多20条的官方历史日志查询，过期OAuth返回401。使用原项目忽略profile的官方Wrangler whoami完成正常续期（不新增登录/scopes、不读取其他配置/账号），同一只读查询仍403，随即停止；没有换通道或扩大权限，没有触发Worker业务请求。只有Sites安全失败日志可用，monitor具体新HTTP拒绝/50011/既有冷却仍UNKNOWN。官方API参数参考Cloudflare SDK文档，本地原始响应未保存，仅允许字段和HTTP状态。
+
+隔离Builder提交0d89fdf整合为ed59e981d7967849c5b881da0835b5c115ecac47，只有两个browser测试文件+独立卡（见[隔离验证归档](archive/MR-SOAK-ISOLATED-VERIFY.md)）。独立GPT派发前VERIFY及固定hash短测PASS；原产品0改动。主协调者对新工作树的几次命令被工具中断（未执行），未据此改权限；按正常Builder提交/主分支整合后在原工作目录执行已恢复，不能将中断算产品失败。
+
+正式本地检查04:57:21.448Z启动/04:57:24.147Z ready，目标05:27:24.147Z，硬截止05:29:21.448Z；Chrome148.0.7778.217、1440×1000、原生时钟/可见性、正常频率/标准动效、显式合成行情，预计05:00/05:15Z两边界。outputs/live-soak40-nov6/local-plan.json先冻结，local-30min/soak/verification.json记录进度。server hash仍115add5f...cb9c与v40相同；源输入为fixture，不是本次生产捕获或真实源恢复。结果等待完成和独立复核，不预填PASS。
+
+结束前冻结离线持续性守卫：核对完整ready→end窗口及首尾空档，quote名义5s/选中ETH history15s/BTC与SOL overview60s；本机无网络fixture允许最多一次错过计时器周期+1s调度裕量（分别11s/31s/121s）。超过则需调查，不能只用首尾时间推进宣称连续PASS；这不是生产SLA。RUNNING只记PENDING，在途单列；结束后另核对两次ETH原始旧/新根确认及lastCompleteAt。统计响应延迟仅指观察到响应头，不冒称完整body下载延迟；标准中位数/nearest-rank p95；quoteAt/fetchedAt推进分别计算。该分析不改变运行中harness、数据、刷新或阈值。
+
+### 2026-11-06 最终本地补证（新测，与生产分别判定）
+
+正式命令见隔离卡：root `reliability30` 运行既有 `node tests/browser/radar.mjs`，`RADAR_RELIABILITY_ONLY=soak`、合成认证、loopback5399、原生产dist及Chrome；本轮只运行一次正式30min。05:27:24.274Z正常结束/exit0，总1802.826秒、原生前台1800.020秒；UTC05:00和05:15两次自然边界，不安装时钟或页面可见性替身。报价与K线为合成输入，不能证明真实供应商持续服务。
+
+| 新测项 | 结果与证据 |
+| --- | --- |
+| 30min前台/同资产/时间推进 | PASS；91个DOM与资源样本、始终ETH/visible，无横向溢出；三币quoteAt/fetchedAt及history fetchedAt均推进、无回退 |
+| 旧根确认/新根追加 | PASS；ETH两次分别在边界后7.643/7.630秒的正常轮询取得；96根无重复/补点，旧根confirmed、新根未收盘、lastCompleteAt及间隔一致 |
+| UI跟随/历史锚点/回最新 | PASS；首边界显示新根且可查看前根确认；第二边界保留44根视宽和01:00UTC绝对锚点，显式End恢复最新05:15，结束仍follow=true |
+| 刷新持续性 | PASS；361批quote、183份history；全窗口最大间隔quote5015ms、ETH15013ms、BTC60011ms、SOL60010ms，均通过结束前冻结守卫；没有通过降频达标 |
+| 网络/清理 | PASS；547非静态/11static，3372638正文bytes/1494366静态bytes；浏览器及Worker外发0，pendingAtTeardown0/maxPending3；股票27次EXCLUDED，不计行情成功 |
+| 页面异常/截图 | PASS；0pageerror；27条预期股票blockedbyclient console（不是零console）；6张合成截图，首/二边界及结束已视觉检查 |
+| 资源观察 | 91样本：JSHeapUsedSize min9886100/max16164916，首13195520/末11258412bytes；DOM首2954/末1773，listener首1585/末1027。未见本窗口内持续积累，不宣称无泄漏/FPS/真机/全天通过；TaskDuration仅累计任务耗时（秒） |
+| 新完整构建/全量Node/五视口/真机/远端CI | NOT RUN；产品文件与v40相同，仅新增测试入口，复用前次787远端/786+1本地、build/typecheck和五视口138的历史证据，不计本轮新测 |
+| 生产30min/真实跨bar | BLOCKED；仍为上方真实14.793秒ready→限流停止；本地PASS不解除该项 |
+
+`outputs/live-soak40-nov6/local-analysis.json` 的13项完整性检查全部true，身份为LOCAL_SIMULATION_PASS；分析脚本仅离线读取报告，修正经独立审核，未改运行数据。正式证据在`local-30min/soak/verification.json`，原生产证据为`final-report.json`、`safe-site-failure.json`；这些均在项目忽略目录，不上传原始记录/凭据。无新增产品缺陷，因此零产品改动、不进入Optimizer、不重新部署；Sitesv40继续运行，父任务仍OPEN。
+
+独立GPT Auditor已从原始报告另行复算VERIFY PASS（仅本地合成）：91样本最大间隔20.554s、浏览器与采样时差1–3ms；全部6个三币边界、两次ETH界面、44根历史锚点、首尾在内的刷新间隔、547请求与字节总和、零外发/清理均一致；查看3张关键截图。测试/analyzer hash不变，无新增confirmed产品finding。审计另校正生产有效观察时间和本地截止描述，已修正文档；没有额外浏览器或来源请求。
+
+## 2026-11-06 晚间继续真实恢复 — Planner
+
+用户再次明确要求解决线上ETH429并完成真实长时/跨bar，有问题直接修复。09:13UTC重新核对：本地176b243、github/main仍d640424；工作区原干净，Sites仍public/active/v40，产品81d70b12/monitor1090fb23。旧本地合成PASS保留，不能替代生产。近120分钟Sites既有错误日志0条仅表示未取到事件，不证明来源健康；未重新请求之前403的monitor日志接口。
+
+距离上午来源拒绝超过4小时、旧retryAt已过。先只允许正常入口+ETH15m的2请求恢复检查（128KiB/20秒/0重试），以当前用户的明确继续授权开展，不换来源/身份。若成功才冻结一次30min真实浏览器窗口/实际启动+32min硬停，保持5s/15s/60s频率、crypto3币范围和正常访客身份；任何来源429/403仍立即停止。不循环探测，不用新的runID绕过来源拒绝。
+
+沿用累计已用33非静态/52static（含1预留）/899018正文bytes/7155893静态bytes/3自然平台协议POST，不清零；市场及总正文上限仍650非静态/20MiB，静态仅因新独立浏览器须加载现有构建而由60增至80，静态10MiB不变，平台自然协议4次上限不变。新增两个恢复请求先入账，若后续预算不足则停止；不是新增来源调用额度或轮换身份。
+
+并行独立GPT只读调查已确认诊断信息丢失：monitor typed失败未写结构日志，HTTP429/business50011/已有冷却在现有包络中无法区分；目前不是已确证的来源限流根因。若新恢复失败，停止行情请求，Builder可限定补充诊断链：lib/market-request.ts、lib/okx.ts、monitor/worker.mjs及对应tests/文档，必要app/api/history/route.ts调用。仅受控枚举、计数、时间与既有trace，无响应正文/URL/凭据，无任意诊断读取接口；不改变来源、冷却阈值、刷新、访问权限/数据库/秘密/cron或金融语义。接口定稿后才Builder；新修复先隔离测试及独立审计，再沿用本任务原站修复发布授权。当前先不写产品代码。
