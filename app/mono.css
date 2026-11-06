@@ -87,6 +87,13 @@ body{background:var(--surface-page);color:var(--text-primary)}
 .chart-market-summary small{font-weight:400;font-size:12px;color:var(--text-tertiary)}
 .chart-market-summary .summary-freshness{margin-left:auto;text-align:right}
 .period-tabs{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 16px;border-top:1px solid var(--line-subtle)}
+.chart-backup{display:flex;align-items:center;flex-wrap:wrap;gap:4px 14px;padding:0 16px 10px;min-width:0}
+.chart-backup a{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 10px;border:1px solid var(--line-strong);border-radius:var(--radius-control);color:var(--text-primary);font-size:13px;line-height:1.5}
+.chart-backup a:hover{background:var(--surface-hover)}
+.chart-backup a:active{background:var(--surface-selected)}
+.chart-backup a:focus-visible{outline:2px solid var(--focus-color);outline-offset:3px}
+.chart-backup>div{min-width:0;color:var(--text-secondary);font-size:12px;line-height:1.6;overflow-wrap:anywhere}
+.chart-backup small{display:block;font-size:12px}
 .range-list{display:flex;align-items:center;gap:4px;padding:0;height:auto;border:0;border-radius:0;background:transparent}
 .range-trigger{height:var(--control-height);min-width:48px;flex:none;padding:0 10px;border:1px solid transparent;border-radius:var(--radius-control);font-size:13px;font-weight:500;color:var(--text-secondary);box-shadow:none}
 .range-trigger[data-state=active]{background:var(--surface-selected);color:var(--text-primary);border-color:var(--line-strong);box-shadow:none}
