@@ -153,3 +153,13 @@ Planner重新核对：本地/远端main d640424e9c5c07f8fcf7f83345ebb5ae7e97a9d1
 `outputs/live-soak40-nov6/local-analysis.json` 的13项完整性检查全部true，身份为LOCAL_SIMULATION_PASS；分析脚本仅离线读取报告，修正经独立审核，未改运行数据。正式证据在`local-30min/soak/verification.json`，原生产证据为`final-report.json`、`safe-site-failure.json`；这些均在项目忽略目录，不上传原始记录/凭据。无新增产品缺陷，因此零产品改动、不进入Optimizer、不重新部署；Sitesv40继续运行，父任务仍OPEN。
 
 独立GPT Auditor已从原始报告另行复算VERIFY PASS（仅本地合成）：91样本最大间隔20.554s、浏览器与采样时差1–3ms；全部6个三币边界、两次ETH界面、44根历史锚点、首尾在内的刷新间隔、547请求与字节总和、零外发/清理均一致；查看3张关键截图。测试/analyzer hash不变，无新增confirmed产品finding。审计另校正生产有效观察时间和本地截止描述，已修正文档；没有额外浏览器或来源请求。
+
+## 2026-11-06 晚间继续真实恢复 — Planner
+
+用户再次明确要求解决线上ETH429并完成真实长时/跨bar，有问题直接修复。09:13UTC重新核对：本地176b243、github/main仍d640424；工作区原干净，Sites仍public/active/v40，产品81d70b12/monitor1090fb23。旧本地合成PASS保留，不能替代生产。近120分钟Sites既有错误日志0条仅表示未取到事件，不证明来源健康；未重新请求之前403的monitor日志接口。
+
+距离上午来源拒绝超过4小时、旧retryAt已过。先只允许正常入口+ETH15m的2请求恢复检查（128KiB/20秒/0重试），以当前用户的明确继续授权开展，不换来源/身份。若成功才冻结一次30min真实浏览器窗口/实际启动+32min硬停，保持5s/15s/60s频率、crypto3币范围和正常访客身份；任何来源429/403仍立即停止。不循环探测，不用新的runID绕过来源拒绝。
+
+沿用累计已用33非静态/52static（含1预留）/899018正文bytes/7155893静态bytes/3自然平台协议POST，不清零；市场及总正文上限仍650非静态/20MiB，静态仅因新独立浏览器须加载现有构建而由60增至80，静态10MiB不变，平台自然协议4次上限不变。新增两个恢复请求先入账，若后续预算不足则停止；不是新增来源调用额度或轮换身份。
+
+并行独立GPT只读调查已确认诊断信息丢失：monitor typed失败未写结构日志，HTTP429/business50011/已有冷却在现有包络中无法区分；目前不是已确证的来源限流根因。若新恢复失败，停止行情请求，Builder可限定补充诊断链：lib/market-request.ts、lib/okx.ts、monitor/worker.mjs及对应tests/文档，必要app/api/history/route.ts调用。仅受控枚举、计数、时间与既有trace，无响应正文/URL/凭据，无任意诊断读取接口；不改变来源、冷却阈值、刷新、访问权限/数据库/秘密/cron或金融语义。接口定稿后才Builder；新修复先隔离测试及独立审计，再沿用本任务原站修复发布授权。当前先不写产品代码。

@@ -2,6 +2,8 @@
 
 ## MR-MARKET-LIVE-SOAK — 2026-11-06 本地30min/两边界通过；生产仍限流
 
+晚间用户再次要求修复：09:15UTC单次ETH恢复仍429（2请求即止）；独立审计确认代理typed错误丢失限流类型/上游计数，进入[受限诊断修复](MR-ETH429-DIAGNOSTICS.md)。先离线实现/审计，来源仍未确证；不重做已通过本地30min、不继续反复取数。
+
 [任务卡](MR-MARKET-LIVE-SOAK.md)：OKX并发429冷却竞态已修，PR#16/main81d70b12、Sitesv40及原monitor1090fb23已发布；本地786PASS+1Windows SKIP、五视口138/Worker23、PR787/787通过，独立产品/FIX/包装VERIFY。14:13UTC一次恢复取得BTC96根；14:27UTC最终观察4.734秒三币quote成功但BTC history429，立即停止且不继续探测。真实30min/跨bar保持BLOCKED，不归档为全部通过；源具体限流机制仍未知。原观察记录、未知字节预留及续测条件保留，不降低刷新/换源/改访问或AI。
 
 用户11/06要求自主补齐：生产总26.146秒内三币各96根、4批报价，但ready→14.793秒后ETH第二次15s刷新429即停，真实30min/跨bar仍BLOCKED；已有会话官方续期后历史日志403，未绕过。本地同构建合成数据原生30min已完成：361批quote/183history、两边界及历史锚点/回最新通过、0外发/0pageerror，6截图/91采样。仅归档[隔离补证](archive/MR-SOAK-ISOLATED-VERIFY.md)，不将模拟PASS当来源恢复；父任务OPEN，无产品改动或新发布。
