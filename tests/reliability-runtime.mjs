@@ -16,7 +16,30 @@ const sourceSha=execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8',windows
 const sourceDirty=Boolean(execFileSync('git',['status','--porcelain'],{encoding:'utf8',windowsHide:true}).trim());
 const workerSha256=createHash('sha256').update(await readFile(resolve(build,'server/index.js'))).digest('hex');
 const startedAt=new Date().toISOString();
-const checks=[],outbound=[];let mode='valid',unexpected=0,stalledController;
+const checks=[],outbound=[],failureLogs=new Map(),logWaiters=new Map();let mode='valid',unexpected=0,stalledController,fixtureDiagnostic;
+const diagnosticFields=['version','kind','httpStatus','businessCode','endpoint','attempts','observedAt'];
+const failureFields=['event','at','code','traceId','stage','retryAt','upstreamStatus','symbol','source','marketType','currency','range','path','elapsedMs','observedAttempts','upstreamAttempts','cacheHit','outcome','monitorErrorValidated','upstreamBusinessCode','diagnosticSource','rateLimitDiagnostic'];
+class FixtureLog extends Log {
+ logWithLevel(level,message){
+  if(level===LogLevel.WARN&&message.startsWith('{"event":"market_request_failed",')){
+   let entry;try{entry=JSON.parse(message);}catch{ /* Ignore non-JSON runtime output without retaining it. */ }
+   if(entry?.code==='rate_limited'&&entry.path==='monitor'&&/^[a-f0-9-]{36}$/.test(entry.traceId)){
+    const diagnostic=entry.rateLimitDiagnostic??{};
+    // Retain only the fixed fields needed by this assertion, never arbitrary log prose.
+    const captured={traceId:entry.traceId,monitorErrorValidated:entry.monitorErrorValidated,diagnosticSource:entry.diagnosticSource,observedAttempts:entry.observedAttempts,upstreamAttempts:entry.upstreamAttempts,rateLimitDiagnostic:Object.fromEntries(diagnosticFields.filter(key=>diagnostic[key]!==undefined).map(key=>[key,diagnostic[key]])),unexpectedFields:Object.keys(entry).some(key=>!failureFields.includes(key))||Object.keys(diagnostic).some(key=>!diagnosticFields.includes(key))};
+    failureLogs.set(entry.traceId,captured);logWaiters.get(entry.traceId)?.(captured);
+   }
+  }
+  if(level<=LogLevel.ERROR)super.logWithLevel(level,message);
+ }
+}
+function waitForFailureLog(traceId){
+ if(failureLogs.has(traceId))return Promise.resolve(failureLogs.get(traceId));
+ return new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>{logWaiters.delete(traceId);reject(new Error('Missing fixed market failure log'));},1000);
+  logWaiters.set(traceId,entry=>{clearTimeout(timer);logWaiters.delete(traceId);resolve(entry);});
+ });
+}
 const standardErrors={'typed-timeout':['timeout'],'typed-denied':['upstream_denied',403],'typed-invalid':['invalid_data'],'typed-environment':['environment_denied'],'typed-transport':['transport_error'],'typed-unavailable':['upstream_unavailable',503]};
 function fixtureHistory(){
  const fetchedAt=Date.now()-1000,open=Math.floor(fetchedAt/900000)*900000;
@@ -27,7 +50,7 @@ const runtime=new Miniflare({
  modulesRules:[{type:'ESModule',include:['**/*.js'],fallthrough:true}],compatibilityDate:config.compatibility_date,compatibilityFlags:config.compatibility_flags,
  bindings:{ACCESS_CODE_HASH:accessCodeHash('reliability-fixture-only'),ACCESS_SESSION_SECRET:'reliability-fixture-session-secret-not-production',MONITOR_URL:'https://monitor-fixture.invalid',MONITOR_TOKEN:'reliability-fixture-token'},
  assets:{workerName:'reliability-fixture',directory:resolve(build,'client'),binding:'ASSETS',routerConfig:{has_user_worker:true,invoke_user_worker_ahead_of_assets:true}},
- log:new Log(LogLevel.ERROR),
+ log:new FixtureLog(LogLevel.WARN),
  outboundService(request){
   const url=new URL(request.url);
   if(mode==='quotes'&&url.origin==='https://openapi.okx.com'&&url.pathname==='/api/v5/market/tickers'){
@@ -38,7 +61,10 @@ const runtime=new Miniflare({
   outbound.push({mode,method:request.method,symbol:url.searchParams.get('symbol'),range:url.searchParams.get('range'),traceId:request.headers.get('X-Market-Trace'),at:new Date().toISOString()});
   if(standardErrors[mode]){const [code,upstreamStatus]=standardErrors[mode];return errorResponse(marketError(code,{traceId:'remote-fixture-trace'},{upstreamStatus}));}
   if(mode==='mismatched-503')return Response.json({error:'remote text',errorInfo:{code:'rate_limited',retryAt:Date.now()+180000}},{status:503});
-  if(mode==='429')return Response.json({error:'remote text',errorInfo:{code:'rate_limited',upstreamStatus:429,retryAt:Date.now()+180000,traceId:'remote-fixture-trace'}},{status:429,headers:{'Retry-After':'120'}});
+  if(mode==='429'){
+   const now=Date.now();fixtureDiagnostic={version:1,kind:'business',httpStatus:202,businessCode:'50011',endpoint:'candles',attempts:2,observedAt:now};
+   return Response.json({error:'remote text',errorInfo:{code:'rate_limited',upstreamStatus:429,retryAt:now+180000,traceId:'remote-fixture-trace'},diagnostic:fixtureDiagnostic},{status:429,headers:{'Retry-After':'120'}});
+  }
   if(mode==='timeout')return new Response(new ReadableStream({start(controller){stalledController=controller;}}),{headers:{'Content-Type':'application/json'}});
   if(mode==='html')return new Response('<html>synthetic challenge</html>',{headers:{'Content-Type':'text/html'}});
   if(mode==='json')return new Response('{',{headers:{'Content-Type':'application/json'}});
@@ -67,10 +93,21 @@ try{
   if(code){assert.equal(body.errorInfo.code,code,next);assert.equal(body.errorInfo.traceId,outbound.at(-1).traceId);assert.equal(response.headers.get('X-Market-Trace'),body.errorInfo.traceId);assert.doesNotMatch(JSON.stringify(body),/monitor-fixture|reliability-fixture-token|remote-fixture-trace|validatedMonitorError|stack/);}
   else{assert.equal(body.symbol,'BTC-USDT');assert.equal(body.currency,'USDT');assert.ok(body.fetchedAt<Date.now());assert.ok(body.metadata.limitations.includes('legacy_proxy_metadata_unverified'));}
   if(next==='timeout'){assert.ok(elapsedMs>=5500&&elapsedMs<9000,`actual proxy deadline: ${elapsedMs}ms`);try{stalledController?.close();}catch{ /* The Worker may already have cancelled the stream. */ }}
-  if(next==='429')assert.ok(Number(response.headers.get('Retry-After'))>=179&&Number(response.headers.get('Retry-After'))<=180);
+  if(next==='429'){
+   assert.ok(Number(response.headers.get('Retry-After'))>=179&&Number(response.headers.get('Retry-After'))<=180);
+   assert.deepEqual(Object.keys(body).sort(),['error','errorInfo']);assert.deepEqual(Object.keys(body.errorInfo).sort(),['code','retryAt','stage','traceId','upstreamStatus']);
+   const logged=await waitForFailureLog(body.errorInfo.traceId);
+   assert.equal(logged.monitorErrorValidated,true);assert.equal(logged.diagnosticSource,'monitor');assert.equal(logged.observedAttempts,1);assert.equal(logged.upstreamAttempts,'UNKNOWN');assert.equal(logged.unexpectedFields,false);assert.deepEqual(logged.rateLimitDiagnostic,fixtureDiagnostic);
+   checks.push({name:'monitor-diagnostic-server-only',status:'PASS',diagnosticSource:logged.diagnosticSource,rateLimitDiagnostic:logged.rateLimitDiagnostic,remoteProviderAttempts:'UNKNOWN: synthetic fixture'});
+  }
   checks.push({name:`proxy-${next}`,status:'PASS',httpStatus:response.status,errorCode:code,elapsedMs,observableProxyAttempts:1,remoteProviderAttempts:'UNKNOWN'});
  }
- const before=outbound.length;const cooling=await runtime.dispatchFetch('http://localhost/api/history?symbol=ETH-USDT&range=1d',{headers});assert.equal(cooling.status,429);await cooling.arrayBuffer();assert.equal(outbound.length,before);checks.push({name:'provider-cooldown-no-dispatch',status:'PASS'});
+ const before=outbound.length,cooldownStartedAt=Date.now();const cooling=await runtime.dispatchFetch('http://localhost/api/history?symbol=ETH-USDT&range=1d',{headers});assert.equal(cooling.status,429);const blocked=await cooling.json();assert.equal(outbound.length,before);
+ assert.deepEqual(Object.keys(blocked).sort(),['error','errorInfo']);assert.deepEqual(Object.keys(blocked.errorInfo).sort(),['code','retryAt','stage','traceId','upstreamStatus']);
+ const cooldownLog=await waitForFailureLog(blocked.errorInfo.traceId);
+ assert.equal(cooldownLog.monitorErrorValidated,false);assert.equal(cooldownLog.diagnosticSource,'local');assert.equal(cooldownLog.observedAttempts,0);assert.equal(cooldownLog.upstreamAttempts,'UNKNOWN');assert.equal(cooldownLog.unexpectedFields,false);
+ assert.deepEqual(Object.keys(cooldownLog.rateLimitDiagnostic).sort(),['attempts','kind','observedAt','version']);assert.equal(cooldownLog.rateLimitDiagnostic.kind,'cooldown');assert.equal(cooldownLog.rateLimitDiagnostic.version,1);assert.equal(cooldownLog.rateLimitDiagnostic.attempts,0);assert.ok(cooldownLog.rateLimitDiagnostic.observedAt>=cooldownStartedAt&&cooldownLog.rateLimitDiagnostic.observedAt<=Date.now());
+ checks.push({name:'provider-cooldown-no-dispatch',status:'PASS',diagnosticSource:cooldownLog.diagnosticSource,rateLimitDiagnostic:cooldownLog.rateLimitDiagnostic});
  assert.equal(unexpected,0);assert.ok(checks.length>=15);
 }catch(error){failure=error;checks.push({name:'runtime-matrix',status:'FAIL',message:error instanceof Error?error.message:'Unknown assertion failure'});}
 finally{
