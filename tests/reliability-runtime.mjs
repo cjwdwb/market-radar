@@ -22,7 +22,7 @@ const failureFields=['event','at','code','traceId','stage','retryAt','upstreamSt
 function captureFailureLine(line){
  if(!line.startsWith('{"event":"market_request_failed",'))return;
  let entry;try{entry=JSON.parse(line);}catch{return;}
- if(entry?.code!=='rate_limited'||entry.path!=='monitor'||!/^[a-f0-9-]{36}$/.test(entry.traceId))return;
+ if(entry?.code!=='rate_limited'||entry.path!=='monitor'||typeof entry.traceId!=='string'||!/^[a-f0-9-]{36}$/.test(entry.traceId))return;
  if(typeof entry.monitorErrorValidated!=='boolean'||!['local','monitor'].includes(entry.diagnosticSource)||!Number.isSafeInteger(entry.observedAttempts)||entry.observedAttempts<0||entry.observedAttempts>16||entry.upstreamAttempts!=='UNKNOWN')return;
  const diagnostic=entry.rateLimitDiagnostic;
  if(!diagnostic||diagnostic.version!==1||!['http','business','cooldown'].includes(diagnostic.kind)||!Number.isSafeInteger(diagnostic.attempts)||diagnostic.attempts<0||diagnostic.attempts>16||!Number.isSafeInteger(diagnostic.observedAt)||diagnostic.observedAt<=0)return;
