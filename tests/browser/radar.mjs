@@ -11,7 +11,7 @@ const base=process.env.RADAR_PREVIEW_URL||'http://localhost:5173';
 // This harness creates signed test cookies, simulated data and test storage. Never target production.
 const testUrl=new URL(base);
 if(!['127.0.0.1','localhost','[::1]'].includes(testUrl.hostname)||!['http:','https:'].includes(testUrl.protocol))throw Error('Radar fixture requires a loopback preview URL.');
-if((process.env.RADAR_AI30B_PRIVATE==='1'||process.env.RADAR_UI_POLISH||process.env.RADAR_RELIABILITY||process.env.RADAR_RELIABILITY_ONLY==='soak'||process.env.RADAR_BACKUP_CHART==='1')&&process.env.RADAR_SYNTHETIC_AUTH!=='1')throw Error('Private/UI/reliability checks require RADAR_SYNTHETIC_AUTH=1; real credentials are not allowed.');
+if((process.env.RADAR_AI30_SITE==='1'||process.env.RADAR_AI30B_PRIVATE==='1'||process.env.RADAR_UI_POLISH||process.env.RADAR_RELIABILITY||process.env.RADAR_RELIABILITY_ONLY==='soak'||process.env.RADAR_BACKUP_CHART==='1')&&process.env.RADAR_SYNTHETIC_AUTH!=='1')throw Error('Private/UI/reliability checks require RADAR_SYNTHETIC_AUTH=1; real credentials are not allowed.');
 const stamp=1789372800000,output=process.env.RADAR_OUTPUT_DIR||'outputs/radar';fs.mkdirSync(output,{recursive:true});
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const observedWarnings=[];
@@ -988,6 +988,91 @@ async function aiPrivateChecks(browser,report){
   finally{for(const release of releases)release();await app.context.close();}
  }
 }
+async function aiSiteChecks(browser,report){
+ const {siteCapabilityFixture,siteInterpretationFixture}=await import('../fixtures/ai30-site-ui.mjs');
+ report.siteInput={identity:'offline synthetic site DTO, market and HTTP mocks; no real grant, source input or Provider',realRequests:0,workerAuthorization:'NOT RUN by this route-mocked browser suite'};
+ for(const [name,width,height,pref] of [['desktop',1440,1000,'normal'],['tablet',768,1024,'system'],['mobile',390,844,'reduced'],['narrow',320,740,'system'],['landscape',844,390,'normal']]){
+  const app=await fixture(browser,{mode:'state26-gentle',os:'reduce',motionPreference:pref,watchlist:['BTC-USDT','NVDA']}),p=app.page,calls=[],external=[];
+  let gate='blocked',reason='data_permission_unavailable',behavior='success',sequence=0,current,held=null;const releases=new Set(),saved=new Map();
+  const holdNext=()=>{let release,started,timer;const ready=new Promise((resolve,reject)=>{started=()=>{clearTimeout(timer);resolve();};timer=setTimeout(()=>reject(Error('site fixture did not reach held interpretation within 10 seconds')),10000);}),wait=new Promise(resolve=>{release=()=>{clearTimeout(timer);releases.delete(release);resolve();};releases.add(release);});held={started,wait};return {ready,release};};
+  await p.route('**/api/interpretation',async route=>{
+   const request=route.request(),method=request.method(),body=method==='POST'?request.postDataJSON():undefined;
+   calls.push({path:'/api/interpretation',method,body,headers:request.headers()});
+   if(method==='GET')return route.fulfill({json:siteCapabilityFixture({admission:gate,reason,allowedSymbols:gate==='ready'||reason==='read_only'?['BTC-USDT']:[]})});
+   assert.equal(method,'POST');assert.equal(gate,'ready');assert.equal(body.symbol,'BTC-USDT');
+   if(body.action==='snapshot'){
+    assert.deepEqual(Object.keys(body).sort(),['action','symbol']);current=siteInterpretationFixture(stamp,++sequence);
+    return route.fulfill({json:{snapshotId:current.snapshot.id,expiresAt:current.snapshot.expiresAt}});
+   }
+   assert.equal(body.action,'interpret');assert.deepEqual(Object.keys(body).sort(),['action','snapshotId','symbol']);assert.equal(body.snapshotId,current.snapshot.id);
+   const reply=current,delay=held,responseBehavior=behavior;held=null;if(delay){delay.started();await delay.wait;}
+   if(responseBehavior==='failure')return route.fulfill({status:503,json:{error:'invalid_output'}}).catch(()=>{});
+   saved.set(reply.snapshot.id,reply);await pause(150);return route.fulfill({json:reply}).catch(()=>{});
+  });
+  await p.route('**/api/interpretation/result?**',route=>{
+   const request=route.request(),url=new URL(request.url());calls.push({path:url.pathname,method:request.method(),query:[...url.searchParams],body:request.postData()});
+   assert.equal(request.method(),'GET');assert.equal(request.postData(),null);assert.deepEqual([...url.searchParams.keys()].sort(),['snapshotId','symbol']);assert.equal(url.searchParams.get('symbol'),'BTC-USDT');
+   if(behavior==='revoked')return route.fulfill({status:403,json:{error:'access_denied'}});
+   const result=saved.get(url.searchParams.get('snapshotId'));assert.ok(result,'restore must name a successfully generated synthetic result');
+   return route.fulfill({json:{...result,cacheHit:true,oldSnapshot:true}});
+  });
+  await p.route('**/*',route=>{const url=new URL(route.request().url());if(url.origin!==testUrl.origin){external.push(url.origin);return route.abort();}return route.fallback();});
+  try{
+   await p.setViewportSize({width,height});await p.goto(base+'/#price-chart',{waitUntil:'networkidle'});await p.locator('.candle-canvas').waitFor();
+   await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
+   assert.equal(await p.evaluate(()=>document.documentElement.dataset.motion),pref==='normal'?'normal':'reduced');assert.equal(calls.length,0);
+   await p.locator('.asset-radar-awareness').click();const ai=p.locator('.ai-interpretation');
+   const open=async()=>{if(await ai.getAttribute('open')===null){await ai.locator(':scope>summary').focus();await p.keyboard.press('Enter');}};
+   await open();await ai.locator('.ai-feedback').waitFor();assert.equal(calls.length,1);assert.notEqual(await ai.locator(':scope>summary').evaluate(el=>getComputedStyle(el).outlineStyle),'none');
+   await p.waitForFunction(()=>document.querySelector('.ai-feedback')?.textContent.includes('来源用途许可'));
+   assert.equal(calls.length,1);assert.equal(await ai.locator('input[type=password]').count(),0);assert.equal(await ai.locator('select').count(),0);assert.match(await ai.innerText(),/站点受控试点/);
+   gate='ready';await ai.getByRole('button',{name:'检查解释服务',exact:true}).click();const started=performance.now();await ai.getByRole('button',{name:'解释当前状态',exact:true}).focus();await p.keyboard.press('Enter');await ai.locator('.ai-result').waitFor();const latency=performance.now()-started,result=current;
+   await ai.locator('.ai-evaluation>summary').click();const snapshot=result.snapshot.id,contextId=result.contextId,comparison=ai.locator('.ai-comparison');assert.equal(await comparison.count(),3);
+   assert.match(await comparison.nth(0).innerText(),/程序摘要/);assert.ok((await comparison.nth(0).innerText()).includes(result.baseline.sentences[0].text));
+   assert.equal(await comparison.nth(1).locator(':scope>ul').innerText(),await ai.locator('.ai-primary>ul').innerText());assert.match(await comparison.nth(2).innerText(),/页面上方的主要观察/);
+   assert.match(await comparison.nth(1).innerText(),/模型选择与顺序/);assert.match(await comparison.nth(2).innerText(),/系统补齐后的最终呈现/);
+   assert.match(await ai.innerText(),/UNPROVEN/);assert.match(await ai.innerText(),/不计入模型贡献/);await ai.getByText('快照身份与校验记录',{exact:true}).click();assert.match(await ai.innerText(),/有效期至/);await ai.getByText('快照身份与校验记录',{exact:true}).click();assert.doesNotMatch(await ai.innerText(),/演示结果|本机私有试点/);
+   const disclosure=ai.locator('summary').filter({hasText:'完整披露与系统补充'});await disclosure.focus();await p.keyboard.press('Enter');
+   for(const d of result.systemRequired){assert.ok((await ai.innerText()).includes(d.disclosureId));assert.ok((await ai.innerText()).includes(d.origin));}await p.keyboard.press('Enter');
+   for(const ref of await ai.locator('.ai-reference:visible').all())await ref.click();const refs=ai.getByRole('button',{name:'查看短窗方向结构依据',exact:true});
+   for(const ref of [refs.first(),refs.last()]){await ref.focus();await p.keyboard.press('Enter');await p.waitForFunction(()=>document.activeElement.id.endsWith('-evidence-short.direction'));assert.equal(await ai.evaluate((panel,id)=>{const target=document.activeElement;return panel.contains(target)&&target.id.endsWith('-evidence-short.direction')&&target.closest('.ai-result')?.dataset.snapshotId===id;},snapshot),true);}
+   const ids=await p.locator('.ai-interpretation [id]').evaluateAll(nodes=>nodes.map(n=>n.id));assert.equal(new Set(ids).size,ids.length);await ai.locator('.ai-evidence>summary').click();
+   for(const control of [ai.locator(':scope>summary'),...await ai.locator('.ai-actions button').all()])assert.ok((await control.boundingBox()).height>=44);
+   const beforeRestore=calls.length,originalBasis=await ai.locator('.ai-result>.ai-basis').first().innerText();gate='blocked';reason='read_only';
+   await ai.getByRole('button',{name:'读取原快照',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.ai-result-heading')?.textContent.includes('读取已保存'));
+   assert.deepEqual(calls.slice(beforeRestore).map(c=>[c.path,c.method]),[['/api/interpretation','GET'],['/api/interpretation/result','GET']]);
+   assert.equal(await ai.locator('.ai-result>.ai-basis').first().innerText(),originalBasis);assert.match(await ai.innerText(),/服务端标记为旧快照/);assert.equal(await ai.locator('.ai-result').getAttribute('data-snapshot-id'),snapshot);
+   assert.equal(await ai.getByRole('button',{name:/^解释(当前状态|新快照)$/}).count(),0);assert.match(await ai.innerText(),/仅可读取/);
+   gate='ready';reason='data_permission_unavailable';await ai.locator('.ai-result').evaluate(el=>{el.scrollIntoView({block:'start',behavior:'instant'});window.scrollBy({top:-85,behavior:'instant'});});await pause(100);
+   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:`${output}/ai-site-${name}.png`});
+   const beforeReturn=calls.length;await ai.getByRole('button',{name:'返回图表',exact:true}).click();assert.equal(await p.getByRole('tab',{name:'1 周',exact:true}).getAttribute('aria-selected'),'true');
+   assert.match(await p.locator('.ai-classic-link').innerText(),/原快照解释 · 站点受控试点/);await p.locator('.ai-classic-link').click();await open();assert.equal(await ai.locator('.ai-result').getAttribute('data-context-id'),contextId);assert.equal(calls.length,beforeReturn);
+   await ai.getByRole('button',{name:'读取原快照',exact:true}).click();await ai.getByRole('button',{name:'解释新快照',exact:true}).waitFor();
+   behavior='failure';await ai.getByRole('button',{name:'解释新快照',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.ai-feedback')?.textContent.includes('不是本次请求成功'));
+   assert.equal(await ai.locator('.ai-result').getAttribute('data-snapshot-id'),snapshot);assert.ok((await ai.locator('.ai-feedback').innerText()).includes(snapshot));behavior='success';
+   if(name==='desktop'){
+    const cancelled=holdNext();await ai.getByRole('button',{name:'解释新快照',exact:true}).click();await cancelled.ready;await ai.getByRole('button',{name:'取消解释',exact:true}).click();cancelled.release();await pause(250);
+    assert.match(await ai.locator('.ai-feedback').innerText(),/已取消解释/);assert.equal(await ai.locator('.ai-result').getAttribute('data-snapshot-id'),snapshot);
+    const during=holdNext();await ai.getByRole('button',{name:'解释新快照',exact:true}).click();await during.ready;await ai.getByRole('button',{name:'返回图表',exact:true}).click();
+    const quoteResponse=p.waitForResponse(r=>new URL(r.url()).pathname==='/api/quotes');app.priceOffset.value+=1;await p.locator('.refresh-button').click();await quoteResponse;
+    await p.getByRole('tab',{name:'15 分钟',exact:true}).click();const canvas=p.locator('.candle-canvas');await canvas.waitFor();await canvas.scrollIntoViewIfNeeded();await canvas.focus();await p.keyboard.press('+');
+    const beforeDrag=Number(await canvas.getAttribute('data-view-start')),box=await canvas.boundingBox();await p.mouse.move(box.x+box.width*.4,box.y+box.height*.4);await p.mouse.down();await p.mouse.move(box.x+box.width*.7,box.y+box.height*.4,{steps:6});await p.mouse.up();
+    assert.notEqual(Number(await canvas.getAttribute('data-view-start')),beforeDrag);await p.keyboard.press('Home');await p.getByRole('tab',{name:'1 周',exact:true}).click();await p.locator('.price-chart .recharts-area-curve').waitFor();
+    await p.locator('.ai-classic-link').click();await open();await ai.getByRole('button',{name:'取消解释',exact:true}).waitFor();during.release();await p.waitForFunction(id=>{const next=document.querySelector('.ai-result')?.dataset.snapshotId;return next&&next!==id;},snapshot);
+    const late=holdNext();await ai.getByRole('button',{name:'解释新快照',exact:true}).click();await late.ready;await p.locator('.radar-watch-row').filter({hasText:'NVDA'}).locator('button').first().click();late.release();await pause(250);
+    await p.locator('.asset-radar-awareness').click();await open();assert.equal(await ai.getAttribute('data-ai-symbol'),'NVDA');assert.equal(await ai.locator('.ai-result').count(),0);assert.equal(await ai.getByRole('button',{name:'读取原快照',exact:true}).count(),0);
+    report.checks.push('site desktop: cancel preserves original; mocked quote refresh and chart drag remain responsive during pending interpretation; delayed BTC result cannot cover NVDA');
+   }else{
+    behavior='revoked';const beforeRevoked=calls.length;await ai.getByRole('button',{name:'读取原快照',exact:true}).click();await p.waitForFunction(()=>document.querySelector('.ai-feedback')?.textContent.includes('没有解释权限'));
+    assert.equal(await ai.locator('.ai-result').count(),0);assert.equal(await ai.getByRole('button',{name:'读取原快照',exact:true}).count(),0);assert.ok(calls.slice(beforeRevoked).every(c=>c.method==='GET'));
+   }
+   for(const c of calls.filter(c=>c.method==='POST')){assert.deepEqual(Object.keys(c.body).sort(),c.body.action==='snapshot'?['action','symbol']:['action','snapshotId','symbol']);assert.equal(c.headers['x-ai-pilot-session'],undefined);}
+   assert.deepEqual(external,[]);assert.deepEqual(app.errors,[]);report.errors.push(...app.errors);report.viewports.push({name,width,height,motionPreference:pref,os:'reduce',synthetic:true,interpretationLatencyMs:latency});
+   report.checks.push(`site ${name}: manual blocked capability, site identity without credential field, bounded snapshot/interpret bodies, A/B/C and evidence keyboard focus, 44px/no overflow, original timestamps and GET-only restore with spending disabled, shared Classic/week return${name==='desktop'?'':', revoked access clears original result'}`);
+  }catch(error){await p.screenshot({path:`${output}/ai-site-${name}-failure.png`,fullPage:true}).catch(()=>{});throw error;}
+  finally{for(const release of releases)release();await app.context.close();}
+ }
+}
 async function eventHistoryChecks(browser,report){
  const openHistory=p=>p.getByRole('group',{name:'事件视图'}).getByRole('button',{name:/历史事件/}).click();
  const storageKey='market-radar-event-history-v1';
@@ -1083,6 +1168,7 @@ async function backupChartChecks(browser,report){
   if(process.env.RADAR_UI_POLISH){const {uiPolishChecks}=await import('./ui-polish.mjs');await uiPolishChecks({browser,fixture,base,output,report,phase:process.env.RADAR_UI_POLISH});fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify({phase:report.phase,checks:report.checks.length,screenshots:report.screenshots.length,errors:report.errors,warnings:report.warnings.length}));return;}
   if(process.env.RADAR_PERSONAL_WEB==='1'){const {personalWebChecks}=await import('./personal-web.mjs');await personalWebChecks({browser,fixture,base,output,report,legacyHistoryChecks:()=>history28Checks(browser,report)});fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_EVENT_HISTORY_ONLY==='1'){await eventHistoryChecks(browser,report);fs.writeFileSync(output+'/verification.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
+  if(process.env.RADAR_AI30_SITE==='1'){await aiSiteChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_AI30B_PRIVATE==='1'){await aiPrivateChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_AI30_ONLY==='1'){await aiFoundationChecks(browser,report);fs.writeFileSync(`${output}/verification.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report));return;}
   if(process.env.RADAR_STATE26_REFINEMENT_PHASE){await state26RefinementChecks(browser,report,process.env.RADAR_STATE26_REFINEMENT_PHASE);return;}

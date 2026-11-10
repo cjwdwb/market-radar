@@ -51,7 +51,7 @@ function validateTarget(request: Request, config: AIAccessConfig) {
 
 /** 每次操作重新查授权；调用方不得用旧 Principal 缓存代替本函数。 */
 export async function authorizeAI(request: Request, permission: AIPermission, symbol: string | null,
-  reader: AIGrantReader, config: AIAccessConfig, now: number): Promise<AIPrincipal> {
+  reader: AIGrantReader, config: AIAccessConfig, now: number): Promise<AIPrincipal & Readonly<{ canInvoke: boolean }>> {
   validateTarget(request, config);
   if (!Number.isSafeInteger(now) || now <= 0 || !["invoke", "read", "manage"].includes(permission)) deny("access_configuration");
   if (permission === "invoke" && request.method !== "POST") deny("invalid_method");
@@ -66,10 +66,12 @@ export async function authorizeAI(request: Request, permission: AIPermission, sy
       !grant.permissions.includes(permission) || !Array.isArray(grant.symbols) || grant.symbols.length > 16 ||
       grant.symbols.some(s => !symbolSchema.safeParse(s).success) ||
       (symbol !== null && (!config.symbols.includes(symbol) || !grant.symbols.includes(symbol)))) deny("access_denied");
-  const bytes = new TextEncoder().encode(JSON.stringify(["ai-scope-v1", grant.siteId, grant.subjectId, grant.revision]));
+  const { siteId, subjectId: authorizedSubject, revision: grantRevision, expiresAt } = grant;
+  const canInvoke = grant.permissions.includes("invoke");
+  const bytes = new TextEncoder().encode(JSON.stringify(["ai-scope-v1", siteId, authorizedSubject, grantRevision]));
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
   const scope = Array.from(digest, n => n.toString(16).padStart(2, "0")).join("");
-  return Object.freeze({ siteId: grant.siteId, subjectId: grant.subjectId, grantRevision: grant.revision, scope, expiresAt: grant.expiresAt });
+  return Object.freeze({ siteId, subjectId: authorizedSubject, grantRevision, scope, expiresAt, canInvoke });
 }
 
 /** record 必须来自受控存储；ID 不可猜测不等于拥有读取权限。 */
@@ -80,6 +82,34 @@ export async function authorizeAIRecord(request: Request, record: AIOwnedRecord,
       record.grantRevision !== principal.grantRevision || record.scope !== principal.scope ||
       !Number.isSafeInteger(record.expiresAt) || record.expiresAt <= now) deny("record_unavailable");
   return principal;
+}
+
+/** 供真实服务在等待预算/模型后重验。这里只收紧访问权限，不批准来源或生成可信金融事实。
+ * record 是服务端持有的访问记录；expiresAt 是其访问截止，快照数据时效由 registry 另外核对。
+ * 不保存请求正文/Cookie，不把回调或客户端参数当成授权记录。
+ */
+export function createAIRevalidation(request: Request, record: AIOwnedRecord, reader: AIGrantReader,
+  config: AIAccessConfig, now: () => number = Date.now) {
+  const owned = Object.freeze({ ...record });
+  // 冻结入口身份与来源信息；等待期间修改原 Request.headers 不能切换调用者。
+  const checkedRequest = new Request(request.url, { method: request.method, headers: request.headers });
+  checkedRequest.headers.delete("cookie");
+  checkedRequest.headers.delete("authorization");
+  return async (phase: "dispatch" | "read" | "capability") => {
+    if (phase !== "dispatch" && phase !== "read" && !(phase === "capability" && checkedRequest.method === "GET")) deny("access_configuration");
+    const principal = await authorizeAI(checkedRequest, phase === "dispatch" ? "invoke" : "read", owned.symbol, reader, config, now());
+    const after = now();
+    validateTarget(checkedRequest, config);
+    if (!config.symbols.includes(owned.symbol)) deny("unsupported_asset");
+    // 查库与摘要计算都可能等待；不能用等待之前的时钟宣称授权仍有效。
+    if (!Number.isSafeInteger(after) || after <= 0 || after >= principal.expiresAt ||
+        !Number.isSafeInteger(owned.expiresAt) || after >= owned.expiresAt ||
+        owned.siteId !== principal.siteId || owned.subjectId !== principal.subjectId ||
+        owned.grantRevision !== principal.grantRevision || owned.scope !== principal.scope) deny("record_unavailable");
+    // A capability GET describes the same grant that passed this final read check.
+    // It never authorizes a dispatch: the POST must still pass invoke independently.
+    if (phase === "capability" && !principal.canInvoke) deny("read_only");
+  };
 }
 
 /** 只解析有界的操作参数。scope/模型/事实/权限/预算等未知字段一律拒绝。 */

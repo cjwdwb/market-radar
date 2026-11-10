@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseCandles, getOKXQuote, getOKXHistory } from '../lib/okx.ts';
-import { alertMatches, assetFor, price, chartPrice } from '../lib/market.ts';
+import { alertMatches, alertQuoteStatus, quoteTiming, assetFor, price, chartPrice } from '../lib/market.ts';
 import { validConfig } from '../monitor/worker.mjs';
 
 test('candles sort oldest first, preserve OHLC and volume, distinguish the open candle',()=>{
@@ -10,6 +10,29 @@ test('candles sort oldest first, preserve OHLC and volume, distinguish the open 
 });
 test('USDT is explicit and legacy USD remains a separate symbol',()=>{
   assert.equal(assetFor('BTC-USDT').market,'crypto');assert.equal(assetFor('BTC-USD').market,'crypto');assert.equal(price(12,'USDT'),'12.00 USDT');
+});
+
+test('quote time and pending reminder status use the trigger boundaries for each market',()=>{
+  const now=1_800_000_000_000;
+  const base={symbol:'ETH-USDT',price:200,timestamp:now,fetchedAt:now,session:'open'};
+  const alert={symbol:base.symbol,direction:'above',target:100,enabled:true};
+  for(const [overrides,status] of [
+    [{timestamp:now-180_000,fetchedAt:now-120_000},'ready'],
+    [{timestamp:now-180_001},'stale'],[{timestamp:now+60_000},'ready'],[{timestamp:now+60_001},'stale'],
+    [{fetchedAt:now-120_001},'stale'],[{timestamp:NaN},'stale'],[{fetchedAt:NaN},'stale'],
+    [{symbol:'BTC-USD',timestamp:now-180_001},'stale'],[{session:'unknown'},'ready'],
+    [{symbol:'AAPL',timestamp:now-1_200_000},'ready'],[{symbol:'AAPL',timestamp:now-1_200_001},'stale'],
+    [{symbol:'AAPL',session:'closed'},'closed'],[{symbol:'AAPL',session:'unknown'},'unknown_session'],
+    [{error:'synthetic failure'},'failed'],[{price:NaN},'failed']
+  ]) {
+    const quote={...base,...overrides};
+    assert.equal(alertQuoteStatus(quote,now),status);
+    assert.equal(alertMatches({...alert,symbol:quote.symbol},quote,now),status==='ready');
+  }
+  assert.equal(alertQuoteStatus(undefined,now),'waiting');
+  assert.equal(alertQuoteStatus(base,undefined),'waiting');
+  assert.deepEqual(quoteTiming({...base,fetchedAt:now-120_001},now),{sourceStale:false,acquisitionStale:true});
+  assert.deepEqual(quoteTiming({...base,timestamp:now-180_001},now),{sourceStale:true,acquisitionStale:false});
 });
 
 test('chart ticks preserve nonzero tiny prices, decimal quotes and compact large magnitudes',()=>{

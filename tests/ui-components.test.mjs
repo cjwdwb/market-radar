@@ -21,6 +21,43 @@ after(async () => {
   await vite.close();
 });
 
+test("cloud sync preserves the current switch, including first configuration, and only a toggle changes it", async t => {
+  const {updateCloudMonitor} = await vite.ssrLoadModule("/components/cloud-monitor.tsx");
+  const local = {watchlist:["ETH-USDT"],alerts:[]};
+  for (const enabled of [false,true]) {
+    const current = {enabled,watchlist:["BTC-USDT"],alerts:[],updatedAt:0};
+    const writes = [];
+    const stub = t.mock.method(globalThis,"fetch",async (url,options) => {
+      assert.equal(url,"/api/monitor");
+      if (options.method==="GET") return Response.json(current);
+      assert.equal(options.method,"PUT");
+      writes.push(JSON.parse(options.body));
+      return Response.json({...current,...writes.at(-1)});
+    });
+    assert.equal((await updateCloudMonitor(current,local)).state.enabled,enabled);
+    assert.equal((await updateCloudMonitor(current,null)).state.enabled,!enabled);
+    assert.deepEqual(writes,[{...local,enabled},{watchlist:current.watchlist,alerts:[],enabled:!enabled}]);
+    stub.mock.restore();
+  }
+});
+
+test("cloud sync and toggle stop before writing when the page has an old state or owner access expired", async t => {
+  const {updateCloudMonitor} = await vite.ssrLoadModule("/components/cloud-monitor.tsx");
+  const old = {enabled:true,watchlist:["BTC-USDT"],alerts:[],updatedAt:42};
+  const local = {watchlist:[],alerts:[]};
+  for (const current of [{...old,enabled:false}, {...old,updatedAt:43},null]) {
+    const stub = t.mock.method(globalThis,"fetch",async (_url,options) => {
+      assert.equal(options.method,"GET");
+      return current?Response.json(current):new Response(null,{status:401});
+    });
+    for (const selection of [local,null]) {
+      assert.deepEqual(await updateCloudMonitor(old,selection),{state:current,changed:current!==null});
+    }
+    assert.equal(stub.mock.callCount(),2);
+    stub.mock.restore();
+  }
+});
+
 async function readCssTree(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   const contents = await Promise.all(

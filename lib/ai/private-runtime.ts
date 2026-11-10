@@ -4,7 +4,7 @@ import { controlledAdmission, createRealContextSnapshots } from "./snapshot";
 import { createCurrentContextLoader } from "./real-context-loader";
 import { approvedRealContextGrant, type RealContextGrant } from "./real-context-policy";
 import { DEEPSEEK_AI } from "./real-config";
-import { parsePrivateInterpretation } from "./private-contract";
+import { toPrivateInterpretation } from "./interpretation-display";
 
 type Budget = Parameters<typeof createRealPilotService>[1] & { inspectRealContextBatch(): { id: string; calls: number; limit: number; stopped: boolean; authorizationId: string; policyVersion: string } };
 type Options = { grant?: RealContextGrant | null; loader?: ReturnType<typeof createCurrentContextLoader>; now?: () => number;
@@ -37,18 +37,7 @@ export function createPrivateContextRuntime(options: Options = {}) {
       if (!("selection" in request)) throw new InterpretationError("catalog_invalid");
       const result = await service!.interpretPrepared(prepared, signal); identity.assertAccess();
       if (signal.aborted) throw new InterpretationError("cancelled");
-      const selected = result.output;
-      if (!("modelSelected" in selected) || result.inputIdentity !== "approved_real" || selected.modelOrganizationQuality !== "PASS") throw new InterpretationError("organization_failed");
-      const baseline = request.selection.deterministicBaseline;
-      return parsePrivateInterpretation({ format: "private-interpretation-v1", provider: result.provider, model: result.returnedModel, inputIdentity: result.inputIdentity, inputTrust: result.inputTrust, deploymentMode: result.deploymentMode,
-        contextId: result.context.contextId, requestId: result.requestId, asOf: result.asOf, generatedAt: result.generatedAt, cacheHit: result.cacheHit, oldSnapshot: result.oldSnapshot,
-        snapshot: identity.metadata, context: result.context, catalogId: selected.catalogId, versions: selected.versions,
-        baseline: { selectedClaimIds: baseline.selectedClaimIds, rationale: baseline.rationale, sentences: baseline.selectedClaimIds.map(id => { const e = request.selection.entries.find(e => e.claimId === id)!; return { claimId: e.claimId, text: e.text, evidenceRefs: e.evidenceRefs, metricRefs: e.metricRefs }; }) },
-        modelSelection: { selectedClaimIds: selected.modelSelected, sentences: selected.renderedResult.summary }, systemRequired: selected.systemRequired, systemAdded: selected.systemAdded,
-        selectionValidity: selected.selectionValidity, modelOrganizationQuality: selected.modelOrganizationQuality, disclosureCompleteness: selected.disclosureCompleteness, modelValue: "UNPROVEN",
-        status: result.context.evidence.some(e => e.availability !== "available") ? "partial" : "success",
-        usage: { inputTokens: result.usage.inputTokens, outputTokens: result.usage.outputTokens, usageIdentity: result.usageIdentity, usageCalculatedNano: result.usageCalculatedNano, budgetChargedBoundNano: result.budgetChargedBoundNano, billedCost: null },
-      });
+      return toPrivateInterpretation(prepared, result, identity.metadata);
     },
     evidence(scope: string, symbol: string, snapshotId: string) { if (closed || !registry || grant?.revoked) throw new InterpretationError("permission_revoked"); return registry.evidence(scope, symbol, snapshotId); },
     close() { closed = true; service?.stop(); registry?.revoke(); },

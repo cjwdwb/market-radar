@@ -1,7 +1,8 @@
 "use client";
 import { useId, useState } from "react";
 import type { Claim, MarketIntelligenceContext } from "@/lib/ai/contracts";
-import { isPrivateInterpretation, type PrivateInterpretation } from "@/lib/ai/private-contract";
+import type { PrivateInterpretation } from "@/lib/ai/private-contract";
+import type { SiteInterpretation } from "@/lib/ai/site-contract";
 import type { InterpretationController } from "./use-interpretation";
 import { interpretationErrors } from "./use-interpretation";
 import { evidenceId, evidenceLabel, visitEvidence, returnToCitation } from "./evidence-navigation";
@@ -27,9 +28,9 @@ export function Disclosures({ result, scope }: { result: Pick<PrivateInterpretat
     <details><summary>完整披露与系统补充（{result.systemRequired.length} 条）</summary><ul>{result.systemRequired.map(d => <li key={d.disclosureId}><strong>{d.disclosureId}</strong> · {d.category} · origin: {d.origin}{result.systemAdded.some(a => a.disclosureId === d.disclosureId) ? " · 系统补齐" : " · 系统必要披露"}<p><ClaimText claim={d} scope={scope} /></p><small>evidenceRefs: {d.evidenceRefs.join(", ") || "无"} · metricRefs: {d.metricRefs.join(", ") || "无"}</small></li>)}</ul></details>
   </>;
 }
-function PrivateResult({ result, scope }: { result: PrivateInterpretation; scope: string }) {
+function PrivateResult({ result, scope }: { result: PrivateInterpretation | SiteInterpretation; scope: string }) {
   return <section className="ai-result" data-evidence-scope={scope} aria-label="同快照解释对照" data-context-id={result.contextId} data-snapshot-id={result.snapshot.id}>
-    <div className="ai-result-heading"><strong id={scope+"-heading"} tabIndex={-1}>原快照解读 · 本机私有试点</strong><small>{result.cacheHit ? "使用原快照缓存" : "DeepSeek · deepseek-flash · 已校验"}</small></div>
+    <div className="ai-result-heading"><strong id={scope+"-heading"} tabIndex={-1}>{result.format === "site-interpretation-v1" ? "原快照解读 · 站点受控试点" : "原快照解读 · 本机私有试点"}</strong><small>{result.cacheHit ? result.format === "site-interpretation-v1" ? "读取已保存的原快照结果" : "使用原快照缓存" : "DeepSeek · deepseek-flash · 已校验"}</small></div>
     <p className="ai-basis">{result.context.asset.symbol} · 原快照数据截至 {time(result.asOf)} · {result.status === "partial" ? "部分依据可用" : "依据可用"}</p>
     <p className="ai-basis">{result.oldSnapshot ? "服务端标记为旧快照；" : ""}仅解释这一份快照，不随页面行情更新。</p>
     <section className="ai-primary" aria-label="主要观察"><h4>主要观察</h4><ul>{result.modelSelection.sentences.map(c => <li key={c.claimId}><ClaimText claim={c} scope={scope} /></li>)}</ul></section><Disclosures result={result} scope={scope} /><details className="ai-evaluation"><summary>比较程序摘要与模型选择</summary><p>同一快照、同一事实目录。模型价值尚未证明（UNPROVEN）。</p>
@@ -42,19 +43,26 @@ function PrivateResult({ result, scope }: { result: PrivateInterpretation; scope
 }
 export function AIInterpretation({ controller, context, onChart }: { controller: InterpretationController; context: MarketIntelligenceContext | null; onChart: () => void }) {
   const [scenario, setScenario] = useState("upward"), instance = useId(), { result, phase } = controller;
-  const busy = phase === "loading", privateMode = controller.mode === "private_real", privateResult = result && isPrivateInterpretation(result) ? result : null;
-  const fixtureResult = result && !isPrivateInterpretation(result) ? result : null;
-  const scope = `${instance}-${encodeURIComponent(result?.contextId ?? "empty")}-${privateResult?.catalogId ?? "fixture"}-${result?.requestId ?? "empty"}`;
+  const busy = phase === "loading", privateMode = controller.mode === "private_real", siteMode = controller.mode === "site_controlled";
+  const privateResult = result && "format" in result ? result : null;
+  const fixtureResult = result && !("format" in result) ? result : null;
+  const scope = `${instance}-${encodeURIComponent(privateResult?.snapshot.id ?? "fixture")}-${encodeURIComponent(result?.contextId ?? "empty")}-${privateResult?.catalogId ?? "fixture"}-${result?.requestId ?? "empty"}`;
   const canGenerate = privateMode ? controller.connected && controller.gate === "ready" && controller.symbol === controller.allowedSymbol : controller.mode !== "fixture" || Boolean(context);
-  return <details className="ai-interpretation" data-ai-symbol={controller.symbol} onToggle={event => { if (event.target === event.currentTarget && event.currentTarget.open && controller.mode === "unknown") void controller.discover(); }}><summary>AI 解读 <span>{privateResult ? "原快照解释" : fixtureResult ? "演示结果" : privateMode ? controller.gate === "blocked" ? "私有试点 · 准入受限" : "本机私有试点" : controller.mode === "unknown" ? "服务状态待检查" : controller.mode === "fixture" ? "合成演示" : "实时 AI 尚未启用"}</span></summary>
-    <div className="ai-body"><p>{privateMode ? "解释服务端受控快照的事实、冲突与限制。仅手动生成，页面行情不会作为解释输入。" : controller.mode === "unknown" ? "展开后仅检查服务状态，不生成解释。行情与确定性状态继续可用。" : controller.mode === "fixture" ? "合成演示使用独立模拟资料，不解释当前真实行情。" : "实时模型尚未启用；行情与确定性状态继续可用。"}</p>
+  const siteReady = siteMode && controller.gate === "ready" && controller.allowedSymbols.includes(controller.symbol);
+  return <details className="ai-interpretation" data-ai-symbol={controller.symbol} onToggle={event => { if (event.target === event.currentTarget && event.currentTarget.open && controller.mode === "unknown") void controller.discover(); }}><summary>AI 解读 <span>{privateResult ? "原快照解释" : fixtureResult ? "演示结果" : siteMode ? controller.siteReadOnly ? "站点只读" : "站点受控试点" : privateMode ? controller.gate === "blocked" ? "私有试点 · 准入受限" : "本机私有试点" : controller.mode === "unknown" ? "服务状态待检查" : controller.mode === "fixture" ? "合成演示" : "实时 AI 尚未启用"}</span></summary>
+    <div className="ai-body"><p>{siteMode && controller.siteReadOnly ? "当前站点身份仅可读取获准的原快照。" : privateMode || siteMode ? "解释服务端受控快照的事实、冲突与限制。仅手动生成，页面行情不会作为解释输入。" : controller.mode === "unknown" ? "展开后仅检查服务状态，不生成解释。行情与确定性状态继续可用。" : controller.mode === "fixture" ? "合成演示使用独立模拟资料，不解释当前真实行情。" : "实时模型尚未启用；行情与确定性状态继续可用。"}</p>
       {privateMode && <form className="ai-session" onSubmit={event => { event.preventDefault(); const input = event.currentTarget.elements.namedItem("session") as HTMLInputElement; const credential = input.value; input.value = ""; void controller.connectSession(credential); }}><label htmlFor={`${instance}-session`}>私有会话凭据</label><input id={`${instance}-session`} name="session" type="password" autoComplete="off" spellCheck={false} required maxLength={256} disabled={busy} aria-describedby={`${instance}-session-help`} /><button className="btn" type="submit" disabled={busy}>{controller.connected ? "重新连接" : "连接私有会话"}</button><small id={`${instance}-session-help`}>{controller.connected ? "会话已验证。" : "请输入本机服务提供的会话凭据。"}凭据仅保存在当前页面内存。</small></form>}
-      <div className="ai-actions">{controller.mode !== "unconfigured" && <button className="btn" disabled={busy || !canGenerate} onClick={() => controller.mode === "unknown" ? controller.discover() : controller.generate(scenario)}>{busy ? controller.discovering ? "正在检查服务…" : "正在校验解释…" : privateMode ? result ? "查看新快照解释" : "查看快照解释" : result ? "重新查看演示" : controller.mode === "unknown" ? "检查解释服务" : "查看解释"}</button>}{busy && <button className="btn" onClick={controller.cancel}>取消解释</button>}<button className="btn" onClick={onChart}>返回图表</button></div>
+      <div className="ai-actions">{!siteMode && controller.mode !== "unconfigured" && <button className="btn" disabled={busy || !canGenerate} onClick={() => controller.mode === "unknown" ? controller.discover() : controller.generate(scenario)}>{busy ? controller.discovering ? "正在检查服务…" : "正在校验解释…" : privateMode ? result ? "查看新快照解释" : "查看快照解释" : result ? "重新查看演示" : controller.mode === "unknown" ? "检查解释服务" : "查看解释"}</button>}
+        {siteReady && <button className="btn" disabled={busy} onClick={() => controller.generate()}>{result ? "解释新快照" : "解释当前状态"}</button>}
+        {siteMode && !siteReady && !controller.siteReadOnly && <button className="btn" disabled={busy} onClick={() => controller.discover()}>检查解释服务</button>}
+        {siteMode && controller.canRestore && <button className="btn" disabled={busy} onClick={() => controller.restoreOriginal()}>读取原快照</button>}
+        {busy && <button className="btn" onClick={controller.cancel}>取消解释</button>}<button className="btn" onClick={onChart}>返回图表</button></div>
+      {siteReady && <p className="ai-basis">读取原快照不会调用模型。取消后已派发请求仍可能产生费用。</p>}
       {controller.mode === "unconfigured" && <p className="ai-disabled-note">实时 AI 尚未启用。你可以查看上方确定性状态，或在历史工作区读取已保存的解释文件。</p>}
       {controller.mode === "fixture" && <label className="ai-scenario">合成场景<select value={scenario} onChange={e => setScenario(e.target.value)} disabled={busy}><option value="upward">窗口偏上</option><option value="downward">窗口偏下</option><option value="mixed">窗口分歧</option><option value="insufficient">样本不足</option><option value="stale">资料过期</option><option value="information_present">官方资料示例</option></select></label>}
       {controller.error && <p className="ai-feedback" role="status">{interpretationErrors[controller.error] ?? "解释未通过校验。"}{result && (privateResult ? ` 下方保留上次同资产结果，仍对应原快照 ${privateResult.snapshot.id}，不是本次请求成功。` : " 下方保留上次演示，不是本次请求成功。")}</p>}
       {privateMode && controller.symbol !== (controller.allowedSymbol || "BTC-USDT") && <p role="status">私有试点仅支持 BTC-USDT，请切换资产。</p>}
-      {!privateMode && !context && <p role="status">当前输入无法形成有界上下文，行情与原情报仍可查看。</p>}
+      {!privateMode && !siteMode && !context && <p role="status">当前输入无法形成有界上下文，行情与原情报仍可查看。</p>}
       {privateResult && <PrivateResult key={scope} result={privateResult} scope={scope} />}
       {fixtureResult && <section key={scope} className="ai-result" data-evidence-scope={scope} aria-label="解释演示结果" data-context-id={fixtureResult.contextId}><div className="ai-result-heading"><strong id={scope+"-heading"} tabIndex={-1}>演示结果 / 未调用真实模型</strong><small>{fixtureResult.cacheHit ? "使用有效演示缓存" : "合成 Provider · 已校验"}</small></div><p className="ai-summary">{fixtureResult.output.summary.text}</p><p className="ai-basis">{fixtureResult.context.asset.symbol} · {time(fixtureResult.asOf)} · {fixtureResult.status === "partial" ? "部分依据可用" : "依据可用"}；不解释当前实时行情。</p>
         <h4>主要观察</h4><p><ClaimText claim={fixtureResult.output.primaryObservation} scope={scope} /></p>
@@ -63,7 +71,7 @@ export function AIInterpretation({ controller, context, onChart }: { controller:
         <h4>适用限制</h4><ul>{fixtureResult.context.limitations.map((line, i) => <li key={i}>{line}</li>)}</ul><p>{fixtureResult.output.confidenceLanguage}</p>
         <Evidence context={fixtureResult.context} scope={scope} />
       </section>}
-      {privateMode ? <details className="ai-local-context"><summary>本机快照与外发限制</summary><p>只由服务端核验来源用途、授权与有效期。浏览器只提交资产和快照编号；未获准时不取数、不外发。范围仅 BTC-USDT / OKX SPOT / USDT / UTC / 原生 15 分钟的方向与波动事实，不含相对表现、信号或资讯。</p></details> : <details className="ai-local-context"><summary>当前确定性上下文与外发限制</summary><p>仅本地组织当前资产数据；浏览器事实标为 client_declared，不作为服务端已验证事实，不外发真实行情。</p><ul>{context?.limitations.map((line, i) => <li key={i}>{line}</li>)}</ul>{context?.evidence.filter(e => e.kind === "information").map(e => <p key={e.id}>{e.detail} · {time(e.endAt)} · {e.source} · {e.dataVersion}</p>)}</details>}
+      {privateMode || siteMode ? <details className="ai-local-context"><summary>{siteMode ? "站点快照与外发限制" : "本机快照与外发限制"}</summary><p>只由服务端核验来源用途、授权与有效期。浏览器只提交资产和快照编号；未获准时不取数、不外发。范围仅 BTC-USDT / OKX SPOT / USDT / UTC / 原生 15 分钟的方向与波动事实，不含相对表现、信号或资讯。</p></details> : <details className="ai-local-context"><summary>当前确定性上下文与外发限制</summary><p>仅本地组织当前资产数据；浏览器事实标为 client_declared，不作为服务端已验证事实，不外发真实行情。</p><ul>{context?.limitations.map((line, i) => <li key={i}>{line}</li>)}</ul>{context?.evidence.filter(e => e.kind === "information").map(e => <p key={e.id}>{e.detail} · {time(e.endAt)} · {e.source} · {e.dataVersion}</p>)}</details>}
     </div>
   </details>;
 }

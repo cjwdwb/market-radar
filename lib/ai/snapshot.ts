@@ -59,7 +59,7 @@ export function createControlledSnapshots(load: (symbol: string, signal: AbortSi
   };
 }
 
-type SnapshotMetadata = { id: string; capturedAt: number; expiresAt: number; policyVersion: string; authorizationId: string; dataVersion: string; series: typeof REAL_CONTEXT_SERIES };
+export type SnapshotMetadata = { id: string; capturedAt: number; expiresAt: number; policyVersion: string; authorizationId: string; dataVersion: string; series: typeof REAL_CONTEXT_SERIES };
 type AdmissionRecord = Readonly<{ context: ProviderSafeContext; metadata: SnapshotMetadata; scopeHash: string; assertAccess: () => void; assertCurrent: () => void }>;
 export type ControlledAdmission = Readonly<{ kind: "registry-admission-v1" }>;
 const admissions = new WeakMap<object, AdmissionRecord>();
@@ -71,11 +71,12 @@ export function controlledAdmission(value: ControlledAdmission): AdmissionRecord
 }
 
 /** Private runtime factory only. No client Context/rights/scope can create this capability. */
-export function createRealContextSnapshots(load: (symbol: string, signal: AbortSignal) => Promise<RadarSnapshot>, grant: RealContextGrant, options: { now?: () => number; id?: () => string } = {}) {
+export function createRealContextSnapshots(load: (symbol: string, signal: AbortSignal) => Promise<RadarSnapshot>, grant: RealContextGrant, options: { now?: () => number; id?: () => string; reviewUntil?: number; canonicalScope?: boolean } = {}) {
   const now = options.now ?? Date.now, identity = JSON.stringify(grant);
   if (!grant || !grant.sourceEvidence || !grant.userAuthorizationEvidence || grant.retentionDays !== 30 || grant.approvedAt > now() || grant.revoked) throw new InterpretationError("real_authorization_required");
   // This is a bounded technical review session, not a manufactured source-license expiry.
-  const reviewUntil = now() + 20 * 60_000;
+  const reviewUntil = options.reviewUntil ?? now() + 20 * 60_000;
+  if (!Number.isSafeInteger(reviewUntil) || reviewUntil <= now() || reviewUntil > now() + 20 * 60_000) throw new InterpretationError("real_authorization_required");
   const rights: InferenceRights[] = [{ source: REAL_CONTEXT_SERIES.source, version: grant.policyVersion, expiresAt: reviewUntil, inference: true, localInterpretation: true, publicDisplay: false, kinds: ["direction", "rms"] }];
   const held = new Map<string, { scope: string; symbol: string; admission: ControlledAdmission }>(); let closed = false;
   const assertGrant = () => { if (closed || now() >= reviewUntil || grant.revoked || JSON.stringify(grant) !== identity) throw new InterpretationError("permission_revoked"); };
@@ -93,7 +94,8 @@ export function createRealContextSnapshots(load: (symbol: string, signal: AbortS
   return {
     async create(scope: string, symbol: string, signal: AbortSignal) {
       assertGrant(); const snap = await registry.create(scope, symbol, signal); assertGrant();
-      const context = freezeAdmissionValue(structuredClone(snap.context)), scopeHash = createHash("sha256").update(scope).digest("hex");
+      if (options.canonicalScope && !/^[a-f0-9]{64}$/.test(scope)) throw new InterpretationError("invalid_scope");
+      const context = freezeAdmissionValue(structuredClone(snap.context)), scopeHash = options.canonicalScope ? scope : createHash("sha256").update(scope).digest("hex");
       const metadata = freezeAdmissionValue({ id: snap.snapshotId, capturedAt: context.capturedAt, expiresAt: snap.expiresAt, policyVersion: grant.policyVersion, authorizationId: grant.authorizationId, dataVersion: createHash("sha256").update(JSON.stringify(context)).digest("hex"), series: REAL_CONTEXT_SERIES });
       const admission: ControlledAdmission = Object.freeze({ kind: "registry-admission-v1" });
       admissions.set(admission, Object.freeze({ context, metadata, scopeHash,
@@ -108,4 +110,44 @@ export function createRealContextSnapshots(load: (symbol: string, signal: AbortS
     evidence(scope: string, symbol: string, id: string) { const a = get(scope, symbol, id); const r = controlledAdmission(a); return { context: structuredClone(r.context), snapshot: structuredClone(r.metadata), oldSnapshot: (() => { try { r.assertCurrent(); return false; } catch { return true; } })() }; },
     revoke() { closed = true; held.clear(); registry.clear(); },
   };
+}
+
+export type SiteSnapshotRecord = Readonly<{
+  format: "site-snapshot-v1"; scope: string; symbol: "BTC-USDT"; reviewStarted: number; reviewUntil: number;
+  grantHash: string; input: RadarSnapshot; context: ProviderSafeContext; metadata: SnapshotMetadata;
+}>;
+const grantHash = (grant: RealContextGrant) => createHash("sha256").update(JSON.stringify(grant)).digest("hex");
+/** Server-only durable capture. Reuses the original projection/math; no client facts accepted. */
+export async function captureSiteSnapshot(input: RadarSnapshot, grant: RealContextGrant, scope: string,
+  reviewStarted: number, reviewUntil: number, capturedAt: number, id = crypto.randomUUID()): Promise<SiteSnapshotRecord> {
+  if (!Number.isSafeInteger(reviewStarted) || reviewStarted > capturedAt || reviewUntil !== reviewStarted + 20 * 60_000 ||
+    !/^[a-f0-9]{64}$/.test(scope) || !/^[A-Za-z0-9_-]{16,160}$/.test(id) || new TextEncoder().encode(JSON.stringify(input)).length > 65536 ||
+    !input.histories?.["BTC-USDT"] || input.histories["BTC-USDT"].points.length > 96) throw new InterpretationError("snapshot_invalid");
+  const frozenInput = structuredClone(input);
+  const registry = createRealContextSnapshots(async () => frozenInput, grant, { now: () => capturedAt, id: () => id, reviewUntil, canonicalScope: true });
+  await registry.create(scope, "BTC-USDT", new AbortController().signal);
+  const record = controlledAdmission(registry.get(scope, "BTC-USDT", id));
+  return freezeAdmissionValue({ format: "site-snapshot-v1" as const, scope, symbol: "BTC-USDT" as const, reviewStarted, reviewUntil,
+    grantHash: grantHash(grant), input: frozenInput, context: structuredClone(record.context), metadata: structuredClone(record.metadata) });
+}
+/** Recompute at ORIGINAL capture time for integrity, then enforce the CURRENT clock for use. */
+export async function restoreSiteSnapshot(stored: SiteSnapshotRecord, grant: RealContextGrant, scope: string,
+  now: () => number = Date.now): Promise<ControlledAdmission> {
+  const fail = () => { throw new InterpretationError("snapshot_invalid"); };
+  if (!stored || new TextEncoder().encode(JSON.stringify(stored)).length > 131072 || stored.format !== "site-snapshot-v1" ||
+    stored.scope !== scope || stored.symbol !== "BTC-USDT" || stored.grantHash !== grantHash(grant)) fail();
+  const rebuilt = await captureSiteSnapshot(stored.input, grant, scope, stored.reviewStarted, stored.reviewUntil, stored.metadata.capturedAt, stored.metadata.id);
+  if (JSON.stringify(rebuilt) !== JSON.stringify(stored)) fail();
+  const originalGrant = grantHash(grant);
+  const assertAccess = () => {
+    if (grant.revoked || grantHash(grant) !== originalGrant || now() >= rebuilt.reviewUntil) throw new InterpretationError("permission_revoked");
+  };
+  const assertCurrent = () => {
+    assertAccess();
+    if (now() < rebuilt.metadata.capturedAt || now() >= rebuilt.metadata.expiresAt || !prepareStateInput(rebuilt.input, rebuilt.symbol, now()).ok) throw new InterpretationError("context_expired");
+  };
+  assertAccess();
+  const admission: ControlledAdmission = Object.freeze({ kind: "registry-admission-v1" });
+  admissions.set(admission, Object.freeze({ context: rebuilt.context, metadata: rebuilt.metadata, scopeHash: scope, assertAccess, assertCurrent }));
+  return admission;
 }

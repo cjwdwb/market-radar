@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AI_VERSIONS, ContextSchema, InterpretationError, type InterpretationResult } from "./contracts";
+import type { SiteInterpretation } from "./site-contract";
 
 // Browser-safe display contract: no Node, provider request, raw bars or permission objects.
 const id = z.string().min(1).max(180), at = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
@@ -23,12 +24,18 @@ export const PrivateInterpretationSchema = z.object({
   usage: z.object({ inputTokens: at, outputTokens: at, usageIdentity: z.literal("provider_reported"), usageCalculatedNano: at, budgetChargedBoundNano: at, billedCost: z.null() }).strict(),
 }).strict();
 export type PrivateInterpretation = z.infer<typeof PrivateInterpretationSchema>;
-export type DisplayInterpretation = InterpretationResult | PrivateInterpretation;
+export type DisplayInterpretation = InterpretationResult | PrivateInterpretation | SiteInterpretation;
 export function isPrivateInterpretation(value: DisplayInterpretation): value is PrivateInterpretation { return "format" in value && value.format === "private-interpretation-v1"; }
 
 /** Validate bounded transport and references, not regenerate the server-owned claim catalog in a browser. */
 export function parsePrivateInterpretation(input: unknown): PrivateInterpretation {
-  const result = PrivateInterpretationSchema.parse(input), c = result.context;
+  const result = PrivateInterpretationSchema.parse(input);
+  validateFrozenInterpretation(result);
+  return result;
+}
+/** Shared reference checks; each transport must first enforce its own strict identity schema. */
+export function validateFrozenInterpretation(result: Omit<PrivateInterpretation, "format" | "deploymentMode">) {
+  const c = result.context;
   const fail = () => { throw new InterpretationError("invalid_output"); };
   if (result.contextId !== c.contextId || result.asOf !== c.asOf || result.snapshot.capturedAt !== c.capturedAt || c.asset.symbol !== "BTC-USDT" || c.asset.currency !== "USDT" || c.asset.market !== "crypto" || result.snapshot.expiresAt <= c.capturedAt || result.generatedAt < c.capturedAt) fail();
   const index = new Map(c.evidence.map(e => [e.id, e]));
@@ -45,5 +52,4 @@ export function parsePrivateInterpretation(input: unknown): PrivateInterpretatio
     if (new Set(s.evidenceRefs).size !== s.evidenceRefs.length || s.evidenceRefs.some(ref => !index.has(ref)) || s.metricRefs.some(ref => !s.evidenceRefs.some(eid => index.get(eid)?.metrics.some(m => `${eid}:${m.id}` === ref)))) fail();
   }
   if (new TextEncoder().encode(JSON.stringify(result)).length > 65536) fail();
-  return result;
 }

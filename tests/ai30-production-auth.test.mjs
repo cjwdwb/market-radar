@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { Miniflare } from 'miniflare';
-import { authorizeAI, authorizeAIRecord, readAICommand } from '../worker/ai-authorization.ts';
+import { authorizeAI, authorizeAIRecord, readAICommand, createAIRevalidation } from '../worker/ai-authorization.ts';
 
 // Explicit synthetic identities only; no production user, token, key or data.
 const NOW = Date.UTC(2026, 9, 21, 0), ORIGIN = 'https://fixture-market.invalid';
@@ -10,6 +10,42 @@ const config = { siteId: 'fixture-site', origin: ORIGIN, symbols: ['BTC-USDT', '
 const baseGrant = () => ({ siteId: config.siteId, subjectId: 'fixture-owner', revision: 1, enabled: true,
   expiresAt: NOW + 60000, permissions: ['invoke', 'read', 'manage'], symbols: ['BTC-USDT'] });
 const store = grant => ({ async get() { return grant; } });
+
+test('actual worker gate: a signed visitor sees generic discovery even with an owner identity; cannot reach site resources', async t => {
+  const entry = `import worker from './worker/index.ts';
+    export default {fetch(req, env, ctx) { return worker.fetch(req, {
+      ACCESS_CODE_HASH:'a'.repeat(64),ACCESS_SESSION_SECRET:'synthetic-visitor-session-secret-for-test',
+      AI_FIXTURE_ENABLED:'1',
+      get AI_SITE_ENABLED(){throw Error('visitor entered site runtime')},
+      get DB(){throw Error('visitor read site database')},
+      get MARKET_RADAR_DEEPSEEK_API_KEY(){throw Error('visitor read provider config')}
+    },ctx); }};`;
+  // Bundle the real access gate and AI routes. Unrelated image/SSR handlers are not used here.
+  const built = await build({stdin:{contents:entry,resolveDir:process.cwd(),sourcefile:'fixture-visitor-ai.ts'},
+    bundle:true,write:false,platform:'neutral',format:'esm',external:['node:*'],conditions:['workerd','browser'],
+    plugins:[{name:'non-ai-handlers',setup(b){
+      b.onResolve({filter:/^vinext\/server\//},args=>({path:args.path,namespace:'unrelated'}));
+      b.onLoad({filter:/.*/,namespace:'unrelated'},()=>({contents:'export const DEFAULT_DEVICE_SIZES=[],DEFAULT_IMAGE_SIZES=[];export const handleImageOptimization=()=>{throw Error()};export default {fetch(){throw Error()}};'}));
+    }}]});
+  let egress=0;
+  const mf=new Miniflare({modules:true,script:built.outputFiles[0].text,compatibilityDate:'2026-05-22',
+    compatibilityFlags:['nodejs_compat'],host:'127.0.0.1',outboundService:()=>{egress++;return new Response(null,{status:503});}});
+  t.after(()=>mf.dispose());
+  const worker=await mf.getWorker();
+  const login=await worker.fetch(ORIGIN+'/from-aether',{redirect:'manual'});
+  assert.equal(login.status,303);const cookie=login.headers.get('set-cookie').split(';')[0];
+  const headers={cookie,'oai-authenticated-user-id':'fixture-owner'};
+  const capability=await worker.fetch(ORIGIN+'/api/interpretation',{headers});
+  assert.equal(capability.status,200);assert.match(capability.headers.get('cache-control'),/private, no-store/);
+  assert.deepEqual(await capability.json(),{mode:'unconfigured',demonstration:false,realProviderEnabled:false});
+  const local=await worker.fetch('http://127.0.0.1/api/interpretation',{headers});
+  assert.deepEqual(await local.json(),{mode:'fixture',demonstration:true,realProviderEnabled:false});
+  for(const [path,method] of [['/api/interpretation','POST'],['/api/interpretation/result?symbol=BTC-USDT&snapshotId=abcdefghijklmnop','GET'],
+    ['/api/interpretation/control','GET'],['/api/interpretation/control','POST']]){
+    assert.equal((await worker.fetch(ORIGIN+path,{method,headers})).status,401);
+  }
+  assert.equal(egress,0);
+});
 function req({ method = 'POST', subject = 'fixture-owner', body = { action: 'snapshot', symbol: 'BTC-USDT' }, headers = {}, url = ORIGIN + '/api/ai' } = {}) {
   return new Request(url, { method, headers: { ...(method === 'POST' ? { origin: ORIGIN, 'content-type': 'application/json' } : {}),
     ...(subject === null ? {} : { 'oai-authenticated-user-id': subject }), ...headers }, ...(method === 'GET' ? {} : { body: typeof body === 'string' ? body : JSON.stringify(body) }) });
@@ -58,6 +94,52 @@ test('production auth: record ownership, grant revision and expiry rechecked on 
   grant = { ...grant, enabled: true };
   await assert.rejects(authorizeAIRecord(req({ method: 'GET' }), record, reader, config, NOW + 60000), /access_denied/);
   assert.equal(lookups, 10);
+});
+
+test('production revalidation: each phase re-reads grant, binds original identity and keeps read/invoke separate', async () => {
+  let grant = baseGrant(), time = NOW, reads = 0;
+  const reader = { async get() { reads++; return grant; } }, request = req();
+  const principal = await invoke(request, reader);
+  const owned = { ...principal, symbol: 'BTC-USDT', expiresAt: NOW + 40000 };
+  const revalidate = createAIRevalidation(request, owned, reader, config, () => time);
+  // Neither caller mutation nor a browser-submitted record can change a frozen binding.
+  request.headers.set('oai-authenticated-user-id', 'fixture-visitor');
+  owned.subjectId = 'fixture-visitor';
+  await revalidate('dispatch'); await revalidate('read');
+  grant = { ...grant, permissions: ['read'] };
+  await assert.rejects(revalidate('dispatch'), /access_denied/);
+  await revalidate('read');
+  grant = { ...grant, revision: 2 };
+  await assert.rejects(revalidate('read'), /record_unavailable/);
+  grant = { ...grant, enabled: false };
+  await assert.rejects(revalidate('read'), /access_denied/);
+  assert.equal(reads, 7);
+});
+
+test('production revalidation: expiry during asynchronous lookup cannot authorize dispatch or result read', async () => {
+  const principal = await invoke(), owned = { ...principal, symbol: 'BTC-USDT', expiresAt: NOW + 10000 };
+  for (const phase of ['dispatch', 'read']) {
+    let time = NOW;
+    const reader = { async get() { await Promise.resolve(); time = NOW + 10000; return baseGrant(); } };
+    const revalidate = createAIRevalidation(req(), owned, reader, config, () => time);
+    await assert.rejects(revalidate(phase), /record_unavailable/);
+  }
+  let time = NOW;
+  const reader = { async get() { await Promise.resolve(); time = NOW + 60000; return baseGrant(); } };
+  await assert.rejects(createAIRevalidation(req(), { ...owned, expiresAt: NOW + 120000 }, reader, config, () => time)('read'), /record_unavailable/);
+});
+
+test('production revalidation: unavailable authorization and changed server whitelist fail closed', async () => {
+  const principal = await invoke(), owned = { ...principal, symbol: 'BTC-USDT', expiresAt: NOW + 40000 };
+  await assert.rejects(createAIRevalidation(req(), owned, { async get() { throw Error('unavailable'); } }, config, () => NOW)('dispatch'), /authorization_unavailable/);
+  const cfg = { ...config, symbols: ['BTC-USDT'] };
+  const revalidate = createAIRevalidation(req(), owned, store(baseGrant()), cfg, () => NOW);
+  await revalidate('read'); cfg.symbols = [];
+  await assert.rejects(revalidate('read'), /unsupported_asset/);
+  await assert.rejects(revalidate('invalid'), /access_configuration/);
+  cfg.symbols = ['BTC-USDT'];
+  // Existing authorizeAI rechecks membership immediately after its lookup, before the new guard.
+  await assert.rejects(createAIRevalidation(req(), owned, { async get() { cfg.symbols = []; return baseGrant(); } }, cfg, () => NOW)('dispatch'), /access_denied/);
 });
 
 test('production auth: fixed host/origin and method checks happen before grant lookup', async () => {

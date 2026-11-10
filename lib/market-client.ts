@@ -67,13 +67,21 @@ export class ClientCooldown {
   private until = new Map<string, number>();
   check(symbol: string) {
     const retryAt = this.until.get(symbol.endsWith("-USDT") ? "OKX" : "Yahoo") ?? 0;
-    if (retryAt > Date.now()) throw new ClientMarketError("行情源请求繁忙，等待恢复后再刷新", { code: "rate_limited", stage: "browser", retryAt });
+    if (retryAt > Date.now()) throw new ClientMarketError("上次请求遇到行情源限流，请稍后重试", { code: "rate_limited", stage: "browser", retryAt });
+  }
+  private remember(symbol: string, retryAt: number) {
+    const provider = symbol.endsWith("-USDT") ? "OKX" : "Yahoo";
+    this.until.set(provider, Math.max(this.until.get(provider) ?? 0, retryAt));
   }
   observe(symbol: string, error: ClientMarketError) {
-    if (error.info.code !== "rate_limited") return;
-    const provider = symbol.endsWith("-USDT") ? "OKX" : "Yahoo";
-    const retryAt = Number.isFinite(error.info.retryAt) ? error.info.retryAt! : 0;
-    this.until.set(provider, Math.max(this.until.get(provider) ?? 0, Date.now() + 60_000, retryAt));
+    if (error.info.code !== "rate_limited" || error.info.stage === "browser") return;
+    const advised = Number.isFinite(error.info.retryAt) ? error.info.retryAt! : 0;
+    this.remember(symbol, Math.max(Date.now() + 60_000, advised));
+  }
+  readJson<T>(symbol: string, path: string, signal: AbortSignal, timeoutMs: number): Promise<T> {
+    if (signal.aborted) throw clientCancelled(signal.reason);
+    this.check(symbol);
+    return clientJson<T>(path, signal, timeoutMs, retryAt => this.remember(symbol, retryAt));
   }
 }
 export const browserMarketCooldown = new ClientCooldown();
@@ -87,12 +95,13 @@ function abortable<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   });
 }
 
-export async function clientJson<T>(path: string, signal: AbortSignal, timeoutMs: number): Promise<T> {
+export async function clientJson<T>(path: string, signal: AbortSignal, timeoutMs: number, onThrottle?: (retryAt: number) => void): Promise<T> {
   const controller = new AbortController();
   const abort = () => controller.abort(signal.reason);
   signal.addEventListener("abort", abort, { once: true });
   if (signal.aborted) abort();
   let timeout = false;
+  let throttle: MarketErrorInfo | undefined;
   const timer = setTimeout(() => { timeout = true; controller.abort("timeout"); }, timeoutMs);
   try {
     if (controller.signal.aborted) throw clientCancelled(signal.reason);
@@ -102,6 +111,8 @@ export async function clientJson<T>(path: string, signal: AbortSignal, timeoutMs
     if (response.status === 429) {
       const advised = retry && /^\d+(\.\d+)?$/.test(retry) ? Date.now() + Number(retry) * 1000 : Date.parse(retry ?? "");
       fallbackInfo.retryAt = Math.max(Date.now() + 60_000, Number.isFinite(advised) ? advised : 0);
+      throttle = fallbackInfo;
+      onThrottle?.(fallbackInfo.retryAt);
     }
     if (!response.headers.get("content-type")?.includes("application/json")) {
       void response.body?.cancel().catch(() => {});
@@ -124,11 +135,17 @@ export async function clientJson<T>(path: string, signal: AbortSignal, timeoutMs
     if (!response.ok) {
       const info: MarketErrorInfo = body?.errorInfo && typeof body.errorInfo.code === "string" ? { ...body.errorInfo } : fallbackInfo;
       if (fallbackInfo.retryAt) info.retryAt = Math.max(fallbackInfo.retryAt, Number.isFinite(info.retryAt) ? info.retryAt! : 0);
+      if (throttle) {
+        const details = info.code === "rate_limited" ? info : throttle;
+        throttle = { ...details, stage: details.stage === "browser" ? "site" : details.stage ?? "site", retryAt: info.retryAt };
+      }
       throw new ClientMarketError(typeof body?.error === "string" ? body.error.slice(0,180) : "行情暂不可用", info);
     }
     return body as T;
   } catch (error) {
     if (signal.aborted) throw clientCancelled(signal.reason);
+    // 响应头已确认限流，截断的正文或解析错误不能让同来源的下一次查询提前派发。
+    if (throttle) throw new ClientMarketError("行情源已限流，等待冷却后再刷新", throttle);
     if (timeout) throw new ClientMarketError("行情请求超时", { code: "timeout", stage: "browser" });
     throw clientFailure(error);
   } finally { clearTimeout(timer); signal.removeEventListener("abort", abort); }
@@ -168,6 +185,19 @@ export function completeQuoteResults(symbols: string[], input: unknown): QuoteRe
   });
 }
 
+export async function readWatchlistQuote(symbol: string, signal: AbortSignal, cooldown = browserMarketCooldown) {
+  try {
+    const body = await cooldown.readJson<{ results?: QuoteResult[] }>(symbol, `/api/quotes?symbols=${encodeURIComponent(symbol)}`, signal, 18_000);
+    const row = completeQuoteResults([symbol], body?.results)[0];
+    if (row.quote) return row.quote;
+    throw new ClientMarketError(row.error ?? "暂时无法验证该代码", row.errorInfo ?? { code: "invalid_data", stage: "admission" });
+  } catch (error) {
+    const failure = clientFailure(error);
+    cooldown.observe(symbol, failure);
+    throw failure;
+  }
+}
+
 /** Cache reads keep source acquisition time. Manual refresh skips this cache but joins
  * an existing operation; only the last departing consumer aborts its transport. */
 export class ClientHistoryCache {
@@ -184,9 +214,8 @@ export class ClientHistoryCache {
     const key = clientHistoryKey(symbol, range), cached = this.cache.get(key);
     if (!force && !this.pool.has(key) && cached && Date.now() - cached.at < 5000) return { data: { ...cached.data, range }, network: false };
     const data = await this.pool.request(key, async sharedSignal => {
-      this.cooldown.check(symbol);
       try {
-        const body = validateClientHistory(await clientJson<unknown>(`/api/history?symbol=${encodeURIComponent(symbol)}&range=${range}`, sharedSignal, 35_000), symbol, range);
+        const body = validateClientHistory(await this.cooldown.readJson<unknown>(symbol, `/api/history?symbol=${encodeURIComponent(symbol)}&range=${range}`, sharedSignal, 35_000), symbol, range);
         if (sharedSignal.aborted) throw clientCancelled(sharedSignal.reason);
         const data = { ...body, points: reusePoints(this.cache.get(key)?.data.points, body.points) };
         this.cache.delete(key); this.cache.set(key, { at: Date.now(), data });

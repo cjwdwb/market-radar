@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { Quote, QuoteResult } from "../lib/market";
-import { browserMarketCooldown, ClientCooldown, ClientMarketError, ClientRequestPool, clientFailure, clientJson, completeQuoteResults, isClientCancelled } from "../lib/market-client";
+import { browserMarketCooldown, ClientCooldown, ClientMarketError, ClientRequestPool, clientFailure, completeQuoteResults, isClientCancelled } from "../lib/market-client";
 import { retryDelay, reusePoints } from "../lib/refresh-policy";
 
 export type MarketQuotesOptions = { requestKey: string; symbolKey: string; hydrated: boolean; visible: boolean; online: boolean; auto: boolean; backgroundTabs: boolean };
@@ -91,8 +91,7 @@ export class MarketQuotesController {
     job.promise = (async () => {
       try {
         const results = await this.pool.request(`quotes:${key}`, async signal => {
-          this.cooldown.check(symbols[0]);
-          const body = await clientJson<{ results?: unknown }>("/api/quotes?symbols=" + encodeURIComponent(key), signal, 18_000);
+          const body = await this.cooldown.readJson<{ results?: unknown }>(symbols[0], "/api/quotes?symbols=" + encodeURIComponent(key), signal, 18_000);
           return completeQuoteResults(symbols, body?.results);
         }, controller.signal);
         if (generation !== this.generation || controller.signal.aborted || this.jobs.get(key) !== job) return;
