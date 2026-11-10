@@ -164,8 +164,14 @@ test('pilot CLI no init/reset; unresolved reservation blocks and pre-send expiry
   await assert.rejects(executePilot(run('aligned'), opts), /budget_recovery_required/);
   assert.equal(inspectPilotBudget(opts.ledger, NOW).unsettled.reservedNano, 1000);
   opts.ledger.unknown(reservation.id, NOW, 'mock_failure');
-  let reads = 0;
-  const report = await executePilot(run('aligned'), { ...opts, now: () => ++reads <= 4 ? NOW : NOW + 60000 });
+  let clock = NOW;
+  const reserve = opts.ledger.reserve.bind(opts.ledger);
+  t.mock.method(opts.ledger, 'reserve', input => {
+    const committed = reserve(input);
+    clock = NOW + 60000;
+    return committed;
+  });
+  const report = await executePilot(run('aligned'), { ...opts, now: () => clock });
   assert.equal(report.counters.actualHttpAttempts, 0); assert.equal(report.counters.reservationDelta, 1);
   assert.equal(report.results[0].code, 'context_expired'); assert.equal(report.budgetAfter.unsettled.unknownCount, 2);
   assert.equal(pilotExitCode(report), 1);

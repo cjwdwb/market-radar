@@ -99,10 +99,28 @@ export function chartPrice(value:number|null|undefined) {
   return formatted.length>11&&value!=null&&Number.isFinite(value)?axisScientificFormat.format(value):formatted;
 }
 export function compact(value:number|null|undefined) {return value==null?"—":compactFormat.format(value);}
+
+export function quoteTiming(quote:Quote, now:number) {
+  const maxSourceAge = assetFor(quote.symbol).market === "crypto" ? 180_000 : 1_200_000;
+  return {
+    sourceStale: !Number.isFinite(quote.timestamp) || quote.timestamp > now + 60_000 || now - quote.timestamp > maxSourceAge,
+    acquisitionStale: !Number.isFinite(quote.fetchedAt) || now - quote.fetchedAt > 120_000
+  };
+}
+
+export function alertQuoteStatus(quote:Quote|undefined, now:number|undefined) {
+  if (quote?.error) return "failed";
+  if (!quote || now === undefined) return "waiting";
+  if (!Number.isFinite(quote.price)) return "failed";
+  if (assetFor(quote.symbol).market !== "crypto" && quote.session !== "open") {
+    return quote.session === "closed" ? "closed" : "unknown_session";
+  }
+  const timing = quoteTiming(quote, now);
+  return timing.sourceStale || timing.acquisitionStale ? "stale" : "ready";
+}
+
 export function alertMatches(alert:PriceAlert,quote:Quote,now=Date.now()):boolean {
-  if (!alert.enabled || alert.triggeredAt || quote.error || quote.symbol!==alert.symbol || !Number.isFinite(quote.price) || !Number.isFinite(alert.target) || alert.target<=0) return false;
-  if (!Number.isFinite(quote.timestamp) || !Number.isFinite(quote.fetchedAt) || quote.timestamp>now+60_000 || now-quote.fetchedAt>120_000) return false;
-  const crypto=assetFor(quote.symbol).market==="crypto";
-  if(crypto ? now-quote.timestamp>180_000 : quote.session!=="open" || now-quote.timestamp>1_200_000) return false;
+  if (!alert.enabled || alert.triggeredAt || quote.symbol!==alert.symbol || !Number.isFinite(alert.target) || alert.target<=0) return false;
+  if (alertQuoteStatus(quote,now) !== "ready") return false;
   return alert.direction==="above"?quote.price>=alert.target:quote.price<=alert.target;
 }

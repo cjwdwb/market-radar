@@ -77,8 +77,8 @@ async function limitedBody(request: Request) {
   } finally { reader.releaseLock(); }
 }
 
-/** Runs before the application router; a missing secret always denies access. */
-export async function accessGate(request: Request, env: AccessSecrets): Promise<Response | null> {
+/** Runs before routing; an allowlisted visitor GET is not a full session. */
+export async function accessDecision(request: Request, env: AccessSecrets): Promise<Response | "full" | "visitor"> {
   const config = { ACCESS_CODE_HASH: env.ACCESS_CODE_HASH ?? process.env.ACCESS_CODE_HASH ?? "", ACCESS_SESSION_SECRET: env.ACCESS_SESSION_SECRET ?? process.env.ACCESS_SESSION_SECRET ?? "" };
   if (!/^[a-f0-9]{64}$/.test(config.ACCESS_CODE_HASH) || config.ACCESS_SESSION_SECRET.length < 32) {
     return new Response("访问验证暂时不可用，请稍后重试。", { status: 503, headers: securityHeaders });
@@ -106,13 +106,18 @@ export async function accessGate(request: Request, env: AccessSecrets): Promise<
     return redirect("/", [sessionCookie(token, VISITOR_LIFETIME, VISITOR_COOKIE)]);
   }
   if (url.pathname === "/access") return verified ? redirect("/") : accessPage();
-  if (verified) return null;
+  if (verified) return "full";
   const readableAsset = /^\/assets\/[a-zA-Z0-9_.-]+\.(?:js|css|woff2?|png|jpe?g|webp|svg|gif)$/.test(url.pathname);
-  if (["GET", "HEAD"].includes(request.method) && (VISITOR_READ_PATHS.has(url.pathname) || readableAsset) && hasSession(request, config, true)) return null;
+  if (["GET", "HEAD"].includes(request.method) && (VISITOR_READ_PATHS.has(url.pathname) || readableAsset) && hasSession(request, config, true)) return "visitor";
   if (url.pathname.startsWith("/api/") || request.headers.get("rsc") === "1" || !["GET", "HEAD"].includes(request.method)) {
     return Response.json({ error: "请先输入访问码", code: "ACCESS_REQUIRED" }, { status: 401, headers: securityHeaders });
   }
   return redirect("/access");
+}
+
+export async function accessGate(request: Request, env: AccessSecrets): Promise<Response | null> {
+  const decision = await accessDecision(request, env);
+  return typeof decision === "string" ? null : decision;
 }
 
 export function privateResponse(response: Response) {

@@ -13,14 +13,14 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/u
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import { ASSETS, DEFAULT_WATCHLIST, MARKET_LABELS, OVERVIEW, VALID_SYMBOL, alertMatches, assetFor, chartPrice, compact, displaySymbol, percent, price, type Asset, type Point, type PriceAlert, type Quote, type QuoteResult, type Range } from "@/lib/market";
+import { ASSETS, DEFAULT_WATCHLIST, MARKET_LABELS, OVERVIEW, VALID_SYMBOL, alertMatches, alertQuoteStatus, quoteTiming, assetFor, chartPrice, compact, displaySymbol, percent, price, type Asset, type Point, type PriceAlert, type Quote, type Range } from "@/lib/market";
 
 import { CloudMonitor } from "@/components/cloud-monitor";
 import { CandleChart } from "@/components/candle-chart";
 import { PricePulse } from "@/components/price-pulse";
 import { applyMotionPreference, MOTION_CHANGE_EVENT, normalizeMotionPreference, PREFERENCES_KEY, type MotionPreference } from "@/lib/motion-preference";
 import { canMonitor } from "@/lib/monitoring";
-import { chartGapSeries, clientJson, completeQuoteResults, historyEvidenceLag } from "@/lib/market-client";
+import { chartGapSeries, historyEvidenceLag, readWatchlistQuote } from "@/lib/market-client";
 import { useMarketHistory } from "@/components/use-market-history";
 import { useMarketQuotes } from "@/components/use-market-quotes";
 import { formatMarketTime, marketTimezoneLabel, normalizeDisplayTimePreference, resolveDisplayTimezone, type DisplayTimePreference } from "@/lib/market-time";
@@ -38,9 +38,12 @@ import { benchmarkSymbols } from "@/lib/radar/engine";
 import { buildAssetIntelligenceContext, chartRangeForEvent, enabledPriceAlertCounts, resolveRadarEvent, type RadarEventReference } from "@/lib/radar/workflow";
 import type { MarketMode, RadarIntelligenceEvent } from "@/lib/radar/types";
 
-type QuoteResponse={results?:QuoteResult[];error?:string};
 const STORAGE_KEY=PREFERENCES_KEY;
 const EMPTY_POINTS:Point[]=[];
+const ALERT_QUOTE_LABELS:Record<ReturnType<typeof alertQuoteStatus>,string>={
+  waiting:"等待首次有效报价",failed:"等待行情恢复",closed:"等待常规交易时段",
+  unknown_session:"等待交易时段确认",stale:"报价已过期，等待更新",ready:"等待目标价"
+};
 const HISTORY_LIMITS:Record<string,string>={invalid_rows:"无效记录已剔除；实际范围可能不完整。",duplicate_rows:"重复记录已去重。",gaps:"来源时间网格存在缺口，未补值。",unknown_confirmation:"部分 K 线未提供收盘确认。",historical_endpoint:"数据来自来源历史接口。",legacy_proxy_metadata_unverified:"代理未提供完整的来源元数据，已单独校验价格与时间。",proxy_attempts_and_cancellation_unknown:"远端代理内部重试和取消状态不可核实。",source_confirmation_unavailable:"来源不提供收盘确认；时间窗口结束不代表来源确认。",daily_session_end_unknown:"日线实际交易时段结束尚未核实，不按固定 24 小时推定收盘。",session_or_data_gaps:"时间间隔可能包含休市或数据缺口，未将两端拼成连续数据。"};
 const PERIODS:{value:Range;label:string}[]=[{value:"15m",label:"15 分钟"},{value:"1d",label:"1 日"},{value:"1w",label:"1 周"},{value:"1m",label:"1 月"},{value:"3m",label:"3 月"}];
 // 仅跳转已核对的同市场现货；不由任意代码推断交易对，也不将外部图表当本站数据源。
@@ -226,7 +229,8 @@ export default function MarketRadar(){
   },[quotes,hydrated,mayRun,notifying,formatTime]);
 
   const activeAsset=assetFor(selected),quote=quotes[selected],quoteError=errors[selected]??quote?.error;
-  const quoteOld=!!quote&&!!now&&(now-quote.timestamp>(activeAsset.market==="crypto"?180_000:1_200_000));
+  const timing=quote&&now!==undefined?quoteTiming(quote,now):undefined;
+  const quoteOld=timing?.sourceStale||timing?.acquisitionStale;
   const selectedName=activeAsset.name===selected?(quote?.name??selected):activeAsset.name;
   const active=mayRun;
   const failedCount=Object.keys(errors).length;
@@ -253,7 +257,7 @@ export default function MarketRadar(){
     if(av==null)return bv==null?0:1;if(bv==null)return -1;return sort==="gainers"?bv-av:av-bv;
   });
   const enabledAlerts=alerts.filter(a=>a.enabled).length;
-  const quoteStatus=!quote?"等待行情":quoteError?"连接中断 · 保留上次报价":activeAsset.market==="crypto"?(quoteOld?"报价已过期":"24 / 7 交易"):quote.session==="closed"?"常规交易时段已结束":quoteOld?"报价延迟 / 已过期":quote.session==="open"?"常规交易时段":"交易状态未知";
+  const quoteStatus=!quote?(quoteError?"暂未取得行情":"等待行情"):quoteError?"连接中断 · 保留上次报价":activeAsset.market==="crypto"?(quoteOld?"报价已过期":"24 / 7 交易"):quote.session==="closed"?"常规交易时段已结束":quoteOld?"报价延迟 / 已过期":quote.session==="open"?"常规交易时段":"交易状态未知";
   function openAlert(symbol:string){setAlertSymbol(symbol);setDirection("above");setTarget("");setAlertOpen(true);}
   function removeAsset(symbol:string){
     const before=watchlist;setWatchlistEdited(true);setWatchlist(list=>list.filter(s=>s!==symbol));
@@ -266,10 +270,8 @@ export default function MarketRadar(){
     if(watchlist.length>=20){toast.error("最多保存 20 个自选，请先移除一个。");return;}
     setAdding(true);
     try{
-      const body=await clientJson<QuoteResponse>(`/api/quotes?symbols=${encodeURIComponent(symbol)}`,new AbortController().signal,18_000);
-      const result=completeQuoteResults([symbol],body.results)[0];
-      if(!result?.quote)throw new Error(result?.error??body.error??"暂时无法验证该代码");
-      const quote=result.quote;acceptQuote(quote);setWatchlistEdited(true);setWatchlist(list=>[...list,symbol]);selectAsset(symbol);setAddOpen(false);setCandidate("");toast.success("已添加到自选");
+      const quote=await readWatchlistQuote(symbol,new AbortController().signal);
+      acceptQuote(quote);setWatchlistEdited(true);setWatchlist(list=>[...list,symbol]);selectAsset(symbol);setAddOpen(false);setCandidate("");toast.success("已添加到自选");
     }catch(error){toast.error(error instanceof Error?error.message:"暂时无法添加，请稍后重试");}finally{setAdding(false);}
   }
   function createAlert(event:React.FormEvent){
@@ -321,7 +323,7 @@ export default function MarketRadar(){
             <div className="chart-market-summary"><span>{selected.endsWith("-USDT")?"24h 高":"日内最高"}<b>{price(quote?.high,quote?.currency,false)}</b></span><span>{selected.endsWith("-USDT")?"24h 低":"日内最低"}<b>{price(quote?.low,quote?.currency,false)}</b></span><span>{activeAsset.market==="crypto"?"成交额":"成交量"}<b>{compact(quote?.volume)} <small>{activeAsset.market==="crypto"?quote?.currency:"股 / 份"}</small></b></span><span className="summary-freshness">{quoteStatus}<b>{formatMarketTime(quote?.timestamp,displayTimezone,"clock",false)} <small>{quote?.timestamp?marketTimezoneLabel(displayTimezone,quote.timestamp):zoneLabel}</small></b></span></div>
             {radarOrigin?.symbol===selected?<RadarOriginContext symbol={selected} event={radarContext} onReturn={returnToRadar} onDismiss={()=>setRadarOrigin(null)}/>:<AssetRadarAwareness context={selectedRadar} onOpen={openRelatedRadar}/>}
             <AssetStateSummary state={selectedState} onOpen={openRelatedRadar}/>
-            {interpretation.result && <button className="btn ai-classic-link" onClick={openRelatedRadar}>查看 {selected} 的{interpretation.resultKind === "private_real" ? "原快照解释 · 本机私有试点" : "解释演示 · 未调用真实模型"}</button>}
+            {interpretation.result && <button className="btn ai-classic-link" onClick={openRelatedRadar}>查看 {selected} 的{interpretation.resultKind === "site_controlled" ? "原快照解释 · 站点受控试点" : interpretation.resultKind === "private_real" ? "原快照解释 · 本机私有试点" : "解释演示 · 未调用真实模型"}</button>}
             <Tabs value={range} onValueChange={value=>setRange(value as Range)}>
               <div className="period-tabs"><TabsList className="range-list" aria-label="走势时间范围">{PERIODS.map(p=><TabsTrigger key={p.value} value={p.value} className="range-trigger">{p.label}</TabsTrigger>)}</TabsList><span className="chart-legend"><span className="line-swatch" style={{background:chartColor}}/>{range==="15m"?"K 线 + 成交量":"价格走势"}</span></div>
               {backupChartSymbol&&<div className="chart-backup"><a href={`https://www.tradingview.com/chart/?symbol=${encodeURIComponent(`OKX:${backupChartSymbol}`)}`} target="_blank" rel="noopener noreferrer" aria-label={`TradingView 备用看盘：OKX ${selected.replace("-","/")} 现货，在新标签页打开`}>TradingView 备用看盘<ExternalLink size={14} aria-hidden="true"/></a><div><span>OKX · {selected.replace("-","/")} 现货 · 新标签页</span><small>独立看图，Radar 与提醒仍使用本站行情。</small></div></div>}
@@ -331,8 +333,8 @@ export default function MarketRadar(){
             </Tabs>
             <div className="chart-footer"><span className={chartProblem||chartStale||chartEvidenceLag?"error-text":""}>{chartProblem?`走势更新失败 · ${chartProblem}`:chartBusy?"正在更新 · 保留当前图表":chartStale?"走势获取时间已过期 · 保留上次数据":chartEvidenceLag?"最新 K 线时间落后 · 保留旧走势":`${quoteChart?quote?.source??"行情源":displayedHistory?.source??"行情源"} · ${range==="1d"?(activeAsset.market==="crypto"?"最近窗口（非自然日）":"最近交易日"):"历史行情"}`}</span><span>{chartMetadata?.bar?`原生 ${chartMetadata.bar} · `:""}{displayTimezone}</span></div>
             <details className="market-data-status"><summary>数据时间与状态{trendErrors[selected]?" · 分析基线更新失败":""}{chartMetadata?.gapCount?` · ${chartMetadata.gapCount} 处间隔缺口`:""}</summary><dl>
-              <div><dt>来源报价时间</dt><dd>{formatTime(quote?.timestamp,true)}{quoteError?" · 更新失败":quoteOld?" · 过期":""}</dd></div>
-              <div><dt>报价实际获取</dt><dd>{formatTime(quote?.fetchedAt,true)}{quote?.cache?.hit?" · 缓存读取":""}</dd></div>
+              <div><dt>来源报价时间</dt><dd>{formatTime(quote?.timestamp,true)}{quoteError?" · 更新失败":timing?.sourceStale?" · 过期":""}</dd></div>
+              <div><dt>报价实际获取</dt><dd>{formatTime(quote?.fetchedAt,true)}{timing?.acquisitionStale?" · 过期":""}{quote?.cache?.hit?" · 缓存读取":""}</dd></div>
               <div><dt>走势实际获取</dt><dd>{formatTime(chartFetchedAt,true)}{chartStale?" · 过期":""}</dd></div>
               <div><dt>实际开盘时间范围</dt><dd>{formatTime(chartPoints[0]?.time,true)} — {formatTime(chartPoints.at(-1)?.time,true)}{chartEvidenceLag?" · 末端延迟，刚获取不代表行情新鲜":""}</dd></div>
               <div><dt>最近完整 K 线结束</dt><dd>{formatTime(chartMetadata?.lastCompleteAt??undefined,true)} · {chartMetadata?.completion==="source"?"来源确认":chartMetadata?.completion==="time_window"?"仅时间窗口结束":"完整性未知"}</dd></div>
@@ -351,7 +353,7 @@ export default function MarketRadar(){
         </div>
         <aside className="right-column">
           <details className="panel detail-panel"><summary>行情详情<ChevronRight size={15}/></summary><div className="detail-name"><AssetIcon asset={activeAsset}/><div><strong>{selectedName}</strong><p>{selected} · {quote?.currency??"—"}</p></div></div><div className={`detail-status ${quote?.session!=="open"||quoteError||quoteOld?"closed":""}`}><span>{quoteStatus}</span><Clock3 size={13}/></div><dl className="detail-grid"><div><dt>日内最高</dt><dd>{price(quote?.high,quote?.currency,false)}</dd></div><div><dt>日内最低</dt><dd>{price(quote?.low,quote?.currency,false)}</dd></div><div><dt>{selected.endsWith("-USDT")?"24 小时起始价":"前收盘价"}</dt><dd>{price(quote?.previousClose,quote?.currency,false)}</dd></div><div><dt>日涨跌额</dt><dd className={tone(quote?.change)}>{quote?.change!=null&&quote.change>0?"+":""}{price(quote?.change,quote?.currency,false)}</dd></div><div><dt>{activeAsset.market==="crypto"?"行情源成交额":"成交量"}</dt><dd>{compact(quote?.volume)}<span className="currency-label"> {activeAsset.market==="crypto"?quote?.currency:"股 / 份"}</span></dd></div><div><dt>报价时间 · 本地</dt><dd style={{fontSize:13}}>{formatTime(quote?.timestamp,true)}</dd></div></dl><div className="detail-action"><button className="btn btn-primary" onClick={()=>openAlert(selected)} disabled={!quote}><BellPlus size={16}/>设置价格提醒</button>{watchlist.includes(selected)?<button className="icon-btn" aria-label="移出自选" title="移出自选" onClick={()=>removeAsset(selected)}><Trash2 size={16}/></button>:<button className="icon-btn" aria-label="加入自选" title="加入自选" onClick={()=>{setCandidate(selected);setAddOpen(true);}}><Star size={17}/></button>}</div></details>
-          <section className="panel alert-panel" id="price-alerts"><div className="panel-heading"><h2><Bell size={17} className="muted"/>价格提醒 <span className="count">{enabledAlerts}</span></h2><button className="icon-btn" aria-label="新建价格提醒" onClick={()=>openAlert(selected)}><Plus size={17}/></button></div><p className="alert-explanation">为关注的价格，留一个提醒。</p>{alerts.length===0?<div className="empty-alert"><div className="bell-ring"><Bell size={19}/></div><strong>还没有价格提醒</strong><p>选择标的，设定涨至或跌至的价格。</p><button className="small-link" onClick={()=>openAlert(selected)}>创建第一条提醒 <ChevronRight size={13} className="inline"/></button></div>:<div className="alert-list">{alerts.map(a=><div className="alert-item" key={a.id}><div className="alert-item-top"><strong>{displaySymbol(a.symbol)}</strong><div className="alert-tools"><Switch checked={a.enabled} onCheckedChange={enabled=>{const next=alertsRef.current.map(item=>item.id===a.id?{...item,enabled,triggeredAt:undefined,triggeredPrice:undefined,createdAt:Date.now()}:item);alertsRef.current=next;setAlerts(next);}} aria-label={`${a.enabled?"暂停":"重新启用"}${displaySymbol(a.symbol)}提醒`}/><button className="icon-btn" aria-label="删除这条提醒" onClick={()=>{const next=alertsRef.current.filter(item=>item.id!==a.id);alertsRef.current=next;setAlerts(next);}}><Trash2 size={14}/></button></div></div><p>{a.direction==="above"?"涨至 ≥":"跌至 ≤"} <span className="numeric">{price(a.target,quotes[a.symbol]?.currency??(assetFor(a.symbol).market==="cn"?"CNY":assetFor(a.symbol).market==="hk"?"HKD":"USD"))}</span></p><small>{a.triggeredAt?`已触发 · ${formatTime(a.triggeredAt,true)} · ${price(a.triggeredPrice,quotes[a.symbol]?.currency)}`:!a.enabled?"已暂停":!active?"等待监控恢复":errors[a.symbol]?"等待行情恢复":quotes[a.symbol]?.session==="closed"?"等待常规交易时段":"等待目标价"}</small></div>)}</div>}<div className="notification-line"><span>本次访问的系统通知</span><button className="small-link" onClick={()=>notifying?setNotifying(false):void enableNotifications()}>{notifying?"已开启":"开启"}</button></div><div className="data-note">本机提醒在页面运行时检查。云端每分钟监控由站主在运行设置中管理。</div></section>
+          <section className="panel alert-panel" id="price-alerts"><div className="panel-heading"><h2><Bell size={17} className="muted"/>价格提醒 <span className="count">{enabledAlerts}</span></h2><button className="icon-btn" aria-label="新建价格提醒" onClick={()=>openAlert(selected)}><Plus size={17}/></button></div><p className="alert-explanation">为关注的价格，留一个提醒。</p>{alerts.length===0?<div className="empty-alert"><div className="bell-ring"><Bell size={19}/></div><strong>还没有价格提醒</strong><p>选择标的，设定涨至或跌至的价格。</p><button className="small-link" onClick={()=>openAlert(selected)}>创建第一条提醒 <ChevronRight size={13} className="inline"/></button></div>:<div className="alert-list">{alerts.map(a=><div className="alert-item" key={a.id}><div className="alert-item-top"><strong>{displaySymbol(a.symbol)}</strong><div className="alert-tools"><Switch checked={a.enabled} onCheckedChange={enabled=>{const next=alertsRef.current.map(item=>item.id===a.id?{...item,enabled,triggeredAt:undefined,triggeredPrice:undefined,createdAt:Date.now()}:item);alertsRef.current=next;setAlerts(next);}} aria-label={`${a.enabled?"暂停":"重新启用"}${displaySymbol(a.symbol)}提醒`}/><button className="icon-btn" aria-label="删除这条提醒" onClick={()=>{const next=alertsRef.current.filter(item=>item.id!==a.id);alertsRef.current=next;setAlerts(next);}}><Trash2 size={14}/></button></div></div><p>{a.direction==="above"?"涨至 ≥":"跌至 ≤"} <span className="numeric">{price(a.target,quotes[a.symbol]?.currency??(assetFor(a.symbol).market==="cn"?"CNY":assetFor(a.symbol).market==="hk"?"HKD":"USD"))}</span></p><small>{a.triggeredAt?`已触发 · ${formatTime(a.triggeredAt,true)} · ${price(a.triggeredPrice,quotes[a.symbol]?.currency)}`:!a.enabled?"已暂停":!active?"等待监控恢复":errors[a.symbol]?"等待行情恢复":ALERT_QUOTE_LABELS[alertQuoteStatus(quotes[a.symbol],now)]}</small></div>)}</div>}<div className="notification-line"><span>本次访问的系统通知</span><button className="small-link" onClick={()=>notifying?setNotifying(false):void enableNotifications()}>{notifying?"已开启":"开启"}</button></div><div className="data-note">本机提醒在页面运行时检查。云端每分钟监控由站主在运行设置中管理。</div></section>
           <section className="panel source-panel"><div className="market-breadth"><div className="breadth-head"><span>自选涨跌分布</span><span className="muted">{watchQuotes.length} 个有效报价</span></div><div className="breadth-track" aria-label={`${up} 个上涨，${down} 个下跌，${flat} 个持平`}><div className="breadth-up" style={{flex:up}}/><div className="breadth-flat" style={{flex:flat}}/><div className="breadth-down" style={{flex:down}}/></div><div className="breadth-labels"><span className="positive">{up} 上涨</span><span className="muted">{flat} 持平</span><span className="negative">{down} 下跌</span></div></div><details className="source-disclosure"><summary>数据来源与时效<ChevronRight size={13}/></summary><div className="data-note"><a href="https://www.okx.com/trade-spot/btc-usdt" target="_blank" rel="noreferrer">OKX 欧易</a> · USDT 现货与 K 线。<br/><a href="https://help.yahoo.com/kb/SLN2310.html" target="_blank" rel="noreferrer">Yahoo Finance <ExternalLink size={11} className="inline"/></a> · 免费行情可能延迟。更新频率不等于交易所实时数据，休市时显示最近常规时段报价。<br/><button className="small-link" style={{marginTop:8}} onClick={()=>setInfoOpen(true)}>查看使用说明</button></div></details></section>
         </aside>
       </div>

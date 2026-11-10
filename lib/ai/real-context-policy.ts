@@ -11,3 +11,6 @@ export type RealContextGrant = Readonly<{ authorizationId: string; policyVersion
 // No browser, environment variable, uploaded package or generic development Key can override this decision.
 // Replace only after source-use evidence AND specific user authorization have been reviewed in this task.
 export function approvedRealContextGrant(): RealContextGrant | null { return null; }
+/** Hosted storage/display is a distinct reviewed use, never implied by a local pilot grant. */
+export type SiteContextGrant = RealContextGrant & Readonly<{ siteId: string; deployment: "site_pilot"; storage: "d1-private"; audience: "site-owner" }>;
+export function approvedSiteContextGrant(): SiteContextGrant | null { return null; }

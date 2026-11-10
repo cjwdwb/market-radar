@@ -1,5 +1,7 @@
 # 当前任务索引
 
+2026-11-10 · [阶段维护发布](MR-MAINTENANCE-RELEASE.md)。本轮收口浏览器退避、报价时效提示和暂停后的云端同步，保留受控 AI 代码。正式行情源和真实跨收盘验收仍开放。
+
 ## MR-CRYPTO-SOURCE-ALTERNATIVE — 2026-11-06 正式替代行情源核查
 
 [调查/备用入口交接](MR-CRYPTO-SOURCE-ALTERNATIVE.md)：PR#18/source8a032159已发布原站Sitesv42/succeeded/env3；只增加固定三币OKX现货TradingView外部链接，不改原数据源或Radar。PR/main CI各795PASS、本地794PASS/1Windows SKIP、五视口+慢请求6组通过，独立产品/追加测试/包装VERIFY。Kraken技术预检成功但公开用途/时间契约未准入，其他原始API亦未接；官方嵌图本机连接关闭，完整外部图表实时未验证。原ETH429及真实长时/跨bar继续BLOCKED，不将链接/模拟检查当供应商恢复。主任务保持开放，文档收尾不重发。

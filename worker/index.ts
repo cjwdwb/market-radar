@@ -1,10 +1,12 @@
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import { handleImageOptimization, DEFAULT_DEVICE_SIZES, DEFAULT_IMAGE_SIZES } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
-import { accessGate, privateResponse, type AccessSecrets } from "./access-gate";
+import { accessDecision, privateResponse, type AccessSecrets } from "./access-gate";
 import { handleInterpretation } from "./ai-interpretation";
+import { handleSiteInterpretation, type SiteAIEnvironment } from "./ai-site-interpretation";
+import { handleSiteControl } from "./ai-site-control";
 
-interface Env extends AccessSecrets {
+interface Env extends AccessSecrets, SiteAIEnvironment {
   AI_FIXTURE_ENABLED?: string;
   ASSETS: Fetcher;
   DB: D1Database;
@@ -35,9 +37,17 @@ const worker = {
     if (["GET", "HEAD"].includes(request.method) && ["/brand.svg", "/favicon.svg", "/brand-light-v2.png", "/favicon-v2.png", "/apple-touch-icon-v2.png"].includes(url.pathname)) {
       return env.ASSETS.fetch(request);
     }
-    const accessResponse = await accessGate(request, env);
-    if (accessResponse) return accessResponse;
-    if (url.pathname === "/api/interpretation") return privateResponse(await handleInterpretation(request, env));
+    const access = await accessDecision(request, env);
+    if (typeof access !== "string") return access;
+    if (url.pathname === "/api/interpretation/control") return privateResponse(await handleSiteControl(request, env));
+    if (url.pathname === "/api/interpretation" || url.pathname === "/api/interpretation/result") {
+      const localFixture = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname) && env.AI_FIXTURE_ENABLED === "1";
+      if (localFixture && url.pathname === "/api/interpretation") return privateResponse(await handleInterpretation(request, env));
+      // A reading session may discover the old, unconfigured capability. Never consult its
+      // platform account, grants, D1 or provider; result/control and writes already fail the gate.
+      if (access === "visitor") return privateResponse(await handleInterpretation(request, {}));
+      return privateResponse(await handleSiteInterpretation(request, env, ctx));
+    }
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];

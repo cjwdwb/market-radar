@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { setImmediate as turn } from 'node:timers/promises';
-import { ClientRequestPool, ClientCooldown, ClientHistoryCache, clientHistoryKey, clientJson, completeQuoteResults, validateClientHistory, historyEvidenceLag } from '../lib/market-client.ts';
+import { ClientRequestPool, ClientCooldown, ClientHistoryCache, clientHistoryKey, clientJson, completeQuoteResults, validateClientHistory, historyEvidenceLag, readWatchlistQuote } from '../lib/market-client.ts';
 import { MarketHistoryController } from '../components/use-market-history.ts';
 import { MarketQuotesController } from '../components/use-market-quotes.ts';
 
@@ -101,6 +101,65 @@ test('missing, duplicate, invalid and explicitly errored quote rows become per-a
     {symbol:'SOL-USDT',quote:quote('ETH-USDT')},{symbol:'AAPL',quote:quote('AAPL'),error:'unavailable'}
   ]);
   assert.equal(results.length,4); assert.ok(results.every(row => !row.quote && row.error));
+});
+
+test('HTTP 429 headers survive an absent, truncated, oversized or conflicting JSON error', async t => {
+  const replies = [null, '{', new Uint8Array(2 * 1024 * 1024 + 1), '{"errorInfo":{"code":"invalid_data"}}'];
+  let calls = 0, body;
+  setup(t, async () => {
+    calls++;
+    return new Response(body, { status:429, headers:{'content-type':'application/json','retry-after':'120'} });
+  });
+  const signal = new AbortController().signal;
+  for (const [i, reply] of replies.entries()) {
+    body = reply;
+    const cooldown = new ClientCooldown(), historyCache = new ClientHistoryCache(cooldown);
+    await assert.rejects(historyCache.read('ETH-USDT','15m',signal), e => e.info.code === 'rate_limited' && e.info.retryAt === 10_120_000);
+    await assert.rejects(readWatchlistQuote('DOGE-USDT',signal,cooldown), e => e.info.stage === 'browser');
+    assert.equal(calls, i + 1);
+  }
+});
+
+test('watchlist validation shares a row-level throttle with the chart and resumes at the original deadline', async t => {
+  let calls = 0;
+  setup(t, async path => {
+    const symbol = new URL(path,'http://localhost').searchParams.get('symbols');
+    calls++;
+    return json({ results:[calls === 1
+      ? {symbol,error:'请求受限',errorInfo:{code:'rate_limited',stage:'upstream',retryAt:10_120_000}}
+      : {symbol,quote:quote(symbol)}] });
+  });
+  const cooldown = new ClientCooldown(), signal = new AbortController().signal;
+  await assert.rejects(readWatchlistQuote('DOGE-USDT',signal,cooldown), e => e.info.code === 'rate_limited');
+  t.mock.timers.tick(119999);
+  await assert.rejects(new ClientHistoryCache(cooldown).read('ETH-USDT','15m',signal), e => e.info.stage === 'browser');
+  assert.equal((await readWatchlistQuote('AAPL',signal,cooldown)).symbol,'AAPL');
+  t.mock.timers.tick(1);
+  assert.equal((await readWatchlistQuote('ETH-USDT',signal,cooldown)).symbol,'ETH-USDT');
+  assert.equal(calls,3);
+});
+
+test('429 headers gate concurrent quotes immediately and survive cancellation of a stalled chart body', async t => {
+  let calls = 0;
+  setup(t, async () => {
+    calls++;
+    return new Response(new ReadableStream({}), { status:429, headers:{'content-type':'application/json','retry-after':'120'} });
+  });
+  const cooldown = new ClientCooldown(), chart = new ClientHistoryCache(cooldown), controller = new AbortController();
+  const rejected = assert.rejects(chart.read('ETH-USDT','15m',controller.signal), e => e.info.code === 'superseded');
+  await flush();
+  const signal = new AbortController().signal;
+  await assert.rejects(readWatchlistQuote('BTC-USDT',signal,cooldown), e => e.info.stage === 'browser');
+  await assert.rejects(readWatchlistQuote('BTC-USDT',AbortSignal.abort('superseded'),cooldown), e => e.info.code === 'superseded');
+  controller.abort('superseded');
+  await rejected;
+  const quotes = new MarketQuotesController(cooldown);
+  t.after(quotes.dispose);
+  quotes.update(quoteOptions());
+  await quotes.refresh();
+  assert.equal(calls,1);
+  t.mock.timers.tick(120000);
+  assert.doesNotThrow(() => cooldown.check('SOL-USDT'));
 });
 
 test('history selection/manual share one request, failures retain same-key original data and gate analysis until recovery', async t => {
