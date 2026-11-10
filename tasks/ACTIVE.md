@@ -1,6 +1,6 @@
 # 当前任务索引
 
-2026-11-10 · [阶段维护发布](MR-MAINTENANCE-RELEASE.md)。本轮收口浏览器退避、报价时效提示和暂停后的云端同步，保留受控 AI 代码。正式行情源和真实跨收盘验收仍开放。
+2026-11-10 · [阶段维护发布已归档](archive/MR-MAINTENANCE-RELEASE.md)。[PR #19](https://github.com/cjwdwb/market-radar/pull/19) 已合并，原站 Sites v43 已发布。正式行情源和线上持续 30 分钟、跨收盘验收仍开放；真实 AI 保持关闭。
 
 ## MR-CRYPTO-SOURCE-ALTERNATIVE — 2026-11-06 正式替代行情源核查
 
